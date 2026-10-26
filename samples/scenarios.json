@@ -1,0 +1,159 @@
+{
+  "_note": "All people, hospitals, IDs and amounts are synthetic. Documents carry a SYNTHETIC SAMPLE watermark.",
+  "scenarios": [
+    {
+      "id": "A_niseko_wrist",
+      "title": "Ski fall in Niseko, Japan - wrist fracture (outpatient)",
+      "policy": {"product": "기본형 해외여행 실손의료보험", "enrolled_on": "2026-07-01", "sum_insured_krw": 10000000, "paid_so_far_krw": 0},
+      "expected": {"decision": "PAID", "codes_kcd": ["S62.0"], "currency": "JPY", "total": 235000},
+      "patient": {"name": "Hana KIM", "dob": "1994-03-15", "passport": "M19940315", "patient_id": "SM-2026-08813"},
+      "documents": [
+        {
+          "template": "jp_receipt.html",
+          "doc_type": "receipt",
+          "data": {
+            "hospital": "Sapporo Minami General Hospital",
+            "address": "3-1 Minami 8-jo Nishi, Chuo-ku, Sapporo, Hokkaido (SYNTHETIC)",
+            "issue_date": "2026/08/12",
+            "department": "Orthopedics / Emergency",
+            "visit": "Outpatient",
+            "copay_pct": 100,
+            "receipt_no": "R-0812-0457",
+            "currency": "JPY",
+            "items": [
+              {"label": "First visit fee", "ja": "初・再診料", "amount": 3000, "category": "consultation"},
+              {"label": "Emergency / after-hours surcharge", "ja": "時間外加算", "amount": 12000, "category": "emergency_fee"},
+              {"label": "Diagnostic imaging (X-ray, wrist 3 views)", "ja": "画像診断", "amount": 18500, "category": "imaging"},
+              {"label": "Treatment - closed reduction", "ja": "処置", "amount": 150000, "category": "procedure"},
+              {"label": "Treatment - splint immobilization", "ja": "処置", "amount": 45000, "category": "procedure"},
+              {"label": "Medications (analgesic, 5 days)", "ja": "投薬", "amount": 6500, "category": "medication"}
+            ],
+            "total": 235000
+          }
+        },
+        {
+          "template": "certificate.html",
+          "doc_type": "medical_certificate",
+          "data": {
+            "style": "jp",
+            "hospital": "Sapporo Minami General Hospital",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "診断書",
+            "issue_date": "2026/08/12",
+            "date_of_visit": "2026/08/12",
+            "diagnoses": [{"label": "Fracture of scaphoid bone, left wrist", "code": "S62.0", "system": "ICD-10"}],
+            "history": "Fell while skiing on a groomed slope at Niseko. Pain and swelling of the left wrist.",
+            "treatment": "X-ray examination, closed reduction and splint immobilization. Outpatient treatment; no admission.",
+            "outcome": "Expected recovery in 6-8 weeks. Follow-up with an orthopedic surgeon after return to Korea.",
+            "doctor": "Dr. Kenji Watanabe (Orthopedics)",
+            "license": "MD-JP-0045121"
+          }
+        }
+      ]
+    },
+    {
+      "id": "B_chiangmai_dogbite",
+      "title": "Dog bite at a night market in Chiang Mai, Thailand - wound + rabies PEP",
+      "policy": {"product": "기본형 해외여행 실손의료보험", "enrolled_on": "2026-07-01", "sum_insured_krw": 10000000, "paid_so_far_krw": 0},
+      "expected": {"decision": "HUMAN_REVIEW", "guardrail": "uncertain_exclusion", "codes_kcd": ["S61.9", "W54.9"], "currency": "THB", "total": 20400},
+      "patient": {"name": "Minseo PARK", "dob": "1993-11-02", "passport": "M19931102", "patient_id": "HN 0098-1234"},
+      "documents": [
+        {
+          "template": "th_receipt.html",
+          "doc_type": "receipt",
+          "data": {
+            "hospital": "Chiang Mai Riverside Hospital",
+            "address": "88 Charoen Rat Rd, Mueang, Chiang Mai 50000 (SYNTHETIC)",
+            "issue_date": "12/08/2026",
+            "visit": "OPD / Emergency",
+            "receipt_no": "TAX INV 26-081207",
+            "currency": "THB",
+            "items": [
+              {"label": "ER Facility Fee", "amount": 1500, "category": "emergency_fee"},
+              {"label": "Doctor Fee - Emergency Physician", "amount": 1200, "category": "consultation"},
+              {"label": "Wound Cleaning & Suture (5 stitches)", "amount": 3800, "category": "procedure"},
+              {"label": "Rabies Vaccine (PCEC) - Dose 1", "amount": 2400, "category": "vaccination"},
+              {"label": "Rabies Immunoglobulin (ERIG)", "amount": 9800, "category": "vaccination"},
+              {"label": "Tetanus Toxoid Injection", "amount": 600, "category": "vaccination"},
+              {"label": "Medicine (antibiotic, analgesic)", "amount": 1100, "category": "medication"}
+            ],
+            "total": 20400
+          }
+        },
+        {
+          "template": "certificate.html",
+          "doc_type": "medical_certificate",
+          "data": {
+            "style": "th",
+            "hospital": "Chiang Mai Riverside Hospital",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "ใบรับรองแพทย์",
+            "issue_date": "12/08/2026",
+            "date_of_visit": "12/08/2026",
+            "diagnoses": [
+              {"label": "Open wound of hand, part unspecified", "code": "S61.9", "system": "ICD-10"},
+              {"label": "External cause: Bitten by dog", "code": "W54", "system": "ICD-10"}
+            ],
+            "history": "Bitten on the hand by a stray dog at a night market. Category III exposure.",
+            "treatment": "Wound irrigation and suture. Post-exposure rabies prophylaxis (vaccine dose 1 + immunoglobulin) and tetanus toxoid given for the bite injury. Next vaccine doses on day 3, 7 and 14.",
+            "outcome": "Outpatient. Continue the vaccine schedule.",
+            "doctor": "Dr. Somchai Rattanakul",
+            "license": "TMC 41275"
+          }
+        }
+      ]
+    },
+    {
+      "id": "C_newyork_panic",
+      "title": "Panic attack in New York, USA - emergency department visit",
+      "policy": {"product": "기본형 해외여행 실손의료보험", "enrolled_on": "2026-07-01", "sum_insured_krw": 10000000, "paid_so_far_krw": 0},
+      "expected": {"decision": "DENIED", "codes_kcd": ["F41.0", "R00.2"], "currency": "USD", "total": 3200},
+      "patient": {"name": "Jieun LEE", "dob": "1997-06-21", "passport": "M19970621", "patient_id": "MRN 40018-772"},
+      "documents": [
+        {
+          "template": "us_statement.html",
+          "doc_type": "receipt",
+          "data": {
+            "hospital": "Hudson West Medical Center",
+            "address": "1000 Tenth Avenue, New York, NY 10019 (SYNTHETIC)",
+            "statement_date": "08/24/2026",
+            "service_date": "08/20/2026",
+            "account": "ACCT 7731-20260820",
+            "currency": "USD",
+            "items": [
+              {"rev": "0450", "code": "99284", "label": "ED VISIT LVL 4", "units": 1, "amount": 1650.00, "category": "emergency_fee"},
+              {"rev": "0730", "code": "93005", "label": "ECG TRACING ONLY", "units": 1, "amount": 410.00, "category": "lab"},
+              {"rev": "0300", "code": "80048", "label": "BASIC METABOLIC PANEL", "units": 1, "amount": 260.00, "category": "lab"},
+              {"rev": "0300", "code": "85025", "label": "CBC W/ AUTO DIFF", "units": 1, "amount": 180.00, "category": "lab"},
+              {"rev": "0300", "code": "84484", "label": "TROPONIN QUANT", "units": 1, "amount": 320.00, "category": "lab"},
+              {"rev": "0250", "code": "", "label": "PHARMACY - LORAZEPAM 1MG PO", "units": 1, "amount": 45.00, "category": "medication"},
+              {"rev": "0981", "code": "99284", "label": "PHYSICIAN SVC - EMERGENCY", "units": 1, "amount": 335.00, "category": "consultation"}
+            ],
+            "total": 3200.00
+          }
+        },
+        {
+          "template": "certificate.html",
+          "doc_type": "medical_certificate",
+          "data": {
+            "style": "us",
+            "hospital": "Hudson West Medical Center",
+            "title": "EMERGENCY DEPARTMENT DISCHARGE SUMMARY",
+            "title_local": "",
+            "issue_date": "08/20/2026",
+            "date_of_visit": "08/20/2026",
+            "diagnoses": [
+              {"label": "Panic disorder [episodic paroxysmal anxiety]", "code": "F41.0", "system": "ICD-10-CM"},
+              {"label": "Palpitations", "code": "R00.2", "system": "ICD-10-CM"}
+            ],
+            "history": "Sudden palpitations, shortness of breath and hand tingling at the hotel. ECG normal sinus rhythm; troponin negative.",
+            "treatment": "Lorazepam 1 mg PO. Observation 3 hours. Discharged home the same day.",
+            "outcome": "Discharged in stable condition. Follow up with primary care or psychiatry.",
+            "doctor": "Rachel Okafor, MD (Emergency Medicine)",
+            "license": "NY 318842"
+          }
+        }
+      ]
+    }
+  ]
+}

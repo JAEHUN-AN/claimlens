@@ -1,0 +1,12 @@
+{
+  "basis": "고정 시연 환율(DEMO) — 시장 환율이 아니다",
+  "basis_en": "Fixed demo rates for synthetic scenarios, not market data",
+  "rates": {
+    "USD": 1388.89,
+    "JPY": 9.43,
+    "THB": 41.9,
+    "EUR": 1510.0,
+    "SGD": 1075.0,
+    "VND": 0.0545
+  }
+}
