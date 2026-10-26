@@ -1,0 +1,23 @@
+# 비밀값 — 키는 .env에만
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# 데이터는 저장소에 넣지 않는다(약관·코드표는 환경 변수 경로로)
+data/law/
+data/kcd/
+data/external/
+
+# 실측 원본·임시
+out/
+*.log
