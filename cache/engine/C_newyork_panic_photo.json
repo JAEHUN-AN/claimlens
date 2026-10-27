@@ -1,0 +1,127 @@
+{
+  "engine": "clausegraph@claimlens-base-20261026 (pre-existing open-source engine, pinned)",
+  "inputs": {
+    "claim_id": "C_newyork_panic-photo",
+    "product": "기본형 해외여행 실손의료보험",
+    "enrolled_on": "2026-07-01",
+    "narrative": "응급실 진료, 처치, 검체 검사, 약제, 진찰",
+    "diagnosis_codes": [
+      "F41.0",
+      "R00.2"
+    ],
+    "claimed_amount_krw": 4444448,
+    "treated_abroad": true,
+    "sum_insured": 10000000,
+    "paid_this_year": 0,
+    "institution": null,
+    "copay_rate": null
+  },
+  "output": {
+    "claim_id": "C_newyork_panic-photo",
+    "decision": "DENIED",
+    "amount": 0,
+    "reason": "진단코드 F41.0가 약관이 정한 면책 범위에 든다",
+    "evidence": [
+      {
+        "node_uid": "20260506/기본형 해외여행 실손의료보험/제4조#(2)질병의료비 해외#2-1",
+        "product": "기본형 해외여행 실손의료보험",
+        "article_number": "4",
+        "article_title": "보상하지 않는 사항",
+        "quote": "정신 및 행동장애(F04∼F99) (다만, F04∼F09, F20∼F29, F30∼F39, F40∼F48, F51, F90∼F98과 관련한 치료에서 발생한 「국민건강보험법」에 따른 요양급여에 해당하는 의료비는 보상하며, 피보험자가 보험가입당시 태아인 경우에는 정신발달장애(F80∼F89)와 관련한 치료에서 발생한 「국민건강…",
+        "role": "exclusion"
+      }
+    ],
+    "applied_version": "20260506",
+    "steps": [
+      {
+        "step": "보장탐색:버전확정",
+        "ok": true,
+        "summary": "가입일 2026-07-01 -> 약관 20260506",
+        "elapsed_ms": 60.41249993722886,
+        "evidence": [],
+        "detail": {}
+      },
+      {
+        "step": "보장탐색:조항",
+        "ok": true,
+        "summary": "보장 조항 4개",
+        "elapsed_ms": 3.975600004196167,
+        "evidence": [
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제1조",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "1",
+            "article_title": "보장종목",
+            "quote": "회사는 기본형 해외여행 실손의료보험상품을 상해의료비형, 질병의료비형 등 2가지 이내의 보장종목으로 구성합니다. <개정 2015.11.30., 2021.7.1.> …(표)",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제3조",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "3",
+            "article_title": "보장종목별 보상내용",
+            "quote": "회사가 이 계약의 보험기간 중 보장종목별로 각각 보상하는 내용은 다음과 같습니다. …(표)",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제6조",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "6",
+            "article_title": "보험금 지급사유 발생의 통지",
+            "quote": "계약자, 피보험자 또는 보험수익자는 제3조(보장종목별 보상내용)에서 정한 보험금 지급사유가 발생한 것을 알았을 때에는 지체 없이 그 사실을 회사에 알려야 합니다. <개정 2015.11.30.>",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제8조",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "8",
+            "article_title": "보험금의 지급절차",
+            "quote": "① 회사는 제7조(보험금의 청구)에서 정한 서류를 접수한 때에는 접수증을 드리고 휴대전화 문자메시지 또는 전자우편 등으로도 송부하며, 그 서류를 접수한 날부터 3영업일 이내에 보험금을 지급합니다. <개정 2021.7.1.> ② 제1항에도 불구하고 회사는 보험금 지급사유를 조사ㆍ확인하기…",
+            "role": "coverage"
+          }
+        ],
+        "detail": {}
+      },
+      {
+        "step": "면책검증",
+        "ok": true,
+        "summary": "면책 34건을 전부 검토 -> 확실 1, 불확실 0",
+        "elapsed_ms": 83.72400002554059,
+        "evidence": [
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제4조#(2)질병의료비 해외#2-1",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "4",
+            "article_title": "보상하지 않는 사항",
+            "quote": "정신 및 행동장애(F04∼F99) (다만, F04∼F09, F20∼F29, F30∼F39, F40∼F48, F51, F90∼F98과 관련한 치료에서 발생한 「국민건강보험법」에 따른 요양급여에 해당하는 의료비는 보상하며, 피보험자가 보험가입당시 태아인 경우에는 정신발달장애(F80∼F89)와 관련한 치료에서 발생한 「국민건강…",
+            "role": "exclusion"
+          }
+        ],
+        "detail": {
+          "considered": 34,
+          "certain": 1
+        }
+      },
+      {
+        "step": "검증/심판",
+        "ok": true,
+        "summary": "DENIED 유지",
+        "elapsed_ms": 0.03950006794184446,
+        "evidence": [
+          {
+            "node_uid": "20260506/기본형 해외여행 실손의료보험/제4조#(2)질병의료비 해외#2-1",
+            "product": "기본형 해외여행 실손의료보험",
+            "article_number": "4",
+            "article_title": "보상하지 않는 사항",
+            "quote": "정신 및 행동장애(F04∼F99) (다만, F04∼F09, F20∼F29, F30∼F39, F40∼F48, F51, F90∼F98과 관련한 치료에서 발생한 「국민건강보험법」에 따른 요양급여에 해당하는 의료비는 보상하며, 피보험자가 보험가입당시 태아인 경우에는 정신발달장애(F80∼F89)와 관련한 치료에서 발생한 「국민건강…",
+            "role": "exclusion"
+          }
+        ],
+        "detail": {}
+      }
+    ],
+    "guardrails": [],
+    "trace_id": "1f402598c5ba"
+  },
+  "recorded_at": "2026-10-27T02:23:02.233299+00:00"
+}

@@ -1,0 +1,143 @@
+{
+  "engine": "clausegraph@claimlens-base-20261026 (pre-existing open-source engine, pinned)",
+  "inputs": {
+    "claim_id": "S2_seoul_worker_bronchitis-photo",
+    "product": "기본형 실손의료보험(급여 실손의료비)",
+    "enrolled_on": "2026-07-01",
+    "narrative": "진찰, 검체 검사, 영상 검사, 약제, 처치",
+    "diagnosis_codes": [
+      "J20.9"
+    ],
+    "claimed_amount_krw": 45000,
+    "treated_abroad": false,
+    "sum_insured": null,
+    "paid_this_year": 0,
+    "institution": "종합병원",
+    "copay_rate": 0.5
+  },
+  "output": {
+    "claim_id": "S2_seoul_worker_bronchitis-photo",
+    "decision": "PARTIAL",
+    "amount": 22500,
+    "reason": "통원 공제 22,500원(여러 항 중 큰 쪽) / 연간한도 잔액 50,000,000원 이내",
+    "evidence": [
+      {
+        "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제1조",
+        "product": "기본형 실손의료보험(급여 실손의료비)",
+        "article_number": "1",
+        "article_title": "보장종목",
+        "quote": "① 회사가 판매하는 기본형 실손의료보험상품은 다음과 같이 상해급여형, 질병급여형의 2개 보장종목으로 구성되어 있습니다. <개정 2015.11.30., 2017.3.22., 2021.7.1.> …(표)",
+        "role": "coverage"
+      },
+      {
+        "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제3조",
+        "product": "기본형 실손의료보험(급여 실손의료비)",
+        "article_number": "3",
+        "article_title": "보장종목별 보상내용",
+        "quote": "회사가 이 계약의 보험기간 중 보장종목별로 각각 보상하거나 공제하는 내용은 다음과 같습니다. …(표)",
+        "role": "coverage"
+      }
+    ],
+    "applied_version": "20260506",
+    "steps": [
+      {
+        "step": "보장탐색:버전확정",
+        "ok": true,
+        "summary": "가입일 2026-07-01 -> 약관 20260506",
+        "elapsed_ms": 75.85849997121841,
+        "evidence": [],
+        "detail": {}
+      },
+      {
+        "step": "보장탐색:조항",
+        "ok": true,
+        "summary": "보장 조항 4개",
+        "elapsed_ms": 11.938199982978404,
+        "evidence": [
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제1조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "1",
+            "article_title": "보장종목",
+            "quote": "① 회사가 판매하는 기본형 실손의료보험상품은 다음과 같이 상해급여형, 질병급여형의 2개 보장종목으로 구성되어 있습니다. <개정 2015.11.30., 2017.3.22., 2021.7.1.> …(표)",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제3조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "3",
+            "article_title": "보장종목별 보상내용",
+            "quote": "회사가 이 계약의 보험기간 중 보장종목별로 각각 보상하거나 공제하는 내용은 다음과 같습니다. …(표)",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제6조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "6",
+            "article_title": "보험금 지급사유 발생의 통지",
+            "quote": "계약자, 피보험자 또는 보험수익자는 제3조(보장종목별 보상내용)에서 정한 보험금 지급사유가 발생한 것을 알았을 때에는 지체 없이 그 사실을 회사에 알려야 합니다. <개정 2015.11.30.>",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제8조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "8",
+            "article_title": "보험금의 지급절차",
+            "quote": "① 회사는 제7조(보험금의 청구)에서 정한 서류를 접수한 때에는 접수증을 드리고 휴대전화 문자메시지 또는 전자우편 등으로도 송부하며, 그 서류를 접수한 날부터 3영업일 이내에 보험금을 지급합니다. <개정 2021.7.1.> ② 제1항에도 불구하고 회사는 보험금 지급사유를 조사ㆍ확인하기…",
+            "role": "coverage"
+          }
+        ],
+        "detail": {}
+      },
+      {
+        "step": "면책검증",
+        "ok": true,
+        "summary": "면책 31건을 전부 검토 -> 확실 0, 불확실 0",
+        "elapsed_ms": 79.04510002117604,
+        "evidence": [],
+        "detail": {
+          "considered": 31,
+          "certain": 0
+        }
+      },
+      {
+        "step": "금액산정",
+        "ok": true,
+        "summary": "통원 공제 22,500원(여러 항 중 큰 쪽) / 연간한도 잔액 50,000,000원 이내",
+        "elapsed_ms": 0.15590002294629812,
+        "evidence": [],
+        "detail": {
+          "rule": "기본형 실손의료보험(급여 실손의료비)/(2)질병급여"
+        }
+      },
+      {
+        "step": "검증/심판",
+        "ok": true,
+        "summary": "PARTIAL 유지",
+        "elapsed_ms": 0.03560003824532032,
+        "evidence": [
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제1조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "1",
+            "article_title": "보장종목",
+            "quote": "① 회사가 판매하는 기본형 실손의료보험상품은 다음과 같이 상해급여형, 질병급여형의 2개 보장종목으로 구성되어 있습니다. <개정 2015.11.30., 2017.3.22., 2021.7.1.> …(표)",
+            "role": "coverage"
+          },
+          {
+            "node_uid": "20260506/기본형 실손의료보험(급여 실손의료비)/제3조",
+            "product": "기본형 실손의료보험(급여 실손의료비)",
+            "article_number": "3",
+            "article_title": "보장종목별 보상내용",
+            "quote": "회사가 이 계약의 보험기간 중 보장종목별로 각각 보상하거나 공제하는 내용은 다음과 같습니다. …(표)",
+            "role": "coverage"
+          }
+        ],
+        "detail": {}
+      }
+    ],
+    "guardrails": [],
+    "trace_id": "66c7be3e5613"
+  },
+  "recorded_at": "2026-10-27T02:22:55.917029+00:00"
+}
