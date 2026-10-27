@@ -256,7 +256,10 @@ def format_markdown(pack: dict[str, Any]) -> str:
             text["f_pid"], patient["patient_id"], conflicts.get("patient_id"), mark, differs
         ),
         f"- {text['f_hospital']}: {visit['hospital']}",
-        f"- {text['f_stay']}: {stay}, {visit['period_from']} to {visit['period_to']}",
+        (
+            f"- {text['f_stay']}: {stay}, {visit['period_from']} "
+            f"{text['stay_to']} {visit['period_to']}"
+        ),
         "",
         f"## {text['h_codes']}",
         "",
@@ -346,7 +349,7 @@ def format_html(pack: dict[str, Any]) -> str:
 <li>{html_pii(text["f_passport"], patient["passport"], conflicts.get("passport"), mark, differs)}</li>
 <li>{html_pii(text["f_pid"], patient["patient_id"], conflicts.get("patient_id"), mark, differs)}</li>
 <li>{html.escape(text["f_hospital"])}: {html.escape(visit["hospital"])}</li>
-<li>{html.escape(text["f_stay"])}: {stay}, {html.escape(visit["period_from"])} to {html.escape(visit["period_to"])}</li>
+<li>{html.escape(text["f_stay"])}: {stay}, {html.escape(visit["period_from"])} {html.escape(text["stay_to"])} {html.escape(visit["period_to"])}</li>
 </ul>
 <h2>{html.escape(text["h_codes"])}</h2>
 <p>{html.escape(text["f_certificate"])}: {html.escape(pack["diagnosis"]["label"] or "-")}</p>

@@ -481,3 +481,24 @@ Round 3 items 23 and 24.
 
 - Live calls: Spark about 120 agent turns across 4 recordings
   (3 discarded: prompt fixes, namespace lesson), about $0.40.
+
+## 2026-10-27 — Backlog session: final touches
+
+Round 3 item 27.
+
+### Muse Code (coding agent)
+
+- (a) First screen: product name, the "crosses borders" tagline, and a
+  Read → Verify → Decide-or-pack strip above the sample picker; the
+  page title drops "replay demo" (replay stays a small note).
+- (b) Honest scorecard notes in `docs/agent-eval.md` and the README:
+  each case is one recorded dialogue replayed, and
+  confirm-voice-date is the voice-intake rule, not the agent loop.
+- (c) Vietnamese pack stay line now uses the translated "to" (đến);
+  the pack translation was re-recorded for the new sentence key.
+- (d) Voice scene keeps one `work_injury` badge (headline only).
+- Tests: 122 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: Spark 1 (Vietnamese pack re-translation, about $0.01).

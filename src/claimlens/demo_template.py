@@ -87,6 +87,12 @@ box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:10;color:var(--ink)}
 #prov-panel .plink{background:none;border:none;padding:0;cursor:pointer;color:var(--accent);
 font-size:.9rem;text-align:left;text-decoration:underline}
 #flow-view{border-top:2px solid var(--ink);margin-top:.5rem;padding-top:.8rem}
+.brand{font-size:1.6rem;font-weight:800;margin:.2rem 0 0}
+.tagline{font-size:1.05rem;margin:.1rem 0 .4rem}
+ol.strip3{list-style:none;display:flex;gap:.5rem;padding:0;margin:.2rem 0 .6rem;flex-wrap:wrap}
+ol.strip3 li{border:1px solid var(--line);border-radius:.3rem;padding:.25rem .7rem;
+background:var(--paper-2);font-size:.9rem}
+ol.strip3 li:not(:last-child)::after{content:"→";margin-left:.7rem;color:var(--ink-dim)}
 .flow-pick{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0}
 .fpick{display:flex;align-items:center;gap:.4rem;padding:.35rem .6rem;cursor:pointer;font-size:.85rem}
 img.thumb{width:44px;height:44px;object-fit:cover;border:1px solid var(--line)}
@@ -183,7 +189,10 @@ function flowView(f){
     const thumb=e.thumb?`<img class="thumb" src="${esc(e.thumb)}" onerror="this.remove()"/>`:'';
     return `<button class="fpick" onclick="pickFlow('${e.id}')">${thumb}${esc(e.title)}</button>`;
   }).join('');
-  return `<div id="flow-view"><h2>Process a claim</h2>`
+  return `<div id="flow-view"><p class="brand">ClaimLens</p>`
+    +`<p class="tagline">Medical paperwork that crosses borders — in both directions</p>`
+    +`<ol class="strip3"><li>Read</li><li>Verify</li><li>Decide or build a Claim Pack</li></ol>`
+    +`<h2>Process a claim</h2>`
     +`<p><small class="dim">Replay mode: pick a sample. Every step below replays a recording.</small></p>`
     +`<div class="flow-pick">${picks}</div>`
     +`<div id="flow-drop">Drop a document photo here — or pick an example above.</div>`
@@ -290,7 +299,7 @@ function voiceScene(s){
       +`<table class="bill"><tr><th>Fact</th><th>Value</th><th>Quoted words</th></tr>${rows}</table>`
       +`<p>To confirm with the person:</p><ul class="tight">${asks}</ul>`;
   }).join('');
-  return `<h3>Voice intake</h3><div class="noprov"><p>${badge(e.outcome)}</p>`
+  return `<h3>Voice intake</h3><div class="noprov">`
     +`<p><strong>${esc(s.next_step)}</strong> (${esc(e.rule)})</p>`
     +`<p><small class="dim">${esc(e.basis)}</small></p>${clips}</div>`;
 }
@@ -434,7 +443,7 @@ def render_page(payload: dict[str, Any]) -> str:
 <title>ClaimLens replay demo</title>
 <style>{CSS}</style></head>
 <body>
-<h1>ClaimLens replay demo</h1>
+<h1>ClaimLens</h1>
 <p><small class="dim">All documents are synthetic. Rendered from committed replay caches only.</small></p>
 <nav id="scenes"></nav>
 <div id="stages"></div>

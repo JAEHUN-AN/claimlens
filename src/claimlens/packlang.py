@@ -45,6 +45,7 @@ def source_sentences() -> dict[str, str]:
         "f_stay": "Stay",
         "stay_in": "inpatient",
         "stay_out": "outpatient",
+        "stay_to": "to",
         "f_certificate": "Certificate",
         "f_kcd": "KCD",
         "f_who": "WHO ICD-10",

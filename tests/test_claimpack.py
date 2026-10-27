@@ -101,6 +101,8 @@ def test_s3_pack_vietnamese_from_replay():
     text = format_markdown(vi)
     assert "15,000,000" in text and "S72.141A" in text
     assert "# Claim Pack" not in text
+    assert "2026-09-03 đến 2026-09-09" in text
+    assert "2026-09-03 to 2026-09-09" in format_markdown(en)
     page = format_html(vi)
     assert '<html lang="vi">' in page
     assert "15,000,000" in page
