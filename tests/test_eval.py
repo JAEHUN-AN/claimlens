@@ -3,6 +3,22 @@
 from claimlens.eval import compare, eval_sample, format_markdown, ground_truth, load_scenarios
 
 
+def test_eval_sample_has_open_columns():
+    row = eval_sample("A_niseko_wrist", "photo")
+    opened = row["open"]
+    assert opened["total"] == "ok"
+    assert opened["lines"] == "6/6"
+    assert opened["checks"] == "n/a"
+    assert "reasoning" in opened["tokens"]
+    assert opened["latency_ms"] > 0
+
+
+def test_open_columns_pin_known_gaps():
+    assert eval_sample("C_newyork_panic", "photo")["open"]["total"] == "FAIL"
+    assert eval_sample("S3_us_tourist_hip_fracture", "clean")["open"]["lines"] == "12/12"
+    assert eval_sample("S2_seoul_worker_bronchitis", "photo")["open"]["checks"] == "FAIL"
+
+
 def test_ground_truth_covers_all_samples():
     scenarios = load_scenarios()
     assert set(scenarios) >= {

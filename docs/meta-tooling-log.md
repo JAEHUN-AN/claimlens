@@ -358,3 +358,36 @@ Round 2 items 15 and 17.
 - Live calls: Spark 15 (2 tool probes, 11 + 7 agent turns across two
   recordings, 6 fact extractions across three), about $0.10; ASR 3
   (1 probe, 2 clips; no usage block). Session total about $0.10-0.15.
+
+## 2026-10-27 — Backlog session: voice confirmation and Spark Open reads
+
+Round 2 items 17b and 16.
+
+### Muse Code (coding agent)
+
+- Item 17b: re-transcribed the owner's re-synthesized ko clip (24 kHz
+  mono, spelled-out date; en recording untouched) — incident date now
+  2026-10-20, matching the truth. Heard date/visa/number-like facts are
+  marked `needs_confirmation` with quoted words; `intake()` returns
+  ask_user-shaped confirmations ("I heard 20 October — is that right?")
+  to be asked before use. The work_injury outcome stands. Demo voice
+  scene shows "to confirm" tags plus the questions; agent timeline hides
+  None parts ("WHO J20.9" instead of "WHO J20.9 + None; CM None").
+- Item 16: `BasetenProvider.read_documents` runs the full reading on
+  `meta-models/muse-spark-open-1026` (forced `submit_reading` tool call,
+  images as data URLs, latency recorded). All 5 samples x 2 variants
+  cached; `claimlens eval` gained the open column set (total, lines,
+  checks, tokens with reasoning, latency ms, cost) next to hosted Spark.
+  Checks and the verify loop run on either model (same provider shape;
+  a stub re-read verifies the open S2 reading in tests).
+- Open vs hosted: match on A/B (both variants) and all S2/S3 cells;
+  short on C photo total (0 vs 3,200), S2 line amounts at half value,
+  S3 photo 13 charge rows (summary row included); open wins S3 clean
+  12/12 where hosted base has 0/12. README states this plainly.
+- Tests: 112 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: ASR 1 (ko re-transcription), Spark 1 (ko facts),
+  Baseten 10 (all open readings, $0 on granted credits; no rates
+  configured so open cost shows `-`). Session total about $0.01.

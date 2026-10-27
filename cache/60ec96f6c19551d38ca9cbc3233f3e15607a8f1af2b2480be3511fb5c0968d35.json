@@ -1,0 +1,12 @@
+{
+  "model": "meta-models/muse-spark-open-1026",
+  "output_text": "{\"documents\": [{\"doc_type\": \"receipt\", \"country\": \"JP\", \"provider_name\": \"Sapporo Minami General Hospital\", \"service_date\": \"2026-08-12\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"JPY\", \"total_amount\": 235000, \"diagnoses\": [], \"line_items\": [{\"description\": \"First visit fee\", \"category\": \"consultation\", \"amount\": 3000}, {\"description\": \"Emergency / after-hours surcharge\", \"category\": \"emergency_fee\", \"amount\": 12000}, {\"description\": \"Diagnostic imaging (X-ray, wrist 3 views)\", \"category\": \"imaging\", \"amount\": 18500}, {\"description\": \"Treatment - closed reduction\", \"category\": \"procedure\", \"amount\": 150000}, {\"description\": \"Treatment - splint immobilization\", \"category\": \"procedure\", \"amount\": 45000}, {\"description\": \"Medications (analgesic, 5 days)\", \"category\": \"medication\", \"amount\": 6500}], \"pii\": [{\"kind\": \"name\", \"value\": \"Hana KIM\"}, {\"kind\": \"date_of_birth\", \"value\": \"1994-03-15\"}, {\"kind\": \"passport\", \"value\": \"M19940315\"}, {\"kind\": \"patient_id\", \"value\": \"SM-2026-08813\"}], \"kr_bill\": null}, {\"doc_type\": \"medical_certificate\", \"country\": \"JP\", \"provider_name\": \"Sapporo Minami General Hospital\", \"service_date\": \"2026-08-12\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"\", \"total_amount\": null, \"diagnoses\": [{\"code\": \"S62.0\", \"system\": \"ICD-10\", \"label\": \"Fracture of scaphoid bone, left wrist\", \"external_cause\": \"\", \"final\": null}], \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Hana KIM\"}, {\"kind\": \"date_of_birth\", \"value\": \"1994-03-15\"}, {\"kind\": \"passport\", \"value\": \"M19940315\"}, {\"kind\": \"patient_id\", \"value\": \"SM-2026-08813\"}], \"kr_bill\": null}]}",
+  "reasoning_chars": 0,
+  "latency_ms": 6469,
+  "usage": {
+    "input_tokens": 6264,
+    "output_tokens": 521,
+    "total_tokens": 6785,
+    "reasoning_tokens": 0
+  }
+}

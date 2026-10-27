@@ -1,0 +1,12 @@
+{
+  "model": "meta-models/muse-spark-open-1026",
+  "output_text": "{\"documents\": [{\"doc_type\": \"receipt\", \"country\": \"US\", \"provider_name\": \"Hudson West Medical Center\", \"service_date\": \"2026-08-20\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"USD\", \"total_amount\": 3200.0, \"diagnoses\": [], \"line_items\": [{\"description\": \"ED VISIT LVL 4\", \"category\": \"emergency_fee\", \"amount\": 1650.0}, {\"description\": \"ECG TRACING ONLY\", \"category\": \"procedure\", \"amount\": 410.0}, {\"description\": \"BASIC METABOLIC PANEL\", \"category\": \"lab\", \"amount\": 260.0}, {\"description\": \"CBC W/ AUTO DIFF\", \"category\": \"lab\", \"amount\": 180.0}, {\"description\": \"TROPONIN QUANT\", \"category\": \"lab\", \"amount\": 320.0}, {\"description\": \"PHARMACY - LORAZEPAM 1MG PO\", \"category\": \"medication\", \"amount\": 45.0}, {\"description\": \"PHYSICIAN SVC - EMERGENCY\", \"category\": \"consultation\", \"amount\": 335.0}], \"pii\": [{\"kind\": \"name\", \"value\": \"Jieun LEE\"}, {\"kind\": \"date_of_birth\", \"value\": \"1997-06-21\"}, {\"kind\": \"patient_id\", \"value\": \"ACCT 7731-20260820 / MRN 40018-772\"}], \"kr_bill\": null}, {\"doc_type\": \"medical_certificate\", \"country\": \"US\", \"provider_name\": \"Hudson West Medical Center\", \"service_date\": \"2026-08-20\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"\", \"total_amount\": null, \"diagnoses\": [{\"code\": \"F41.0\", \"system\": \"ICD-10-CM\", \"label\": \"Panic disorder [episodic paroxysmal anxiety]\", \"external_cause\": \"\", \"final\": null}, {\"code\": \"R00.2\", \"system\": \"ICD-10-CM\", \"label\": \"Palpitations\", \"external_cause\": \"\", \"final\": null}], \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Jieun LEE\"}, {\"kind\": \"date_of_birth\", \"value\": \"1997-06-21\"}, {\"kind\": \"passport\", \"value\": \"M19970621\"}, {\"kind\": \"patient_id\", \"value\": \"MRN 40018-772\"}], \"kr_bill\": null}]}",
+  "reasoning_chars": 0,
+  "latency_ms": 7744,
+  "usage": {
+    "input_tokens": 6007,
+    "output_tokens": 598,
+    "total_tokens": 6605,
+    "reasoning_tokens": 0
+  }
+}

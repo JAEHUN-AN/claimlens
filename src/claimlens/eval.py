@@ -199,6 +199,56 @@ def read_with_fallback(sample: Path, variant: str) -> dict[str, Any]:
     return {"result": result, "calls": calls, "provider": "meta"}
 
 
+def read_open_with_fallback(sample: Path, variant: str) -> dict[str, Any]:
+    """Open-weights reading: replay first, record live only when missing."""
+    from claimlens.providers.baseten import MODEL as OPEN_MODEL
+    from claimlens.providers.baseten import BasetenProvider, reading_tool_schema
+    from claimlens.providers.meta import prepare_image
+
+    load_dotenv()
+    images = resolve_sample_images(sample, variant)
+    schema = reading_schema()
+    key_schema = reading_tool_schema(schema)
+    blobs = [prepare_image(p) for p in images]
+    key = replay_cache.cache_key(blobs, READING_INSTRUCTIONS, key_schema, OPEN_MODEL)
+    try:
+        payload = replay_cache.load(key)
+    except CacheMissError:
+        if os.environ.get("CLAIMLENS_PROVIDER", "meta").lower() == "replay":
+            raise
+        BasetenProvider().read_documents(images, READING_INSTRUCTIONS, schema)
+        payload = replay_cache.load(key)
+        return {"key_schema": key_schema, "payload": payload, "provider": "baseten"}
+    return {"key_schema": key_schema, "payload": payload, "provider": "replay"}
+
+
+def eval_sample_open(sample_id: str, variant: str, truth: dict[str, Any]) -> dict[str, Any]:
+    sample = samples_dir() / sample_id
+    try:
+        envelope = read_open_with_fallback(sample, variant)
+    except (FileNotFoundError, RuntimeError, LookupError) as exc:
+        return {"error": str(exc)}
+    from claimlens.providers.baseten import MODEL as OPEN_MODEL
+
+    replay = ReplayProvider(model=envelope["payload"].get("model", OPEN_MODEL))
+    result = replay.read_documents(
+        resolve_sample_images(sample, variant), READING_INSTRUCTIONS, envelope["key_schema"]
+    )
+    metrics = compare(sample_id, truth, result)
+    usage = envelope["payload"].get("usage", {})
+    total = int(usage.get("total_tokens", 0))
+    reasoning = int(usage.get("reasoning_tokens", 0))
+    return {
+        "total": metrics["total"],
+        "lines": metrics["lines"],
+        "checks": metrics["checks"],
+        "tokens": f"{total} ({reasoning} reasoning)",
+        "latency_ms": envelope["payload"].get("latency_ms"),
+        "cost": None,
+        "provider": envelope.get("provider", ""),
+    }
+
+
 def eval_sample(sample_id: str, variant: str) -> dict[str, Any]:
     scenarios = load_scenarios()
     scenario = scenarios[sample_id]
@@ -218,6 +268,11 @@ def eval_sample(sample_id: str, variant: str) -> dict[str, Any]:
     metrics["tokens"] = tokens
     metrics["cost"] = round(cost, 6) if has_cost else None
     metrics["provider"] = envelope.get("provider", "")
+    opened = eval_sample_open(sample_id, variant, truth)
+    if "error" in opened:
+        metrics["open"] = None
+    else:
+        metrics["open"] = opened
     return metrics
 
 
@@ -232,20 +287,36 @@ def eval_all() -> list[dict[str, Any]]:
 def format_markdown(rows: list[dict[str, Any]]) -> str:
     header = (
         "| sample | variant | docs | currency | total | lines | amounts | diags "
-        "| kr_cells | instit | checks | pii | calls | tokens | cost |"
+        "| kr_cells | instit | checks | pii | calls | tokens | cost "
+        "| open_total | open_lines | open_checks | open_tokens | open_latency_ms | open_cost |"
     )
-    sep = "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+    sep = (
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+        "---|---|---|---|---|---|"
+    )
     lines = [header, sep]
     for r in rows:
         if "error" in r:
             lines.append(f"| {r['sample']} | {r['variant']} | ERROR: {r['error']} |")
             continue
         cost = "-" if r["cost"] is None else f"${r['cost']:.4f}"
+        opened = r.get("open") or {}
+        latency = opened.get("latency_ms")
+        open_cells = " | ".join(
+            [
+                str(opened.get("total", "-")),
+                str(opened.get("lines", "-")),
+                str(opened.get("checks", "-")),
+                str(opened.get("tokens", "-")),
+                "-" if latency is None else str(latency),
+                "-",
+            ]
+        )
         lines.append(
             f"| {r['sample']} | {r['variant']} | {r['docs']} | {r['currency']} "
             f"| {r['total']} | {r['lines']} | {r['amounts']} | {r['diags']} "
             f"| {r['kr_cells']} | {r['instit']} | {r['checks']} | {r['pii']} "
-            f"| {r['calls']} | {r['tokens']} | {cost} |"
+            f"| {r['calls']} | {r['tokens']} | {cost} | {open_cells} |"
         )
     return "\n".join(lines) + "\n"
 

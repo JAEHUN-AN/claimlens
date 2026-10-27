@@ -62,6 +62,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Text-only, strict schema; amounts and clause IDs copied by code |
 | Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Strict schema; amounts copied by code |
 | Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_labels` tool call |
+| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_reading` tool call, images as data URLs |
 | Mask seals and signatures | `sam-3.1` (hosted) | One noun phrase per request, box tags painted on a copy |
 
 Every number shown to a user comes from a document reading, a deterministic check,
@@ -85,6 +86,32 @@ tokens and cost in [docs/eval.md](docs/eval.md)):
 | S2_seoul_worker_bronchitis | clean | ok | 5/5 | ok | 1/1 | 10/10 | pass | 2/2 |
 | S3_us_tourist_hip_fracture | photo | ok | 12/12 | ok | 1/1 | 10/10 | pass | 3/4 |
 | S3_us_tourist_hip_fracture | clean | ok | 0/12 | FAIL | 1/1 | 10/10 | FAIL | 4/4 |
+
+Document reading on hosted Spark vs Spark Open (Baseten
+`meta-models/muse-spark-open-1026`, forced tool call; full side-by-side with
+tokens, latency, and cost in [docs/eval.md](docs/eval.md)):
+
+| sample | variant | hosted total / lines / checks | open total / lines / checks |
+|---|---|---|---|
+| A_niseko_wrist | photo | ok / 6/6 / n/a | ok / 6/6 / n/a |
+| A_niseko_wrist | clean | ok / 6/6 / n/a | ok / 6/6 / n/a |
+| B_chiangmai_dogbite | photo | ok / 7/7 / n/a | ok / 7/7 / n/a |
+| B_chiangmai_dogbite | clean | ok / 7/7 / n/a | ok / 7/7 / n/a |
+| C_newyork_panic | photo | ok / 7/7 / n/a | FAIL / 7/7 / n/a |
+| C_newyork_panic | clean | ok / 7/7 / n/a | ok / 7/7 / n/a |
+| S2_seoul_worker_bronchitis | photo | ok / 5/5 / pass | ok / 5/5 / FAIL |
+| S2_seoul_worker_bronchitis | clean | ok / 5/5 / pass | ok / 5/5 / FAIL |
+| S3_us_tourist_hip_fracture | photo | ok / 12/12 / pass | ok / 12/12 / FAIL |
+| S3_us_tourist_hip_fracture | clean | ok / 0/12 / FAIL | ok / 12/12 / pass |
+
+Where open weights match: A and B on both variants (totals and all line
+items), and all S2/S3 receipt cells 1–10 identical to hosted Spark. Where
+they fall short: C photo total read as 0 (truth 3,200); S2 line amounts at
+half value, so `lines_sum` fails; S3 photo includes the summary row as a
+13th charge row, so `lines_count` fails. One win for open weights: S3 clean
+12/12 lines with checks passing, where the hosted base reading has 0/12.
+Open reads use about a third more tokens and take 5–9 s; `reasoning_tokens`
+reports 0 and cost shows `-` (no Baseten rates configured).
 
 Pack translation on hosted Spark vs Spark Open (12 S3 row labels):
 

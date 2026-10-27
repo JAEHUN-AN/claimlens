@@ -1,0 +1,12 @@
+{
+  "model": "meta-models/muse-spark-open-1026",
+  "output_text": "{\"documents\": [{\"doc_type\": \"receipt\", \"country\": \"TH\", \"provider_name\": \"Chiang Mai Riverside Hospital\", \"service_date\": \"2026-08-12\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"THB\", \"total_amount\": 20400.0, \"diagnoses\": [], \"line_items\": [{\"description\": \"ER Facility Fee\", \"category\": \"emergency_fee\", \"amount\": 1500.0}, {\"description\": \"Doctor Fee - Emergency Physician\", \"category\": \"consultation\", \"amount\": 1200.0}, {\"description\": \"Wound Cleaning & Suture (5 stitches)\", \"category\": \"procedure\", \"amount\": 3800.0}, {\"description\": \"Rabies Vaccine (PCEC - Dose 1\", \"category\": \"vaccination\", \"amount\": 2400.0}, {\"description\": \"Rabies Immunoglobulin (ERIG)\", \"category\": \"vaccination\", \"amount\": 9800.0}, {\"description\": \"Tetanus Toxoid Injection\", \"category\": \"vaccination\", \"amount\": 600.0}, {\"description\": \"Medicine (antibiotic, analgesic)\", \"category\": \"medication\", \"amount\": 1100.0}], \"pii\": [{\"kind\": \"patient_id\", \"value\": \"HN 0098-1234\"}, {\"kind\": \"name\", \"value\": \"Minseo PARK\"}, {\"kind\": \"date_of_birth\", \"value\": \"1993-11-02\"}, {\"kind\": \"passport\", \"value\": \"M19931102\"}], \"kr_bill\": null}, {\"doc_type\": \"medical_certificate\", \"country\": \"TH\", \"provider_name\": \"Chiang Mai Riverside Hospital\", \"service_date\": \"2026-08-12\", \"inpatient\": false, \"hospital_days\": 0, \"currency\": \"\", \"total_amount\": null, \"diagnoses\": [{\"code\": \"S61.9\", \"system\": \"ICD-10\", \"label\": \"Open wound of hand, part unspecified\", \"external_cause\": \"\", \"final\": null}, {\"code\": \"W54\", \"system\": \"ICD-10\", \"label\": \"Bitten by dog\", \"external_cause\": \"Bitten by dog\", \"final\": null}], \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Minseo PARK\"}, {\"kind\": \"date_of_birth\", \"value\": \"1993-11-02\"}, {\"kind\": \"passport\", \"value\": \"M19931102\"}, {\"kind\": \"patient_id\", \"value\": \"HN 0098-1234\"}], \"kr_bill\": null}]}",
+  "reasoning_chars": 0,
+  "latency_ms": 5151,
+  "usage": {
+    "input_tokens": 6347,
+    "output_tokens": 600,
+    "total_tokens": 6947,
+    "reasoning_tokens": 0
+  }
+}
