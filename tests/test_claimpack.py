@@ -85,6 +85,57 @@ def test_s3_pii_lines_carry_check_mark():
     assert page.count("check against your passport/ID") == 4
 
 
+def test_s3_pack_vietnamese_from_replay():
+    from claimlens.providers.replay import ReplayProvider
+
+    en = build_pack("S3_us_tourist_hip_fracture", "photo", ReplayProvider())
+    vi = build_pack("S3_us_tourist_hip_fracture", "photo", ReplayProvider(), lang="vi")
+    assert vi["lang"] == "vi"
+    assert len(vi["items"]) == 12
+    assert [i["amount"] for i in vi["items"]] == [i["amount"] for i in en["items"]]
+    assert vi["total_krw"] == en["total_krw"] == 15000000
+    assert vi["codes"] == en["codes"]
+    assert vi["visit"] == en["visit"]
+    assert vi["sentences"]["policy_line"] != POLICY_LINE
+    assert all(i["label"] and i["label"] != i["label_ko"] for i in vi["items"])
+    text = format_markdown(vi)
+    assert "15,000,000" in text and "S72.141A" in text
+    assert "# Claim Pack" not in text
+    page = format_html(vi)
+    assert '<html lang="vi">' in page
+    assert "15,000,000" in page
+
+
+def test_pack_rejects_unknown_language():
+    from claimlens.providers.replay import ReplayProvider
+
+    with pytest.raises(ValueError, match="Unsupported"):
+        build_pack("S3_us_tourist_hip_fracture", "photo", ReplayProvider(), lang="ja")
+
+
+def test_translate_pack_rejects_missing_keys():
+    from claimlens.packlang import translate_pack
+
+    class StubPackWriter:
+        def write(self, instructions, schema, result_model=None):
+            return {"labels": [{"ko": "식대", "text": "Meals"}], "sentences": []}
+
+    with pytest.raises(ValueError, match="sentences"):
+        translate_pack("vi", ["식대"], StubPackWriter())
+
+
+def test_claimpack_cli_lang_flag(tmp_path, monkeypatch):
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    from claimlens.cli import main
+
+    target = tmp_path / "pack_vi.md"
+    args = ["claimpack", "S3_us_tourist_hip_fracture", "--lang", "vi", "--output", str(target)]
+    assert main(args) == 0
+    body = target.read_text(encoding="utf-8")
+    assert "15,000,000" in body
+    assert "# Claim Pack" not in body
+
+
 def test_conflicting_pii_shows_both_readings():
     from claimlens.claimpack import _pii_line, pii_conflicts
 

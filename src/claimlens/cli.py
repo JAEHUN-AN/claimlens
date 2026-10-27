@@ -131,7 +131,9 @@ def cmd_claimpack(args: argparse.Namespace) -> int:
     from claimlens.rationale import rationale_provider_default
 
     try:
-        pack = build_pack(args.sample_id, args.variant, rationale_provider_default())
+        pack = build_pack(
+            args.sample_id, args.variant, rationale_provider_default(), lang=args.lang
+        )
     except (FileNotFoundError, RuntimeError, LookupError, ValueError) as exc:
         print(f"claimlens: {exc}", file=sys.stderr)
         return 1
@@ -192,10 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
     rationale.add_argument("--variant", choices=["photo", "clean"], default="photo")
     rationale.add_argument("--output", default=None, help="Write the card to a Markdown file.")
     rationale.set_defaults(func=cmd_rationale)
-    pack = sub.add_parser("claimpack", help="English Claim Pack for uninsured visitors.")
+    pack = sub.add_parser("claimpack", help="Claim Pack for uninsured visitors.")
     pack.add_argument("sample_id", help="Sample id, e.g. S3_us_tourist_hip_fracture.")
     pack.add_argument("--variant", choices=["photo", "clean"], default="photo")
     pack.add_argument("--format", choices=["md", "html"], default="md")
+    pack.add_argument("--lang", choices=["en", "vi"], default="en")
     pack.add_argument("--output", default=None, help="Write the pack to a file.")
     pack.set_defaults(func=cmd_claimpack)
     mask = sub.add_parser("mask", help="Mask one phrase on a sample image with SAM 3.1.")
