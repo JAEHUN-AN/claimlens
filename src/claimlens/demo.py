@@ -50,6 +50,34 @@ VOICE_SCENE = (
 
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
+SCENE_TITLES = {
+    "A_niseko_wrist": {
+        "en": "Scene A — Korean traveller treated in Japan",
+        "ko": "장면 A — 일본에서 치료받은 한국 여행자",
+        "vi": "Cảnh A — du khách Hàn Quốc điều trị tại Nhật Bản",
+    },
+    "S2_seoul_worker_bronchitis": {
+        "en": "Scene S2 — insured worker treated in Seoul",
+        "ko": "장면 S2 — 서울에서 치료받은 가입 근로자",
+        "vi": "Cảnh S2 — người lao động có bảo hiểm điều trị tại Seoul",
+    },
+    "S3_us_tourist_hip_fracture": {
+        "en": "Scene S3 — uninsured visitor treated in Seoul",
+        "ko": "장면 S3 — 서울에서 치료받은 미가입 방문자",
+        "vi": "Cảnh S3 — du khách không bảo hiểm điều trị tại Seoul",
+    },
+    "agent_s2_hidden_copay": {
+        "en": "Scene Agent — S2 with hidden copay cells",
+        "ko": "장면 Agent — 본인부담 칸이 숨겨진 S2",
+        "vi": "Cảnh Agent — S2 với ô đồng chi trả bị ẩn",
+    },
+    "voice_factory_fall": {
+        "en": "Scene Voice — factory fall (spoken intake)",
+        "ko": "장면 Voice — 공장 추락 (음성 접수)",
+        "vi": "Cảnh Voice — ngã tại nhà máy (tiếp nhận bằng giọng nói)",
+    },
+}
+
 FLOW_LABELS = {
     "read_documents": "Reading",
     "run_checks": "Checks",
@@ -278,6 +306,7 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": sample_id,
         "title": title,
+        "titles": SCENE_TITLES[sample_id],
         "reading": _reading_section(reading, prov, prefix),
         "eligibility": None,
         "card": None,
@@ -425,6 +454,7 @@ def _scene_flow(sample_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": sample_id,
         "title": payload["title"],
+        "titles": payload["titles"],
         "thumb": payload["images"][0]["src"] if payload.get("images") else None,
         "steps": steps,
         "result": result,
@@ -580,6 +610,7 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": scene_id,
         "title": title,
+        "titles": SCENE_TITLES[scene_id],
         "reading": None,
         "eligibility": None,
         "card": None,
@@ -634,6 +665,7 @@ def _agent_flow(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": payload["id"],
         "title": payload["title"],
+        "titles": payload["titles"],
         "thumb": payload["images"][0]["src"] if payload.get("images") else None,
         "steps": steps,
         "result": {
@@ -669,6 +701,7 @@ def voice_scene_payload(dst: Path) -> dict[str, Any]:
     return {
         "id": scene_id,
         "title": title,
+        "titles": SCENE_TITLES[scene_id],
         "reading": None,
         "eligibility": first["eligibility"],
         "card": None,
@@ -716,6 +749,7 @@ def _voice_flow(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": payload["id"],
         "title": payload["title"],
+        "titles": payload["titles"],
         "thumb": None,
         "steps": steps,
         "result": {

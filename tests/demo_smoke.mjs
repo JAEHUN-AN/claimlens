@@ -24,7 +24,7 @@ globalThis.document = {
   createElement: (tag) => ({ tag }),
 };
 // eslint-disable-next-line no-eval
-eval(pageJs);
+eval(pageJs + "\n;globalThis.__UI=UI;globalThis.__setLang=setLang;");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(`smoke: ${msg}`);
@@ -126,4 +126,22 @@ assert(html.includes("prefers-color-scheme"), "dark mode stays readable");
 assert(html.includes("max-width:640px"), "phone layout");
 assert(html.includes("data-goto"), "panel lists related values");
 assert(html.includes("scrollIntoView"), "related values scroll to target");
+// Item 25: UI chrome switches between en/ko/vi; document contents stay.
+assert(html.includes('id="langswitch"'), "language switcher");
+const uiKeys = Object.keys(globalThis.__UI);
+assert(uiKeys.length > 50, `UI keys, got ${uiKeys.length}`);
+for (const k of uiKeys) {
+  const row = globalThis.__UI[k];
+  assert(Array.isArray(row) && row.length === 3, `UI row ${k} has 3 langs`);
+  assert(row.every((v) => typeof v === "string" && v.length > 0), `UI row ${k} non-empty`);
+}
+globalThis.__setLang("ko");
+assert(stagesHtml.includes("청구 처리"), "ko flow header");
+assert(stagesHtml.includes("장면 A"), "ko scene title");
+assert(stagesHtml.includes("확인 필요"), "ko to-confirm tag");
+globalThis.__setLang("vi");
+assert(stagesHtml.includes("Xử lý bồi thường"), "vi flow header");
+assert(stagesHtml.includes("Cảnh S2"), "vi scene title");
+globalThis.__setLang("en");
+assert(stagesHtml.includes("2,216,050 KRW"), "amounts unchanged by switch");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");
