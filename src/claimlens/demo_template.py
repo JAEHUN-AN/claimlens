@@ -46,7 +46,6 @@ padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
 .langswitch{display:flex;gap:.25rem;margin-left:.4rem}
 .langswitch button{padding:.25rem .6rem;font-size:.8rem;border-radius:999px;cursor:pointer}
 .langswitch button.active{background:var(--tab-active-bg);color:var(--accent)}
-.packlang-row{margin:0 0 .5rem;text-align:right}
 .topnote{margin:0 0 0 auto;font-size:.8rem}
 h2{font-size:1.05rem;margin:.2rem 0 .6rem}
 h3{font-size:.92rem;margin:.9rem 0 .3rem}
@@ -163,121 +162,119 @@ img.doc{max-height:180px}}
 """
 
 JS = """
-const LANGS=["en","ko","vi"];
+const LANGS=["en","ko"];
 let LANG="en";
 let currentView="flow";
 let flowTimer=null;
-let PACKLANG="en";
-let PACKSTORE=null;
 // UI chrome strings only (labels, step names, buttons). Document contents
-// stay in their own language. Every row is [en, ko, vi].
+// stay in their own language. Every row is [en, ko].
 const UI={
-topnote:["All documents are synthetic. Rendered from committed replay caches only.","모든 문서는 합성본입니다. 커밋된 리플레이 캐시로만 렌더링됩니다.","Mọi tài liệu đều là tổng hợp. Trang chỉ được dựng từ bộ nhớ đệm phát lại đã cam kết."],
-replay_tag:["replay demo","리플레이 데모","demo phát lại"],
-nav_flow:["Guided flow","안내 흐름","Luồng hướng dẫn"],
-nav_examples:["Examples: ","예시: ","Ví dụ: "],
-nav_aria:["Demo scenes","데모 장면","Các cảnh demo"],
-prov_aria:["Number provenance","숫자 출처","Xuất xứ con số"],
-tagline:["Medical paperwork that crosses borders — in both directions","국경을 넘나드는 의료 서류 — 양방향으로","Giấy tờ y tế vượt biên giới — theo cả hai chiều"],
-strip_1:["Read","읽기","Đọc"],
-strip_2:["Verify","검증","Xác minh"],
-strip_3:["Decide or build a Claim Pack","판정 또는 Claim Pack 작성","Quyết định hoặc lập Claim Pack"],
-flow_h2:["Process a claim","청구 처리","Xử lý bồi thường"],
-flow_note:["Replay mode: pick a sample. Every step below replays a recording.","리플레이 모드: 예시를 고르세요. 아래 단계는 모두 녹화본을 재생합니다.","Chế độ phát lại: hãy chọn một mẫu. Mọi bước dưới đây đều phát lại bản ghi."],
-drop:["Want to try your own document? Live upload needs an API key — or pick an example above.","직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요.","Muốn thử tài liệu của bạn? Tải lên trực tiếp cần API key — hoặc hãy khám phá ví dụ ở trên."],
-tip_numbers:["Tip: every number is clickable — select one to see its source.","팁: 모든 숫자를 누르면 출처를 볼 수 있습니다.","Mẹo: bạn có thể nhấn vào mọi con số để xem nguồn của nó."],
-play:["Play","재생","Chạy"],
-see_full:["See the full example","전체 예시 보기","Xem ví dụ đầy đủ"],
-live_msg:["live mode needs an API key — run `claimlens` locally","라이브 모드에는 API 키가 필요합니다 — `claimlens`를 로컬에서 실행하세요","chế độ trực tiếp cần API key — hãy chạy `claimlens` trên máy của bạn"],
-step_reading:["Reading","읽기","Đọc"],
-step_checks:["Checks","검증","Kiểm tra"],
-step_eligibility:["Eligibility","자격","Điều kiện"],
-step_decision:["Decision","판정","Quyết định"],
-step_pack:["Claim Pack","Claim Pack","Claim Pack"],
-step_question:["Question","질문","Câu hỏi"],
-step_codes:["Codes","코드","Mã"],
-step_reread:["Re-read","재판독","Đọc lại"],
-step_transcription:["Transcription","받아쓰기","Chép lời"],
-step_facts:["Fact extraction","사실 추출","Trích xuất sự kiện"],
-meta_det:["deterministic","결정적","tất định"],
-meta_tokens:["tokens (recorded)","토큰 (녹화본)","token (bản ghi)"],
-meta_user:["user answers","사용자 답변","người dùng trả lời"],
-prov_formula:["Formula:","계산식:","Công thức:"],
-prov_related:["Related:","관련:","Liên quan:"],
-prov_value:["Value:","값:","Giá trị:"],
-prov_source:["Source:","출처:","Nguồn:"],
-prov_esc:["Esc closes · related numbers highlighted","Esc로 닫기 · 관련 숫자 강조 표시","Nhấn Esc để đóng · các số liên quan được tô sáng"],
-h_reading:["Reading","읽기","Đọc"],
-h_eligibility:["Eligibility","자격","Điều kiện"],
-h_engine:["Engine card","엔진 카드","Thẻ engine"],
-h_steps:["Steps","단계","Các bước"],
-h_clauses:["Cited clauses","인용 조항","Điều khoản trích dẫn"],
-h_deductible:["Deductible check (computed by ClaimLens from the reading)","본인부담금 확인 (ClaimLens가 판독본에서 계산)","Kiểm tra khấu trừ (ClaimLens tính từ bản đọc)"],
-h_pack:["Claim Pack","Claim Pack","Claim Pack"],
-h_cover:["Cover","표지","Trang bìa"],
-h_patient:["Patient and visit","환자와 방문","Bệnh nhân và lượt khám"],
-h_diag:["Diagnosis codes","진단 코드","Mã chẩn đoán"],
-h_bill:["Itemized bill (KRW)","세부 청구서 (KRW)","Hóa đơn chi tiết (KRW)"],
-h_checklist:["Checklist before leaving","떠나기 전 확인 목록","Danh sách kiểm tra trước khi về"],
-h_deadlines:["Filing deadlines","제출 기한","Thời hạn nộp hồ sơ"],
-h_agent:["Agent timeline","에이전트 타임라인","Dòng thời gian agent"],
-h_voice:["Voice intake","음성 접수","Tiếp nhận bằng giọng nói"],
-h_eval:["Reading accuracy (offline eval)","판독 정확도 (오프라인 평가)","Độ chính xác bản đọc (đánh giá ngoại tuyến)"],
-eval_foot:["Full table with tokens and cost: docs/eval.md in the repo.","토큰·비용 포함 전체 표: 저장소의 docs/eval.md.","Bảng đầy đủ kèm token và chi phí: docs/eval.md trong kho."],
-th_sample:["Sample","샘플","Mẫu"],
-th_lines:["Lines","항목","Dòng"],
-th_diags:["Diags","진단","Chẩn đoán"],
-total_w:["total","합계","tổng"],
-codes_w:["codes","코드","mã"],
-no_checks:["no bill checks","청구서 검사 없음","không có kiểm tra hóa đơn"],
-elig_fallback:["Korean traveller abroad — engine path.","해외의 한국 여행자 — 엔진 경로.","Du khách Hàn Quốc ở nước ngoài — nhánh engine."],
-step_w:["Step","단계","Bước"],
-q_w:["Q:","질문:","Hỏi:"],
-why_w:["Why:","이유:","Vì sao:"],
-a_w:["A:","답변:","Trả lời:"],
-turns_w:["turns","턴","lượt"],
-model_turns:["model turns","모델 턴","lượt gọi mô hình"],
-tokens_w:["tokens","토큰","token"],
-replayed_w:["replayed trace","재생된 추적","dấu vết phát lại"],
-clip_w:["Clip","클립","Đoạn ghi"],
-th_fact:["Fact","사실","Sự kiện"],
-th_value:["Value","값","Giá trị"],
-th_quote:["Quoted words","인용 어구","Lời trích"],
-to_confirm_list:["To confirm with the person:","본인과 확인할 사항:","Cần xác nhận với đương sự:"],
-toconfirm:["to confirm","확인 필요","cần xác nhận"],
-p_name:["Name","이름","Họ tên"],
-p_dob:["Date of birth","생년월일","Ngày sinh"],
-p_pass:["Passport","여권","Hộ chiếu"],
-p_pid:["Patient ID","환자 번호","Mã bệnh nhân"],
-p_hosp:["Hospital","병원","Bệnh viện"],
-p_stay:["Stay","입원","Nội trú"],
-stay_out:["outpatient","외래","ngoại trú"],
-stay_in:["inpatient","입원","nội trú"],
-stay_to:["to","~","đến"],
-differs:["differs between documents; ","문서 간 불일치; ","khác nhau giữa các tài liệu; "],
-cert_w:["Certificate:","진단서:","Giấy chứng nhận:"],
-kcd_w:["KCD:","KCD:","KCD:"],
-who_w:["WHO ICD-10:","WHO ICD-10:","WHO ICD-10:"],
-cm_w:["ICD-10-CM candidate:","ICD-10-CM 후보:","Ứng viên ICD-10-CM:"],
-narrow:["Needed to narrow: ","좁히는 데 필요: ","Cần để thu hẹp: "],
-warn_w:["Warning: ","경고: ","Cảnh báo: "],
-est_note:["Note: the certificate marks a clinical estimate; a final diagnosis may be requested.","참고: 진단서에 임상 추정으로 표시되어 있습니다. 최종 진단을 요청할 수 있습니다.","Lưu ý: giấy chứng nhận ghi là ước tính lâm sàng; có thể cần chẩn đoán cuối cùng."],
-th_item:["Item","항목","Khoản"],
-th_amount:["Amount","금액","Số tiền"],
-total_cap:["Total","합계","Tổng"],
-receipt_ok:["Receipt arithmetic verified: ","영수증 계산 검증: ","Đã kiểm tra phép tính hóa đơn: "],
-pass_w:["pass","통과","đạt"],
-fail_w:["FAIL","실패","KHÔNG ĐẠT"],
-match_eng:["matches the engine","엔진과 일치","khớp với engine"],
-vs_mid:["vs engine","대 엔진","so với engine"],
-flagged:["FLAGGED: amounts differ; the engine amount stands.","경고: 금액이 다릅니다. 엔진 금액이 우선합니다.","CẢNH BÁO: số tiền khác nhau; giữ số tiền của engine."],
-copay_w:["copay","본인부담금","đồng chi trả"],
-pinned_w:["pre-existing open-source engine, pinned","기존 오픈소스 엔진, 고정됨","engine mã nguồn mở có sẵn, đã ghim"],
-guards_w:["Guardrails: ","가드레일: ","Rào chắn: "],
-cap_receipt_photo:["Receipt (photo)","영수증 (사진)","Biên lai (ảnh)"],
-cap_cert_photo:["Certificate (photo)","진단서 (사진)","Giấy chứng nhận (ảnh)"],
-cap_receipt_masked:["Receipt (masked copy)","영수증 (마스킹본)","Biên lai (bản che)"],
-cap_cert_masked:["Certificate (masked copy)","진단서 (마스킹본)","Giấy chứng nhận (bản che)"]
+topnote:["All documents are synthetic. Rendered from committed replay caches only.","모든 문서는 합성본입니다. 커밋된 리플레이 캐시로만 렌더링됩니다."],
+replay_tag:["replay demo","리플레이 데모"],
+nav_flow:["Guided flow","안내 흐름"],
+nav_examples:["Examples: ","예시: "],
+nav_aria:["Demo scenes","데모 장면"],
+prov_aria:["Number provenance","숫자 출처"],
+tagline:["Medical paperwork that crosses borders — in both directions","국경을 넘나드는 의료 서류 — 양방향으로"],
+strip_1:["Read","읽기"],
+strip_2:["Verify","검증"],
+strip_3:["Decide or build a Claim Pack","판정 또는 Claim Pack 작성"],
+flow_h2:["Process a claim","청구 처리"],
+flow_note:["Replay mode: pick a sample. Every step below replays a recording.","리플레이 모드: 예시를 고르세요. 아래 단계는 모두 녹화본을 재생합니다."],
+drop:["Want to try your own document? Live upload needs an API key — or pick an example above.","직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요."],
+tip_numbers:["Tip: every number is clickable — select one to see its source.","팁: 모든 숫자를 누르면 출처를 볼 수 있습니다."],
+play:["Play","재생"],
+see_full:["See the full example","전체 예시 보기"],
+live_msg:["live mode needs an API key — run `claimlens` locally","라이브 모드에는 API 키가 필요합니다 — `claimlens`를 로컬에서 실행하세요"],
+step_reading:["Reading","읽기"],
+step_checks:["Checks","검증"],
+step_eligibility:["Eligibility","자격"],
+step_decision:["Decision","판정"],
+step_pack:["Claim Pack","Claim Pack"],
+step_question:["Question","질문"],
+step_codes:["Codes","코드"],
+step_reread:["Re-read","재판독"],
+step_transcription:["Transcription","받아쓰기"],
+step_facts:["Fact extraction","사실 추출"],
+meta_det:["deterministic","결정적"],
+meta_tokens:["tokens (recorded)","토큰 (녹화본)"],
+meta_user:["user answers","사용자 답변"],
+prov_formula:["Formula:","계산식:"],
+prov_related:["Related:","관련:"],
+prov_value:["Value:","값:"],
+prov_source:["Source:","출처:"],
+prov_esc:["Esc closes · related numbers highlighted","Esc로 닫기 · 관련 숫자 강조 표시"],
+h_reading:["Reading","읽기"],
+h_eligibility:["Eligibility","자격"],
+h_engine:["Engine card","엔진 카드"],
+h_steps:["Steps","단계"],
+h_clauses:["Cited clauses","인용 조항"],
+h_deductible:["Deductible check (computed by ClaimLens from the reading)","본인부담금 확인 (ClaimLens가 판독본에서 계산)"],
+h_pack:["Claim Pack","Claim Pack"],
+h_cover:["Cover","표지"],
+h_patient:["Patient and visit","환자와 방문"],
+h_diag:["Diagnosis codes","진단 코드"],
+h_bill:["Itemized bill (KRW)","세부 청구서 (KRW)"],
+h_checklist:["Checklist before leaving","떠나기 전 확인 목록"],
+h_deadlines:["Filing deadlines","제출 기한"],
+h_agent:["Agent timeline","에이전트 타임라인"],
+h_voice:["Voice intake","음성 접수"],
+h_eval:["Reading accuracy (offline eval)","판독 정확도 (오프라인 평가)"],
+eval_foot:["Full table with tokens and cost: docs/eval.md in the repo.","토큰·비용 포함 전체 표: 저장소의 docs/eval.md."],
+th_sample:["Sample","샘플"],
+th_lines:["Lines","항목"],
+th_diags:["Diags","진단"],
+total_w:["total","합계"],
+codes_w:["codes","코드"],
+no_checks:["no bill checks","청구서 검사 없음"],
+elig_fallback:["Korean traveller abroad — engine path.","해외의 한국 여행자 — 엔진 경로."],
+step_w:["Step","단계"],
+q_w:["Q:","질문:"],
+why_w:["Why:","이유:"],
+a_w:["A:","답변:"],
+turns_w:["turns","턴"],
+model_turns:["model turns","모델 턴"],
+tokens_w:["tokens","토큰"],
+replayed_w:["replayed trace","재생된 추적"],
+clip_w:["Clip","클립"],
+th_fact:["Fact","사실"],
+th_value:["Value","값"],
+th_quote:["Quoted words","인용 어구"],
+to_confirm_list:["To confirm with the person:","본인과 확인할 사항:"],
+toconfirm:["to confirm","확인 필요"],
+p_name:["Name","이름"],
+p_dob:["Date of birth","생년월일"],
+p_pass:["Passport","여권"],
+p_pid:["Patient ID","환자 번호"],
+p_hosp:["Hospital","병원"],
+p_stay:["Stay","입원"],
+stay_out:["outpatient","외래"],
+stay_in:["inpatient","입원"],
+stay_to:["to","~"],
+differs:["differs between documents; ","문서 간 불일치; "],
+cert_w:["Certificate:","진단서:"],
+kcd_w:["KCD:","KCD:"],
+who_w:["WHO ICD-10:","WHO ICD-10:"],
+cm_w:["ICD-10-CM candidate:","ICD-10-CM 후보:"],
+narrow:["Needed to narrow: ","좁히는 데 필요: "],
+warn_w:["Warning: ","경고: "],
+est_note:["Note: the certificate marks a clinical estimate; a final diagnosis may be requested.","참고: 진단서에 임상 추정으로 표시되어 있습니다. 최종 진단을 요청할 수 있습니다."],
+th_item:["Item","항목"],
+th_amount:["Amount","금액"],
+total_cap:["Total","합계"],
+receipt_ok:["Receipt arithmetic verified: ","영수증 계산 검증: "],
+pass_w:["pass","통과"],
+fail_w:["FAIL","실패"],
+match_eng:["matches the engine","엔진과 일치"],
+vs_mid:["vs engine","대 엔진"],
+flagged:["FLAGGED: amounts differ; the engine amount stands.","경고: 금액이 다릅니다. 엔진 금액이 우선합니다."],
+copay_w:["copay","본인부담금"],
+pinned_w:["pre-existing open-source engine, pinned","기존 오픈소스 엔진, 고정됨"],
+guards_w:["Guardrails: ","가드레일: "],
+cap_receipt_photo:["Receipt (photo)","영수증 (사진)"],
+cap_cert_photo:["Certificate (photo)","진단서 (사진)"],
+cap_receipt_masked:["Receipt (masked copy)","영수증 (마스킹본)"],
+cap_cert_masked:["Certificate (masked copy)","진단서 (마스킹본)"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -599,25 +596,7 @@ function deductible(d){
 }
 function result(s){
   if(s.card)return engineCard(s.card);
-  return packPanel(s.pack,s.pack_vi||null);
-}
-function ptxt(key){
-  const o=PACKSTORE&&PACKSTORE.v;
-  return (PACKLANG==='vi'&&o&&o.text&&o.text[key])||null;
-}
-function ptx(key,fb){
-  const v=ptxt(key);
-  return esc(v===null?fb:v);
-}
-function setPackLang(pl){
-  if(pl!=='en'&&pl!=='vi')return;
-  PACKLANG=pl;
-  document.querySelectorAll('#packswitch button').forEach(b=>{
-    if(b.classList&&b.classList.toggle&&b.getAttribute)
-      b.classList.toggle('active',b.getAttribute('data-pl')===pl);
-  });
-  const body=document.getElementById('pack-body');
-  if(body&&PACKSTORE)body.innerHTML=packBody(PACKSTORE.p,PACKSTORE.v);
+  return packPanel(s.pack);
 }
 function engineCard(c){
   const steps=c.steps.map(i=>`<li>${esc(i.text)}</li>`).join('');
@@ -635,61 +614,48 @@ function piiLine(label,value,conflict,mark){
   if(!value)return `<li>${esc(label)}: -</li>`;
   if(conflict){
     const readings=conflict.map(([w,v])=>`${esc(v)} (${esc(w)})`).join(' / ');
-    return `<li>${esc(label)}: ${readings} — ${ptx('differs',t('differs'))}${esc(mark)}</li>`;
+    return `<li>${esc(label)}: ${readings} — ${esc(t('differs'))}${esc(mark)}</li>`;
   }
   return `<li>${esc(label)}: ${esc(value)} — ${esc(mark)}</li>`;
 }
-function packPanel(p,pvi){
-  PACKSTORE={p:p,v:pvi||null};
-  const tog=pvi?`<div class="packlang-row"><span class="langswitch" id="packswitch" role="group" aria-label="Pack language">`
-    +`<button data-pl="en"${PACKLANG==='vi'?'':' class="active"'} onclick="setPackLang('en')">EN</button>`
-    +`<button data-pl="vi"${PACKLANG==='vi'?' class="active"':''} onclick="setPackLang('vi')">Tiếng Việt</button></span></div>`:'';
-  return `<h3>${esc(t('h_pack'))}</h3><p>${badge('not adjudicated')}</p>`
-    +`<div class="panel">${tog}<div id="pack-body">${packBody(p,pvi)}</div></div>`;
-}
-function packBody(p,pvi){
+function packPanel(p){
   const v=p.visit;
-  const stay=v.inpatient?`${ptx('stay_in',t('stay_in'))}, ${esc(v.period_from)} ${ptx('stay_to',t('stay_to'))} ${esc(v.period_to)}`:ptx('stay_out',t('stay_out'));
+  const stay=v.inpatient?`${esc(t('stay_in'))}, ${esc(v.period_from)} ${esc(t('stay_to'))} ${esc(v.period_to)}`:esc(t('stay_out'));
   const codes=p.codes||{};
   const cm=codes.cm||{};
   const questions=(codes.questions||[]).map(
-    q=>`<li class="noprov">${ptx('needed',t('narrow'))}${esc(q)}</li>`
+    q=>`<li class="noprov">${esc(t('narrow'))}${esc(q)}</li>`
   ).join('');
   const warn=codes.pitfall
-    ?`<li class="warn noprov">${ptx('warning',t('warn_w'))}${esc(codes.pitfall.warning)}</li>`:'';
+    ?`<li class="warn noprov">${esc(t('warn_w'))}${esc(codes.pitfall.warning)}</li>`:'';
   const estimate=p.diagnosis.final===false
-    ?`<li class="noprov">${ptx('estimate',t('est_note'))}</li>`:'';
-  const rows=p.items.map((it,n)=>{
-    const lab=(PACKLANG==='vi'&&pvi&&pvi.items&&pvi.items[n])?pvi.items[n].label:it.label_en;
-    return `<tr><td class="noprov">${esc(lab)}<br/><span lang="ko">${esc(it.label_ko)}</span></td>`
-      +`<td class="num">${pv(it.amount)}</td></tr>`;
-  }).join('');
+    ?`<li class="noprov">${esc(t('est_note'))}</li>`:'';
+  const rows=p.items.map(
+    i=>`<tr><td class="noprov">${esc(i.label_en)}<br/><span lang="ko">${esc(i.label_ko)}</span></td>`
+      +`<td class="num">${pv(i.amount)}</td></tr>`
+  ).join('');
   const list=(items)=>items.map(i=>`<li>${esc(i)}</li>`).join('');
-  const checklist=ptxt('checklist')||p.checklist;
-  const mark=ptxt('pii_mark')||p.pii_mark;
-  const verified=p.checks_passed
-    ?((PACKLANG==='vi'&&pvi)?'pass':t('pass_w'))
-    :(PACKLANG==='vi'&&pvi)?'FAIL':t('fail_w');
-  return `<h4>${esc(t('h_cover'))}</h4><p><strong>${ptx('policy_line',p.policy_line)}</strong></p>
-  <h4>${ptx('h_patient',t('h_patient'))}</h4><ul class="tight noprov">`
-  +piiLine(ptxt('name')||t('p_name'),p.patient.name,(p.pii_conflicts||{}).name,mark)
-  +piiLine(ptxt('dob')||t('p_dob'),p.patient.date_of_birth,(p.pii_conflicts||{}).date_of_birth,mark)
-  +piiLine(ptxt('passport')||t('p_pass'),p.patient.passport,(p.pii_conflicts||{}).passport,mark)
-  +piiLine(ptxt('pid')||t('p_pid'),p.patient.patient_id,(p.pii_conflicts||{}).patient_id,mark)
-  +`<li>${ptx('hospital',t('p_hosp'))}: ${esc(v.hospital)}</li><li>${ptx('stay',t('p_stay'))}: ${stay}</li></ul>
-  <h4>${ptx('h_codes',t('h_diag'))}</h4><ul class="tight">
-  <li class="noprov">${ptx('certificate',t('cert_w'))} ${esc(p.diagnosis.label||'-')}</li>
-  <li>${ptx('kcd',t('kcd_w'))} ${pv(codes.kcd)}</li>
-  <li>${ptx('who',t('who_w'))} ${pv(codes.who)}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
-  <li>${ptx('cm',t('cm_w'))} ${pv(cm.chosen)}</li>${questions}${warn}
-  <li class="noprov">${ptx('disclaimer',codes.disclaimer||'')}</li>${estimate}</ul>
-  <h4>${ptx('h_bill',t('h_bill'))}</h4><table class="bill">
+  return `<h3>${esc(t('h_pack'))}</h3><p>${badge('not adjudicated')}</p>
+  <div class="panel"><h4>${esc(t('h_cover'))}</h4><p><strong>${esc(p.policy_line)}</strong></p>
+  <h4>${esc(t('h_patient'))}</h4><ul class="tight noprov">`
+  +piiLine(t('p_name'),p.patient.name,(p.pii_conflicts||{}).name,p.pii_mark)
+  +piiLine(t('p_dob'),p.patient.date_of_birth,(p.pii_conflicts||{}).date_of_birth,p.pii_mark)
+  +piiLine(t('p_pass'),p.patient.passport,(p.pii_conflicts||{}).passport,p.pii_mark)
+  +piiLine(t('p_pid'),p.patient.patient_id,(p.pii_conflicts||{}).patient_id,p.pii_mark)
+  +`<li>${esc(t('p_hosp'))}: ${esc(v.hospital)}</li><li>${esc(t('p_stay'))}: ${stay}</li></ul>
+  <h4>${esc(t('h_diag'))}</h4><ul class="tight">
+  <li class="noprov">${esc(t('cert_w'))} ${esc(p.diagnosis.label||'-')}</li>
+  <li>${esc(t('kcd_w'))} ${pv(codes.kcd)}</li>
+  <li>${esc(t('who_w'))} ${pv(codes.who)}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
+  <li>${esc(t('cm_w'))} ${pv(cm.chosen)}</li>${questions}${warn}
+  <li class="noprov">${esc(codes.disclaimer||'')}</li>${estimate}</ul>
+  <h4>${esc(t('h_bill'))}</h4><table class="bill">
   <tr><th>${esc(t('th_item'))}</th><th class="num">${esc(t('th_amount'))}</th></tr>${rows}
-  <tr><td><strong>${ptx('total',t('total_cap'))}</strong></td><td class="num"><strong>${pv(p.total_krw)}</strong></td></tr></table>
-  <ul class="tight"><li>${ptx('verified',t('receipt_ok'))}${esc(verified)}</li>
-  <li>${ptx('translation_note',p.translation_note)}</li></ul>
-  <h4>${ptx('h_checklist',t('h_checklist'))}</h4><ul class="tight">${list(checklist)}</ul>
-  <h4>${ptx('h_deadlines',t('h_deadlines'))}</h4><ul class="tight"><li>${ptx('deadline',p.deadline)}</li></ul>`;
+  <tr><td><strong>${esc(t('total_cap'))}</strong></td><td class="num"><strong>${pv(p.total_krw)}</strong></td></tr></table>
+  <ul class="tight"><li>${esc(t('receipt_ok'))}${p.checks_passed?esc(t('pass_w')):esc(t('fail_w'))}</li>
+  <li>${esc(p.translation_note)}</li></ul>
+  <h4>${esc(t('h_checklist'))}</h4><ul class="tight">${list(p.checklist)}</ul>
+  <h4>${esc(t('h_deadlines'))}</h4><ul class="tight"><li>${esc(p.deadline)}</li></ul></div>`;
 }
 function images(s){
   return (s.images||[]).map(
@@ -715,7 +681,7 @@ def render_page(payload: dict[str, Any]) -> str:
 <link rel="icon" href="{FAVICON}"/>
 <style>{CSS}</style></head>
 <body>
-<header class="topbar"><div class="wrap topbar-inner"><div class="brandrow">{mark}<h1>ClaimLens</h1><span class="replay-tag" id="replaytag">replay demo</span></div><div class="langswitch" id="langswitch" role="group" aria-label="Language"><button data-lang="en" class="active" onclick="setLang('en')">EN</button><button data-lang="ko" onclick="setLang('ko')">한국어</button><button data-lang="vi" onclick="setLang('vi')">Tiếng Việt</button></div><p class="topnote"><small class="dim" id="topnote">All documents are synthetic. Rendered from committed replay caches only.</small></p></div></header>
+<header class="topbar"><div class="wrap topbar-inner"><div class="brandrow">{mark}<h1>ClaimLens</h1><span class="replay-tag" id="replaytag">replay demo</span></div><div class="langswitch" id="langswitch" role="group" aria-label="Language"><button data-lang="en" class="active" onclick="setLang('en')">EN</button><button data-lang="ko" onclick="setLang('ko')">한국어</button></div><p class="topnote"><small class="dim" id="topnote">All documents are synthetic. Rendered from committed replay caches only.</small></p></div></header>
 <div class="wrap"><nav id="scenes" aria-label="Demo scenes"></nav>
 <div id="stages"></div></div>
 <div id="prov-panel" style="display:none" role="dialog" aria-label="Number provenance"></div>

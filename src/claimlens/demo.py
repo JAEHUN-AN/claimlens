@@ -54,27 +54,22 @@ SCENE_TITLES = {
     "A_niseko_wrist": {
         "en": "Scene A — Korean traveller treated in Japan",
         "ko": "장면 A — 일본에서 치료받은 한국 여행자",
-        "vi": "Cảnh A — du khách Hàn Quốc điều trị tại Nhật Bản",
     },
     "S2_seoul_worker_bronchitis": {
         "en": "Scene S2 — insured worker treated in Seoul",
         "ko": "장면 S2 — 서울에서 치료받은 가입 근로자",
-        "vi": "Cảnh S2 — người lao động có bảo hiểm điều trị tại Seoul",
     },
     "S3_us_tourist_hip_fracture": {
         "en": "Scene S3 — uninsured visitor treated in Seoul",
         "ko": "장면 S3 — 서울에서 치료받은 미가입 방문자",
-        "vi": "Cảnh S3 — du khách không bảo hiểm điều trị tại Seoul",
     },
     "agent_s2_hidden_copay": {
         "en": "Scene Agent — S2 with hidden copay cells",
         "ko": "장면 Agent — 본인부담 칸이 숨겨진 S2",
-        "vi": "Cảnh Agent — S2 với ô đồng chi trả bị ẩn",
     },
     "voice_factory_fall": {
         "en": "Scene Voice — factory fall (spoken intake)",
         "ko": "장면 Voice — 공장 추락 (음성 접수)",
-        "vi": "Cảnh Voice — ngã tại nhà máy (tiếp nhận bằng giọng nói)",
     },
 }
 
@@ -297,50 +292,6 @@ def _pack_section(
     }
 
 
-def _pack_vi_overlay(pack_vi: dict[str, Any]) -> dict[str, Any]:
-    """Template-ready Vietnamese text; amounts/codes/dates stay on the EN pack."""
-    s = pack_vi["sentences"]
-    return {
-        "text": {
-            "policy_line": s["policy_line"],
-            "pii_mark": s["pii_mark"],
-            "name": s["f_name"],
-            "dob": s["f_dob"],
-            "passport": s["f_passport"],
-            "pid": s["f_pid"],
-            "hospital": s["f_hospital"],
-            "stay": s["f_stay"],
-            "stay_in": s["stay_in"],
-            "stay_out": s["stay_out"],
-            "stay_to": s["stay_to"],
-            "certificate": s["f_certificate"] + ":",
-            "kcd": s["f_kcd"] + ":",
-            "who": s["f_who"] + ":",
-            "cm": s["f_cm"] + ":",
-            "needed": s["t_needed"] + ": ",
-            "warning": s["t_warning"] + ": ",
-            "estimate": s["t_note_estimate"],
-            "total": s["f_total"],
-            "verified": s["f_verified"] + ": ",
-            "differs": s["differs"] + "; ",
-            "disclaimer": s["d_disclaimer"],
-            "translation_note": s["translation_note"],
-            "checklist": [s["check_0"], s["check_1"], s["check_2"]],
-            "deadline": s["deadline"],
-            "h_patient": s["h_patient"],
-            "h_codes": s["h_codes"],
-            "h_bill": s["h_bill"],
-            "h_checklist": s["h_checklist"],
-            "h_deadlines": s["h_deadlines"],
-        },
-        "items": [
-            {"label": item["label"], "amount": item["amount"]}
-            for item in pack_vi["items"]
-        ],
-        "total_krw": pack_vi["total_krw"],
-    }
-
-
 def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     scenarios, inbound = load_scenarios()
     reading = replay_reading(sample_id, "photo")
@@ -355,7 +306,6 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         "eligibility": None,
         "card": None,
         "pack": None,
-        "pack_vi": None,
         "images": [],
     }
     if sample_id in inbound:
@@ -379,9 +329,6 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         flow_tokens["pack"] = sum(c.total_tokens for c in pack_provider.calls)
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         payload["pack"] = _pack_section(pack, rows, prov, prefix)
-        vi_provider = ReplayProvider()
-        pack_vi_raw = build_pack(sample_id, "photo", vi_provider, lang="vi")
-        payload["pack_vi"] = _pack_vi_overlay(pack_vi_raw)
     else:
         card_provider = ReplayProvider()
         card = build_rationale(sample_id, "photo", card_provider)

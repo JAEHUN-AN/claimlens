@@ -608,3 +608,26 @@ null-safe for the Node stub.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: demo is English + Korean only
+
+Round 3 item 30 (owner decision). The Vietnamese UI switch and the S3
+EN | Tiếng Việt pack toggle did not fit the scenes, so they are out
+of the demo: the topbar switcher is EN/한국어, UI rows are [en, ko],
+and the pack panel renders one language again (the VI overlay,
+toggle, and helpers are gone from template and payload). The demo UI
+is English/Korean; `packlang.py`, `claimlens claimpack --lang vi`,
+and its recorded translation stay as a library/CLI feature.
+
+### Muse Code (coding agent)
+
+- Browser test covers ko (+en default, asserting the two-button
+  switcher); Node harness asserts 2-element UI rows and no
+  "Tiếng Việt" in the page; README says the demo UI is
+  English/Korean.
+- Tests: 132 passed in the sandbox plus 1 browser test run by the
+  owner in a normal terminal. `ruff check` clean. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

@@ -50,14 +50,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "v": "15,000,000",
         "prov": "s3-pack-total",
     }
-    pack_vi = payload["scenes"][2]["pack_vi"]
-    assert len(pack_vi["items"]) == 12
-    assert pack_vi["total_krw"] == 15000000
-    assert sum(i["amount"] for i in pack_vi["items"]) == 15000000
-    assert (
-        pack_vi["items"][0]["label"]
-        != payload["scenes"][2]["pack"]["items"][0]["label_en"]
-    )
+    assert "pack_vi" not in payload["scenes"][2]
     first_images = payload["scenes"][0]["images"]
     assert set(first_images[0]) == {"src", "caption"}
     assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]

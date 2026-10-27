@@ -29,13 +29,6 @@ TITLES = {
         "agent_s2_hidden_copay": "장면 Agent — 본인부담 칸이 숨겨진 S2",
         "voice_factory_fall": "장면 Voice — 공장 추락 (음성 접수)",
     },
-    "vi": {
-        "A_niseko_wrist": "Cảnh A — du khách Hàn Quốc điều trị tại Nhật Bản",
-        "S2_seoul_worker_bronchitis": "Cảnh S2 — người lao động có bảo hiểm điều trị tại Seoul",
-        "S3_us_tourist_hip_fracture": "Cảnh S3 — du khách không bảo hiểm điều trị tại Seoul",
-        "agent_s2_hidden_copay": "Cảnh Agent — S2 với ô đồng chi trả bị ẩn",
-        "voice_factory_fall": "Cảnh Voice — ngã tại nhà máy (tiếp nhận bằng giọng nói)",
-    },
 }
 
 H3 = {
@@ -53,20 +46,6 @@ H3 = {
         "agent_s2_hidden_copay": ["에이전트 타임라인"],
         "voice_factory_fall": ["음성 접수"],
     },
-    "vi": {
-        "A_niseko_wrist": ["Đọc", "Điều kiện", "Thẻ engine", "Các bước", "Điều khoản trích dẫn"],
-        "S2_seoul_worker_bronchitis": [
-            "Đọc",
-            "Điều kiện",
-            "Thẻ engine",
-            "Các bước",
-            "Điều khoản trích dẫn",
-            "Kiểm tra khấu trừ (ClaimLens tính từ bản đọc)",
-        ],
-        "S3_us_tourist_hip_fracture": ["Đọc", "Điều kiện", "Claim Pack"],
-        "agent_s2_hidden_copay": ["Dòng thời gian agent"],
-        "voice_factory_fall": ["Tiếp nhận bằng giọng nói"],
-    },
 }
 
 FLOW = {
@@ -78,15 +57,6 @@ FLOW = {
         "play": "재생",
         "s2_steps": ["읽기", "검증", "자격", "판정"],
         "voice_first": "받아쓰기 (en)",
-    },
-    "vi": {
-        "tagline": "Giấy tờ y tế vượt biên giới — theo cả hai chiều",
-        "strip": ["Đọc", "Xác minh", "Quyết định hoặc lập Claim Pack"],
-        "h2": "Xử lý bồi thường",
-        "drop": "Muốn thử tài liệu của bạn? Tải lên trực tiếp cần API key — hoặc hãy khám phá ví dụ ở trên.",
-        "play": "Chạy",
-        "s2_steps": ["Đọc", "Kiểm tra", "Điều kiện", "Quyết định"],
-        "voice_first": "Chép lời (en)",
     },
 }
 
@@ -110,12 +80,15 @@ def browser():
         launched.close()
 
 
-@pytest.mark.parametrize("lang", ["ko", "vi"])
+@pytest.mark.parametrize("lang", ["ko"])
 def test_language_switch_in_browser(browser, lang):
     page = browser.new_page(viewport={"width": 1280, "height": 720})
     errors: list[str] = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     page.goto(DEMO.as_uri())
+    # English default: EN/한국어 switcher only, English chrome.
+    assert page.locator("#langswitch button").all_inner_texts() == ["EN", "한국어"]
+    assert page.locator("#flow-view h2").inner_text() == "Process a claim"
     page.locator(f'#langswitch button[data-lang="{lang}"]').click()
 
     # One flow card and five scenes: re-render replaces, never appends.

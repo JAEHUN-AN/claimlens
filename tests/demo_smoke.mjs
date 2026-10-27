@@ -31,9 +31,7 @@ globalThis.document = {
   createElement: (tag) => ({ tag }),
 };
 // eslint-disable-next-line no-eval
-eval(pageJs + "\n;globalThis.__UI=UI;globalThis.__setLang=setLang;"
-  + "\n;globalThis.__setPackLang=setPackLang;globalThis.__packBody=packBody;"
-  + "\n;globalThis.__packStore=()=>PACKSTORE;");
+eval(pageJs + "\n;globalThis.__UI=UI;globalThis.__setLang=setLang;");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(`smoke: ${msg}`);
@@ -57,7 +55,7 @@ assert(stagesHtml.includes("22,500"), "deductible amount");
 assert(stagesHtml.includes("2,216,050 KRW"), "A amount");
 assert(stagesHtml.includes("pre-existing open-source engine, pinned"), "pinned label");
 assert(stagesHtml.includes("We do not have your policy"), "policy line");
-assert(stagesHtml.includes('id="packswitch"'), "pack vi toggle");
+assert(!html.includes("Tiếng Việt"), "no Vietnamese UI");
 assert(stagesHtml.includes("check against your passport/ID"), "PII mark");
 assert(stagesHtml.includes("(masked copy)"), "masked caption");
 assert(!stagesHtml.includes("# Claim decision"), "no raw markdown");
@@ -143,13 +141,13 @@ assert(html.includes("prefers-color-scheme"), "dark mode stays readable");
 assert(html.includes("max-width:640px"), "phone layout");
 assert(html.includes("data-goto"), "panel lists related values");
 assert(html.includes("scrollIntoView"), "related values scroll to target");
-// Item 25: UI chrome switches between en/ko/vi; document contents stay.
+// Item 25/30: UI chrome switches between en/ko; document contents stay.
 assert(html.includes('id="langswitch"'), "language switcher");
 const uiKeys = Object.keys(globalThis.__UI);
 assert(uiKeys.length > 50, `UI keys, got ${uiKeys.length}`);
 for (const k of uiKeys) {
   const row = globalThis.__UI[k];
-  assert(Array.isArray(row) && row.length === 3, `UI row ${k} has 3 langs`);
+  assert(Array.isArray(row) && row.length === 2, `UI row ${k} has 2 langs`);
   assert(row.every((v) => typeof v === "string" && v.length > 0), `UI row ${k} non-empty`);
 }
 globalThis.__setLang("ko");
@@ -161,18 +159,6 @@ assert(!stagesHtml.includes("Process a claim"), "flow re-rendered, not appended"
 assert(!stagesHtml.includes("Scene S2 — insured worker"), "scene re-rendered, not appended");
 assert((stagesHtml.match(/<section class="scene/g) || []).length === 5, "still 5 scenes");
 assert((stagesHtml.match(/id="flow-view"/g) || []).length === 1, "single flow card");
-globalThis.__setLang("vi");
-assert(stagesHtml.includes("Xử lý bồi thường"), "vi flow header");
-assert(stagesHtml.includes("Cảnh S2"), "vi scene title");
-assert(stagesHtml.includes("Độ chính xác bản đọc (đánh giá ngoại tuyến)"), "vi eval subtitle");
 globalThis.__setLang("en");
 assert(stagesHtml.includes("2,216,050 KRW"), "amounts unchanged by switch");
-globalThis.__setPackLang("vi");
-const packStore = globalThis.__packStore();
-const packVI = globalThis.__packBody(packStore.p, packStore.v);
-assert(packVI.includes("Tiền nằm viện"), "vi pack row label");
-assert(packVI.includes("15,000,000"), "vi pack same total");
-assert(packVI.includes('data-prov="s3-pack-total"'), "vi pack same provenance");
-assert(!packVI.includes("We do not have your policy"), "vi pack swaps sentences");
-globalThis.__setPackLang("en");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");

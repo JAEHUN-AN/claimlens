@@ -29,6 +29,8 @@ five samples, play its pipeline steps, then inspect the full example. The five
 scenes (A, S2, S3, Agent, Voice) carry readings, check marks, eligibility, the
 engine card or the Claim Pack, the agent timeline, and the spoken-intake scene.
 Every number there is clickable for its provenance.
+The demo UI switches between English and Korean; `claimlens claimpack
+--lang vi` can still render a Vietnamese pack.
 `docs/demo.html` in this repo is the same export, committed.
 
 Other offline commands:
