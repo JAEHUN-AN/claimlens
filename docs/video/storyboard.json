@@ -1,0 +1,309 @@
+{
+  "demo_page": "docs/demo.html",
+  "segments": [
+    {
+      "actions": [],
+      "caption": "When medical care crosses a border, so does the paperwork.",
+      "duration": 8,
+      "id": "seg01",
+      "page": "demo",
+      "title": "first screen"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "button.fpick[data-ex=\"S2_seoul_worker_bronchitis\"]"
+        },
+        {
+          "op": "click",
+          "selector": "#flow-play"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#flow-view .flow-result"
+        }
+      ],
+      "caption": "Drop a hospital bill. Muse Spark reads every numbered cell, code re-adds them, and a rule decides which insurance applies.",
+      "duration": 17,
+      "id": "seg02",
+      "page": "demo",
+      "title": "S2 guided flow"
+    },
+    {
+      "actions": [],
+      "caption": "Built in this hackathon: reading, checks, eligibility, agent, codes, claim pack, voice. Pre-existing: our open-source policy engine, pinned.",
+      "duration": 10,
+      "id": "seg03",
+      "page": "readme",
+      "title": "built vs pre-existing"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene S2\")"
+        },
+        {
+          "op": "click",
+          "selector": "section#S2_seoul_worker_bronchitis .headline [data-prov=\"s2-amount\"]"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#prov-panel .plink"
+        },
+        {
+          "op": "click",
+          "selector": "#prov-panel .plink[data-goto=\"s2-ded-ours\"]"
+        },
+        {
+          "op": "move",
+          "selector": "section#S2_seoul_worker_bronchitis .pinned"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Every number can show where it came from: the receipt cells, the copay formula, the three deductible terms — and our own check matches the engine.",
+      "duration": 23,
+      "id": "seg04",
+      "page": "demo",
+      "title": "provenance panel"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Agent\")"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#agent_s2_hidden_copay ol.timeline"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#agent_s2_hidden_copay .tl-q"
+        },
+        {
+          "op": "move",
+          "selector": "section#agent_s2_hidden_copay .tl-q"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        }
+      ],
+      "caption": "Hide two cells and the checks fail. The agent does not guess: it asks for exactly what is missing, and says why — then finishes the claim.",
+      "duration": 25,
+      "id": "seg05",
+      "page": "demo",
+      "title": "agent timeline"
+    },
+    {
+      "actions": [],
+      "caption": "We score it: it asks when it must, stays quiet when it need not, and never invents a number.",
+      "duration": 10,
+      "id": "seg06",
+      "page": "agent-eval",
+      "title": "agent scorecard"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene S3\")"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#S3_us_tourist_hip_fracture h3:has-text(\"Verify\")"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "move",
+          "selector": "section#S3_us_tourist_hip_fracture .panel p strong:has-text(\"We do not have your policy\")"
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-kcd\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-who\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-cm\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "move",
+          "selector": "section#S3_us_tourist_hip_fracture li.warn"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "A US tourist has no Korean policy — so we do not decide. A failed reading is never used: one narrow re-read recovers it. Then the claim pack for their insurer, with a warning where a prefix match would name a different fracture.",
+      "duration": 25,
+      "id": "seg07",
+      "page": "demo",
+      "title": "S3 recovery and pack"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Voice\")"
+        },
+        {
+          "op": "move",
+          "selector": "section#voice_factory_fall audio",
+          "nth": 0
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "move",
+          "selector": "section#voice_factory_fall .totag",
+          "nth": 0
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "move",
+          "selector": "section#voice_factory_fall .totag",
+          "nth": 1
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "move",
+          "selector": "section#voice_factory_fall .headline .badge"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "A factory worker describes a fall by voice. Dates heard by ear are confirmed, not trusted. Work injury: industrial-accident insurance first.",
+      "duration": 20,
+      "id": "seg08",
+      "page": "demo",
+      "title": "voice intake"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#langswitch button[data-lang=\"ko\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "click",
+          "selector": "#langswitch button[data-lang=\"en\"]"
+        }
+      ],
+      "caption": "The same screen for staff in Korea.",
+      "duration": 5,
+      "id": "seg09",
+      "page": "demo",
+      "title": "Korean UI"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene A\")"
+        },
+        {
+          "op": "move",
+          "selector": "section#A_niseko_wrist .headline"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "And the other direction: a Korean skier in Japan, paid in full under the travel policy.",
+      "duration": 9,
+      "id": "seg10",
+      "page": "demo",
+      "title": "scene A paid"
+    },
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 6
+        },
+        {
+          "op": "goto",
+          "page": "eval"
+        },
+        {
+          "op": "hold",
+          "seconds": 7
+        },
+        {
+          "op": "goto",
+          "page": "tooling"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "#shot-end"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Muse Code wrote the code. Muse Spark reads and runs the agent, SAM 3.1 masks seals and signatures, Voice Transcribe takes the call, Spark Open on Baseten is measured side by side — and an MCP server lets other agents use it.",
+      "duration": 20,
+      "id": "seg11",
+      "page": "masking",
+      "title": "masking, eval, tooling"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Guided flow\")"
+        }
+      ],
+      "caption": "All documents are synthetic. Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
+      "duration": 8,
+      "id": "seg12",
+      "page": "demo",
+      "title": "closing screen"
+    }
+  ],
+  "viewport": {
+    "height": 720,
+    "width": 1280
+  }
+}

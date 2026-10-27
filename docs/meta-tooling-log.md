@@ -654,3 +654,29 @@ keys are en/ko only (item 30 dropped vi from the demo).
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: scripted demo video
+
+Round 3 item 31. `scripts/record_video.py` + `docs/video/storyboard.json`
+record the 3-minute submission video: Playwright with the Edge channel
+at 1280x720, repo root served on 127.0.0.1 inside the script, 12
+segments (180 s) with verbatim captions, a bottom caption bar and a
+cursor dot injected as the only overlay (no demo behaviour change).
+Targets use stable selectors, never pixels; durations come from the
+storyboard. Local doc shots (README table, agent scorecard, masking
+pairs, trimmed eval table, tooling log) render at record time with
+URLs stripped, so `out/` stays https-free and is never committed.
+
+### Muse Code (coding agent)
+
+- `--dry-run` validates durations, captions, ops, and every
+  selector's tokens against `docs/demo.html` / the shot pages
+  without a browser; a committed test runs it. The sandbox cannot
+  launch a browser, so the owner runs the real recording.
+- Tests: 133 passed in the sandbox (`ruff check` clean) plus the
+  owner's recording run producing the .webm, timeline.txt, and 12
+  midpoint PNGs. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).
