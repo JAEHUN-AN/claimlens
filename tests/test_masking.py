@@ -36,7 +36,7 @@ def test_s2_seal_masked_from_replay(tmp_path, monkeypatch):
     monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
     dst = tmp_path / "s2_masked.png"
     result = mask_sample_image(
-        "S2_seoul_worker_bronchitis", "clean", "receipt", "red circular seal", dst
+        "S2_seoul_worker_bronchitis", "photo", "receipt", "red circular seal", dst
     )
     assert len(result["boxes"]) >= 1
     with Image.open(dst) as img:
