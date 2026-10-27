@@ -53,3 +53,46 @@ tools during the hackathon. All documents read are synthetic samples.
   20,503 tokens. (The working-tree `cache/` was nevertheless overwritten by a
   re-read at 09:26 KST; it was reverted so the committed first recordings stay
   the replay source.)
+
+## 2026-10-27 — Day 2: inpatient bill, verify loop, eval, eligibility
+
+### Muse Code (coding agent)
+
+- Part 1, Scene 3 bill (`kr_bill.py`, `schema.py`, `prompts.py`, `checks.py`):
+  visit checkbox (외래/입원), treatment period, charge rows with four nullable
+  columns, KCD system plus final-diagnosis flag on certificates; new
+  `rows_sum_1..4` checks next to 6/7/8/10. Replay tests for S3 (KRW
+  15,000,000, 12 rows, 상급종합병원, S72.120, checks pass) and extended S2
+  coverage (visit, period, rows, final flag).
+- Part 2, verify-and-re-read (`verify.py`, SPEC 5.6): on any failed check, one
+  narrow re-read naming only involved cells with a tiny strict schema, merge
+  only fresh values (never arithmetic), then `verified` or `needs_manual_check`.
+  Providers accept `result_model`; replay logs usage per call. Stub-provider
+  tests for fix and still-wrong paths, both with 2 logged calls.
+- Part 3, measurement (`eval.py`, `cli.py`): `claimlens eval` reads all 5
+  samples by photo/clean (replay first, live only for missing cache entries)
+  and prints a Markdown accuracy table (docs, currency, total, lines, amounts,
+  diags, KR cells, institution, checks, PII, calls, tokens, cost).
+- Part 4, eligibility (`eligibility.py`, SPEC 3.5): pure `check_eligibility`
+  with 3 outcomes, rule id and English basis; 7 row tests (S2 member via
+  workplace, S3 unknown via short stay).
+- Tests: 32 passed (`ruff check` clean before each commit). No push.
+
+### Muse Spark (model API)
+
+- Live calls: 14 to `muse-spark-1.3` (7 in Part 1 including 4 discarded
+  intermediates, 7 in eval for the missing variants; Parts 2 and 4 used no
+  live calls). Committed cache (10 files): 38,179 input / 17,870 output /
+  56,049 total tokens. Discarded intermediates: about 15,162 / 7,643 / 22,805
+  (one output estimated; the file was deleted before its usage was logged).
+  Day-2 total about 78,854 tokens.
+- Cost: 14 calls at $0.006-0.009 each, about $0.08-0.13, under the $1 budget
+  (Meta free credits). No per-token rates are configured, so stored `cost_usd`
+  is null and eval prints "-" for cost.
+- What failed: S2 re-record 1 returned null for blank row cells (prompt said
+  blank means null); fixed to blank means 0 for charge rows. Re-record 2
+  included the 합계 total row in `charge_rows` (sums doubled); fixed to exclude
+  it. Eval is honest about two misses: S3 clean has 0/12 line items (model
+  omitted the redundant list; 12 charge rows and all cells pass) and S3 photo
+  PII is 3/4 (passport off by one zero; clean is 4/4). Both were kept, not
+  re-recorded.
