@@ -102,6 +102,22 @@ def cmd_adjudicate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rationale(args: argparse.Namespace) -> int:
+    from claimlens.rationale import build_rationale, format_card, rationale_provider_default
+
+    try:
+        card = build_rationale(args.sample_id, args.variant, rationale_provider_default())
+    except (FileNotFoundError, RuntimeError, LookupError, ValueError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    text = format_card(card)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    print(text, end="")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -116,6 +132,11 @@ def build_parser() -> argparse.ArgumentParser:
     decide.add_argument("sample_id", help="Sample id, e.g. A_niseko_wrist.")
     decide.add_argument("--variant", choices=["photo", "clean"], default="photo")
     decide.set_defaults(func=cmd_adjudicate)
+    rationale = sub.add_parser("rationale", help="English card rephrasing an engine decision.")
+    rationale.add_argument("sample_id", help="Sample id, e.g. A_niseko_wrist.")
+    rationale.add_argument("--variant", choices=["photo", "clean"], default="photo")
+    rationale.add_argument("--output", default=None, help="Write the card to a Markdown file.")
+    rationale.set_defaults(func=cmd_rationale)
     return parser
 
 

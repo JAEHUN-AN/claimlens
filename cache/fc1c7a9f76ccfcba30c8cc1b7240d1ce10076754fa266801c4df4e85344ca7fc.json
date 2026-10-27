@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"clauses\": [{\"id\": \"20260506/기본형 해외여행 실손의료보험/제1조\", \"text\": \"Describes the coverage categories forming the travel insurance product.\"}, {\"id\": \"20260506/기본형 해외여행 실손의료보험/제3조\", \"text\": \"Describes compensation content by coverage category during the policy period.\"}], \"steps\": [{\"step\": \"보장탐색:버전확정\", \"text\": \"Confirmed the applicable terms version from the subscription date.\"}, {\"step\": \"보장탐색:조항\", \"text\": \"Identified the relevant coverage provisions.\"}, {\"step\": \"면책검증\", \"text\": \"Reviewed exclusion items with no certain or uncertain match.\"}, {\"step\": \"금액산정\", \"text\": \"Calculated payment as actual burden within the limit with no deductible subject to remaining limit.\"}, {\"step\": \"검증/심판\", \"text\": \"Kept the paid decision on final review.\"}], \"summary\": \"The claim was found covered under the applicable travel insurance terms with no exclusion applying. The actual medical cost is payable within the remaining limit, so the decision is maintained as paid.\"}",
+  "usage": {
+    "input_tokens": 523,
+    "output_tokens": 1648,
+    "total_tokens": 2171
+  },
+  "recorded_at": "2026-10-27T02:41:26.441815+00:00"
+}

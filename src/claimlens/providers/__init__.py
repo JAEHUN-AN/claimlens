@@ -18,4 +18,9 @@ class Provider(Protocol):
         result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]: ...
 
-    def write(self, instructions: str, schema: dict[str, Any]) -> dict[str, Any]: ...
+    def write(
+        self,
+        instructions: str,
+        schema: dict[str, Any],
+        result_model: type[BaseModel] | None = None,
+    ) -> dict[str, Any]: ...

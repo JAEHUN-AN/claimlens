@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\n  \"clauses\": [\n    {\n      \"id\": \"20260506/기본형 실손의료보험(급여 실손의료비)/제1조\",\n      \"text\": \"Coverage is divided into injury benefit type and disease benefit type.\"\n    },\n    {\n      \"id\": \"20260506/기본형 실손의료보험(급여 실손의료비)/제3조\",\n      \"text\": \"Compensation and deduction details are set separately for each coverage type.\"\n    }\n  ],\n  \"steps\": [\n    {\n      \"step\": \"보장탐색:버전확정\",\n      \"text\": \"Join date was used to confirm the applicable policy version.\"\n    },\n    {\n      \"step\": \"보장탐색:조항\",\n      \"text\": \"Relevant coverage provisions were identified for review.\"\n    },\n    {\n      \"step\": \"면책검증\",\n      \"text\": \"All considered exclusions were reviewed with none found certain.\"\n    },\n    {\n      \"step\": \"금액산정\",\n      \"text\": \"Outpatient deductible was applied within the remaining annual limit.\"\n    },\n    {\n      \"step\": \"검증/심판\",\n      \"text\": \"Partial payment decision was maintained after final review.\"\n    }\n  ],\n  \"summary\": \"The claim was partly approved after coverage and exclusion review. An outpatient deductible was applied within the annual limit. No exclusion was found to bar payment.\"\n}",
+  "usage": {
+    "input_tokens": 540,
+    "output_tokens": 1174,
+    "total_tokens": 1714
+  },
+  "recorded_at": "2026-10-27T02:41:38.134045+00:00"
+}

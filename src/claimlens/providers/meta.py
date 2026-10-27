@@ -135,6 +135,41 @@ class MetaProvider:
         model = result_model or ReadingResult
         return TypeAdapter(model).validate_python(data).model_dump(mode="json")
 
-    def write(self, instructions: str, schema: dict[str, Any]) -> dict[str, Any]:
+    def write(
+        self,
+        instructions: str,
+        schema: dict[str, Any],
+        result_model: type[BaseModel] | None = None,
+    ) -> dict[str, Any]:
         response = self._request([], instructions, schema)
-        return unescape_json(json.loads(response.output_text))
+        usage = response.usage
+        in_tokens = getattr(usage, "input_tokens", 0) or 0
+        out_tokens = getattr(usage, "output_tokens", 0) or 0
+        total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
+        key = replay_cache.cache_key([], instructions, schema, self.model)
+        replay_cache.store(
+            key,
+            {
+                "model": self.model,
+                "output_text": response.output_text,
+                "usage": {
+                    "input_tokens": in_tokens,
+                    "output_tokens": out_tokens,
+                    "total_tokens": total,
+                },
+                "recorded_at": datetime.now(UTC).isoformat(),
+            },
+        )
+        self.calls.append(
+            CallRecord(
+                model=self.model,
+                input_tokens=in_tokens,
+                output_tokens=out_tokens,
+                total_tokens=total,
+                cost_usd=cost_usd(in_tokens, out_tokens),
+            )
+        )
+        data = unescape_json(json.loads(response.output_text))
+        if result_model is None:
+            return data
+        return TypeAdapter(result_model).validate_python(data).model_dump(mode="json")

@@ -45,7 +45,28 @@ class ReplayProvider:
         model = result_model or ReadingResult
         return TypeAdapter(model).validate_python(data).model_dump(mode="json")
 
-    def write(self, instructions: str, schema: dict[str, Any]) -> dict[str, Any]:
+    def write(
+        self,
+        instructions: str,
+        schema: dict[str, Any],
+        result_model: type[BaseModel] | None = None,
+    ) -> dict[str, Any]:
         key = replay_cache.cache_key([], instructions, schema, self.model)
         payload = replay_cache.load(key)
-        return unescape_json(json.loads(payload["output_text"]))
+        usage = payload.get("usage", {})
+        in_tokens = int(usage.get("input_tokens", 0))
+        out_tokens = int(usage.get("output_tokens", 0))
+        total = int(usage.get("total_tokens", in_tokens + out_tokens))
+        self.calls.append(
+            CallRecord(
+                model=payload.get("model", self.model),
+                input_tokens=in_tokens,
+                output_tokens=out_tokens,
+                total_tokens=total,
+                cost_usd=cost_usd(in_tokens, out_tokens),
+            )
+        )
+        data = unescape_json(json.loads(payload["output_text"]))
+        if result_model is None:
+            return data
+        return TypeAdapter(result_model).validate_python(data).model_dump(mode="json")
