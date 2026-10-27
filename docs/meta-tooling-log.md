@@ -290,3 +290,33 @@ Items 0d and 12.
 ### Model APIs
 
 - Live calls: 0 ($0). Everything verified from replay caches.
+
+## 2026-10-27 — Backlog session: README gaps and demo polish
+
+Items 13 and 14.
+
+### Muse Code (coding agent)
+
+- Item 13: README model table now leads with the Muse Code row (wrote the
+  code from the backlog; owner reviewed and ran live/engine calls) linking
+  the tooling log as the main "Use of Meta AI Tooling" evidence; added the
+  SAM limitation (S2 seal found on photo, not on clean after four attempts,
+  so the demo masks the photo variant).
+- Item 14: demo page polish. The rationale card renders as HTML (badge,
+  large amount, steps, cited clauses, deductible line) instead of raw
+  Markdown; each scene is a two-column layout (document images left with
+  masked-copy captions, results right); check marks are a compact strip;
+  the Claim Pack is a styled panel (cover, patient/visit, codes, itemized
+  bill table, checklist, deadlines) instead of a bare iframe. Payloads are
+  structured (no Markdown/HTML blobs); all numbers still come from the
+  replay caches. `docs/demo.html` regenerated; the owner checks it in a
+  real browser.
+- New `tests/demo_smoke.mjs` render harness, run by pytest when `node`
+  exists (skipped otherwise): 3 scenes, PAID/PARTIAL/not-adjudicated
+  badges, 12-row bill table, deductible match, masked captions, no raw
+  Markdown, no iframe. Windows `\\?\` paths are stripped for node.
+- Tests: 95 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: 0 ($0). Everything verified from replay caches.

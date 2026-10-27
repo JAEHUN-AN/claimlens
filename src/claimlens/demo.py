@@ -8,12 +8,18 @@ from pathlib import Path
 from typing import Any
 
 from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
-from claimlens.claimpack import build_pack, format_html
+from claimlens.claimpack import (
+    CHECKLIST,
+    GENERIC_DEADLINE,
+    PII_CHECK_MARK,
+    TRANSLATION_NOTE,
+    build_pack,
+)
 from claimlens.demo_template import render_page
 from claimlens.eligibility import check_eligibility
 from claimlens.engine import load_scenarios, replay_reading
 from claimlens.providers.replay import ReplayProvider
-from claimlens.rationale import build_rationale, format_card
+from claimlens.rationale import build_rationale
 from claimlens.reader import resolve_sample_images
 
 SCENES = [
@@ -23,9 +29,11 @@ SCENES = [
 ]
 
 MASKED_AFTER = {
-    "S2_seoul_worker_bronchitis": "S2_receipt_after.png",
-    "S3_us_tourist_hip_fracture": "S3_cert_after.png",
+    "S2_seoul_worker_bronchitis": ("receipt", "S2_receipt_after.png"),
+    "S3_us_tourist_hip_fracture": ("medical_certificate", "S3_cert_after.png"),
 }
+
+DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
 
 def _rel(from_dir: Path, target: Path) -> str:
@@ -71,23 +79,42 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         service = receipt.get("service_date") or ""
         payload["eligibility"] = check_eligibility(scenarios[sample_id]["person"], service)
     base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
-    for img in resolve_sample_images(base, "photo"):
-        payload["images"].append(_rel(dst.parent, img))
-    after = MASKED_AFTER.get(sample_id)
-    if after:
-        masked = Path("docs/masking") / after
-        if masked.exists():
-            payload["images"].append(_rel(dst.parent, masked))
+    masked_doc, masked_name = MASKED_AFTER.get(sample_id, (None, None))
+    masked_path = Path("docs/masking") / masked_name if masked_name else None
+    for stem, img in zip(("receipt", "medical_certificate"), resolve_sample_images(base, "photo")):
+        caption = f"{DOC_CAPTION[stem]} (photo)"
+        src = _rel(dst.parent, img)
+        if stem == masked_doc and masked_path is not None and masked_path.exists():
+            src = _rel(dst.parent, masked_path)
+            caption = f"{DOC_CAPTION[stem]} (masked copy)"
+        payload["images"].append({"src": src, "caption": caption})
     if sample_id == "S3_us_tourist_hip_fracture":
         pack = build_pack(sample_id, "photo", ReplayProvider())
-        payload["pack"] = {"html": format_html(pack)}
+        payload["pack"] = {
+            "policy_line": pack["policy_line"],
+            "patient": pack["patient"],
+            "pii_conflicts": pack["pii_conflicts"],
+            "pii_mark": PII_CHECK_MARK,
+            "visit": pack["visit"],
+            "diagnosis": pack["diagnosis"],
+            "codes": pack["codes"],
+            "items": pack["items"],
+            "total_krw": pack["total_krw"],
+            "checks_passed": pack["checks_passed"],
+            "translation_note": TRANSLATION_NOTE,
+            "checklist": CHECKLIST,
+            "deadline": GENERIC_DEADLINE,
+        }
     else:
         card = build_rationale(sample_id, "photo", ReplayProvider())
         payload["card"] = {
             "decision": card["decision"],
             "amount": f"{card['amount_krw']:,} KRW",
             "summary": card["summary"],
-            "markdown": format_card(card),
+            "steps": card["steps"],
+            "clauses": card["clauses"],
+            "deductible": card["deductible"],
+            "guardrails": card["guardrails"],
         }
     return payload
 

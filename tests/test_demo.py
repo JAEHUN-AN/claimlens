@@ -2,8 +2,17 @@
 
 import json
 import re
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
 
 from claimlens.demo import export_demo
+
+
+def _node_path(path: Path) -> str:
+    return str(path).removeprefix("\\\\?\\")
 
 
 def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
@@ -19,6 +28,8 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert "We do not have your policy, so this is not a coverage decision." in text
     assert "matches the engine" in text
     assert "http://-onwards" not in text and "https://" not in text
+    assert "# Claim decision" not in text
+    assert "<iframe" not in text
     raw = re.search(r'<script id="demo-data"[^>]*>(.*?)</script>', text, re.DOTALL)[1]
     payload = json.loads(raw)
     assert [s["id"] for s in payload["scenes"]] == [
@@ -27,5 +38,31 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "S3_us_tourist_hip_fracture",
     ]
     assert payload["scenes"][0]["card"]["decision"] == "PAID"
+    assert payload["scenes"][0]["card"]["steps"]
+    assert payload["scenes"][0]["card"]["clauses"]
     assert payload["scenes"][1]["eligibility"]["outcome"] == "nhi_member"
+    assert payload["scenes"][1]["card"]["deductible"]["match"] is True
     assert payload["scenes"][2]["pack"] is not None
+    assert len(payload["scenes"][2]["pack"]["items"]) == 12
+    assert payload["scenes"][2]["pack"]["total_krw"] == 15000000
+    first_images = payload["scenes"][0]["images"]
+    assert set(first_images[0]) == {"src", "caption"}
+    assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]
+    assert "masked copy" in payload["scenes"][2]["images"][1]["caption"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_demo_renders_in_node_harness(tmp_path, monkeypatch):
+    monkeypatch.delenv("META_API_KEY", raising=False)
+    monkeypatch.delenv("NEO4J_URI", raising=False)
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    dst = export_demo(tmp_path / "demo.html")
+    harness = Path(__file__).with_name("demo_smoke.mjs")
+    proc = subprocess.run(
+        ["node", _node_path(harness), _node_path(dst)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "demo smoke: OK" in proc.stdout
