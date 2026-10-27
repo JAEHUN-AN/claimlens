@@ -37,6 +37,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "S2_seoul_worker_bronchitis",
         "S3_us_tourist_hip_fracture",
         "agent_s2_hidden_copay",
+        "voice_factory_fall",
     ]
     assert payload["scenes"][0]["card"]["decision"] == "PAID"
     assert payload["scenes"][0]["card"]["steps"]
@@ -55,6 +56,11 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     kinds = [e["kind"] for e in timeline["entries"]]
     assert kinds.count("question") == 1
     assert kinds[-1] == "final"
+    voice = payload["scenes"][4]
+    assert voice["eligibility"]["outcome"] == "work_injury"
+    assert voice["next_step"] == "industrial accident compensation insurance first"
+    assert [c["lang"] for c in voice["clips"]] == ["en", "ko"]
+    assert all(c["transcript"] and c["audio"].endswith(".wav") for c in voice["clips"])
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

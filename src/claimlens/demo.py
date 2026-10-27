@@ -41,6 +41,12 @@ AGENT_SCENE = (
     "S2_seoul_worker_bronchitis",
 )
 
+VOICE_SCENE = (
+    "voice_factory_fall",
+    "Scene Voice — factory fall (spoken intake)",
+    (("en", "W_factory_fall_en"), ("ko", "W_factory_fall_ko")),
+)
+
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
 
@@ -208,10 +214,44 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
     return payload
 
 
+def voice_scene_payload(dst: Path) -> dict[str, Any]:
+    from claimlens.providers.replay import ReplayProvider
+    from claimlens.voice import intake
+
+    scene_id, title, clips = VOICE_SCENE
+    provider = ReplayProvider()
+    audio_dir = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / "audio"
+    rendered = []
+    for lang, clip in clips:
+        result = intake(clip, live=False, provider=provider)
+        rendered.append(
+            {
+                "lang": lang,
+                "audio": _rel(dst.parent, audio_dir / f"{clip}.wav"),
+                "transcript": result["transcript"],
+                "facts": result["facts"],
+                "quotes": result["quotes"],
+            }
+        )
+    first = intake(clips[0][1], live=False, provider=provider)
+    return {
+        "id": scene_id,
+        "title": title,
+        "reading": None,
+        "eligibility": first["eligibility"],
+        "card": None,
+        "pack": None,
+        "timeline": None,
+        "clips": rendered,
+        "next_step": first["next_step"],
+    }
+
+
 def export_demo(dst: Path | str = "docs/demo.html") -> Path:
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
     scenes.append(agent_scene_payload(dst))
+    scenes.append(voice_scene_payload(dst))
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_page({"scenes": scenes}), encoding="utf-8")
     return dst

@@ -64,9 +64,28 @@ data.scenes.forEach((s,i)=>{
   document.getElementById('stages').insertAdjacentHTML('beforeend',stage(s,i===0));
 });
 function stage(s,first){
+  if(s.clips)
+    return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(s.title)}</h2>`
+      +`${voiceScene(s)}</section>`;
   const right=s.timeline?timeline(s):`${reading(s)}${eligibility(s)}${result(s)}`;
   return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(s.title)}</h2>
   <div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div></section>`;
+}
+function voiceScene(s){
+  const e=s.eligibility;
+  const clips=s.clips.map(c=>{
+    const rows=Object.keys(c.facts).map(k=>
+      `<tr><td>${esc(k)}</td><td>${esc(String(c.facts[k]))}</td>`
+      +`<td><small class="dim">${esc(c.quotes[k]||'')}</small></td></tr>`
+    ).join('');
+    return `<h4>Clip (${esc(c.lang)})</h4>`
+      +`<audio controls preload="none" src="${esc(c.audio)}"></audio>`
+      +`<p>${esc(c.transcript)}</p>`
+      +`<table class="bill"><tr><th>Fact</th><th>Value</th><th>Quoted words</th></tr>${rows}</table>`;
+  }).join('');
+  return `<h3>Voice intake</h3><p>${badge(e.outcome)}</p>`
+    +`<p><strong>${esc(s.next_step)}</strong> (${esc(e.rule)})</p>`
+    +`<p><small class="dim">${esc(e.basis)}</small></p>${clips}`;
 }
 function timeline(s){
   const t=s.timeline;

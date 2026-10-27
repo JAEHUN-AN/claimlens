@@ -320,3 +320,41 @@ Items 13 and 14.
 ### Model APIs
 
 - Live calls: 0 ($0). Everything verified from replay caches.
+
+## 2026-10-27 — Backlog session: clarifying agent and voice intake
+
+Round 2 items 15 and 17.
+
+### Muse Code (coding agent)
+
+- Item 15: new `src/claimlens/agent.py` — a tool-calling loop on hosted
+  `muse-spark-1.3` (Responses API tools work; only `tool_choice: "auto"`
+  is accepted). Eight tools: read documents, run checks, re-read cells,
+  decide eligibility, convert codes, adjudicate (replay cache), build
+  Claim Pack, ask_user(question, why_needed). Hard step cap of 12; unknown
+  tools and crashes become error results. Recorded dialogue: S2 with copay
+  cells hidden → read, checks, eligibility, ask_user for cell_1/cell_2 with
+  the reason, codes, adjudicate → PARTIAL ₩22,500. The trace renders in
+  `docs/demo.html` as a step-by-step timeline (4th scene). First recording
+  failed: the adjudicate tool demanded sum_insured, which the engine never
+  needed (its recording has null); the check now matches the engine.
+- Item 17: new `src/claimlens/voice.py` — ASR (`muse-voice-transcribe-1.0`,
+  multipart, stdlib only) plus Spark fact extraction with per-fact quotes
+  (separate required quote_* fields; a quotes dict came back empty twice).
+  WAVs are converted to mono s16le 24 kHz in code (the clips are 22050 Hz).
+  Both clips transcribed and cached; en facts match the truth, work_injury
+  with "industrial accident compensation insurance first". 5th demo scene
+  with audio players, transcripts, and the fact/quote table.
+- Two ASR findings: the endpoint is not deterministic (same clip returned
+  October 21, then July 21 for the ko date), so transcripts are never
+  re-recorded; the ko clip needs re-synthesis ("10월 20일" heard as 21st,
+  E-9 read letter by letter), which the owner will do — the ko test pins
+  the injury path only until then. Re-synthesis from the sandbox failed
+  (SAPI blocked, no loopback for edge-tts).
+- Tests: 105 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: Spark 15 (2 tool probes, 11 + 7 agent turns across two
+  recordings, 6 fact extractions across three), about $0.10; ASR 3
+  (1 probe, 2 clips; no usage block). Session total about $0.10-0.15.

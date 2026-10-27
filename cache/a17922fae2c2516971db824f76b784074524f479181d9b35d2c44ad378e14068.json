@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"body_part\": \"left wrist\", \"incident_date\": \"2026-10-20\", \"korean_employer\": true, \"mechanism\": \"slipped on stairs carrying boxes\", \"quote_body_part\": \"hurt my left wrist\", \"quote_incident_date\": \"On October 20th\", \"quote_korean_employer\": \"I work at a factory in Anson.\", \"quote_mechanism\": \"I slipped on the stairs carrying boxes\", \"quote_visa\": \"My visa is E9.\", \"quote_work_related\": \"during my night night shift\", \"visa\": \"E-9\", \"work_related\": true}",
+  "usage": {
+    "input_tokens": 158,
+    "output_tokens": 828,
+    "total_tokens": 986
+  },
+  "recorded_at": "2026-10-27T04:25:44.641379+00:00"
+}
