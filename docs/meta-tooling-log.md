@@ -50,4 +50,6 @@ tools during the hackathon. All documents read are synthetic samples.
   re-verified outputs (JPY 235,000; S2 cells + 종합병원 + checks pass); probe
   cache keys matched the committed filenames exactly, proving this code
   reproduces the recorded requests bit-for-bit. Day-1 total: 4 Spark calls,
-  20,503 tokens.
+  20,503 tokens. (The working-tree `cache/` was nevertheless overwritten by a
+  re-read at 09:26 KST; it was reverted so the committed first recordings stay
+  the replay source.)
