@@ -135,6 +135,22 @@ def cmd_claimpack(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mask(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens.masking import mask_sample_image
+
+    try:
+        result = mask_sample_image(
+            args.sample_id, args.variant, args.doc, args.phrase, Path(args.output)
+        )
+    except (FileNotFoundError, RuntimeError, LookupError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -160,6 +176,13 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--format", choices=["md", "html"], default="md")
     pack.add_argument("--output", default=None, help="Write the pack to a file.")
     pack.set_defaults(func=cmd_claimpack)
+    mask = sub.add_parser("mask", help="Mask one phrase on a sample image with SAM 3.1.")
+    mask.add_argument("sample_id", help="Sample id, e.g. S2_seoul_worker_bronchitis.")
+    mask.add_argument("--doc", choices=["receipt", "medical_certificate"], default="receipt")
+    mask.add_argument("--variant", choices=["photo", "clean"], default="clean")
+    mask.add_argument("--phrase", required=True, help="Noun phrase, e.g. 'red circular seal'.")
+    mask.add_argument("--output", required=True, help="Where to save the masked copy.")
+    mask.set_defaults(func=cmd_mask)
     return parser
 
 
