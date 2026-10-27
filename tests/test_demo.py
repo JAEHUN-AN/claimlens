@@ -46,13 +46,17 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert payload["scenes"][1]["card"]["deductible"]["match"] is True
     assert payload["scenes"][2]["pack"] is not None
     assert len(payload["scenes"][2]["pack"]["items"]) == 12
-    assert payload["scenes"][2]["pack"]["total_krw"] == 15000000
+    assert payload["scenes"][2]["pack"]["total_krw"] == {
+        "v": "15,000,000",
+        "prov": "s3-pack-total",
+    }
     first_images = payload["scenes"][0]["images"]
     assert set(first_images[0]) == {"src", "caption"}
     assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]
     assert "masked copy" in payload["scenes"][2]["images"][1]["caption"]
     timeline = payload["scenes"][3]["timeline"]
-    assert timeline["outcome"] == {"decision": "PARTIAL", "amount_krw": 22500}
+    assert timeline["outcome"]["decision"] == "PARTIAL"
+    assert timeline["outcome"]["amount_krw"] == 22500
     kinds = [e["kind"] for e in timeline["entries"]]
     assert kinds.count("question") == 1
     assert kinds[-1] == "final"
@@ -65,7 +69,8 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert ko_clip["to_confirm"] == ["incident_date", "visa"]
     assert ko_clip["confirmations"][0]["question"].startswith("I heard 20 October")
     for entry in timeline["entries"]:
-        assert "None" not in entry.get("summary", "")
+        for seg in entry.get("segments", []):
+            assert "None" not in seg.get("t", "") + seg.get("n", "")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

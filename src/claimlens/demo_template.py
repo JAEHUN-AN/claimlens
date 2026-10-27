@@ -52,6 +52,14 @@ ul.tight li{margin:.15rem 0}
 .totag{display:inline-block;background:#fff1c1;color:#6b4e00;font-size:.75rem;
 font-weight:600;padding:0 .4rem;border-radius:.25rem}
 small.dim{color:#666}
+.num{cursor:pointer;border-bottom:1px dotted #777}
+.num:focus{outline:2px solid #1a73e8;outline-offset:1px}
+.num.hl{background:#ffe08a}
+#prov-panel{position:fixed;right:1rem;bottom:1rem;max-width:22rem;background:#fff;
+border:1px solid #333;border-radius:.4rem;padding:.7rem .9rem;font-size:.9rem;
+box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:10}
+#prov-panel p{margin:.2rem 0}
+#prov-panel .kind{font-size:.75rem;font-weight:700;text-transform:uppercase;color:#555}
 """
 
 JS = """
@@ -60,6 +68,8 @@ function show(id){
   document.getElementById(id).classList.add('active');
 }
 const data=JSON.parse(document.getElementById('demo-data').textContent);
+const PROV={};
+data.scenes.forEach(s=>Object.assign(PROV,s.provenance||{}));
 const nav=document.getElementById('scenes');
 data.scenes.forEach((s,i)=>{
   const b=document.createElement('button');
@@ -67,6 +77,33 @@ data.scenes.forEach((s,i)=>{
   nav.appendChild(b);
   document.getElementById('stages').insertAdjacentHTML('beforeend',stage(s,i===0));
 });
+document.addEventListener('click',e=>{
+  const el=e.target.closest?e.target.closest('.num'):null;
+  if(el){showProv(el.getAttribute('data-prov'));return;}
+  if(e.target.closest&&!e.target.closest('#prov-panel'))hideProv();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){hideProv();return;}
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('num')){
+    e.preventDefault();showProv(e.target.getAttribute('data-prov'));
+  }
+});
+function showProv(id){
+  const r=PROV[id];if(!r)return;
+  document.querySelectorAll('.num.hl').forEach(n=>n.classList.remove('hl'));
+  [id].concat(r.operands||[]).forEach(o=>
+    document.querySelectorAll('.num[data-prov="'+o+'"]').forEach(n=>n.classList.add('hl')));
+  const p=document.getElementById('prov-panel');
+  const formula=r.formula?`<p>Formula: ${esc(r.formula)}</p>`:'';
+  p.innerHTML=`<p class="kind">${esc(r.kind)}</p><p><strong>${esc(r.label)}</strong></p>`
+    +`<p>Value: ${esc(r.value)}</p><p>Source: ${esc(r.source)}</p>${formula}`
+    +`<p><small class="dim">Esc closes · related numbers highlighted</small></p>`;
+  p.style.display='block';
+}
+function hideProv(){
+  document.getElementById('prov-panel').style.display='none';
+  document.querySelectorAll('.num.hl').forEach(n=>n.classList.remove('hl'));
+}
 function stage(s,first){
   if(s.clips)
     return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(s.title)}</h2>`
@@ -77,17 +114,15 @@ function stage(s,first){
 }
 function headline(s){
   if(s.card)
-    return `<p class="headline">${badge(s.card.decision)} <strong>${esc(s.card.amount)}</strong></p>`;
-  if(s.pack){
-    const t=s.pack.total_krw;
-    const total=(t===null||t===undefined)?'Claim Pack':`Claim Pack · ${num(t)} KRW`;
-    return `<p class="headline">${badge('not adjudicated')} <strong>${esc(total)}</strong></p>`;
-  }
+    return `<p class="headline">${badge(s.card.decision)} <strong>${pv(s.card.amount)}</strong></p>`;
+  if(s.pack)
+    return `<p class="headline">${badge('not adjudicated')} `
+      +`<strong>Claim Pack · ${pv(s.pack.total_krw)} KRW</strong></p>`;
   if(s.timeline){
     const o=s.timeline.outcome||{};
     if(!o.decision)return '';
-    return `<p class="headline">${badge(o.decision)} <strong>${num(o.amount_krw)} KRW</strong> `
-      +`<small class="dim">· ${s.timeline.model_calls} turns</small></p>`;
+    return `<p class="headline">${badge(o.decision)} <strong>${pv(o.amount)}</strong> `
+      +`<small class="dim">· ${pv(s.timeline.model_calls)} turns</small></p>`;
   }
   if(s.clips)
     return `<p class="headline">${badge(s.eligibility.outcome)} `
@@ -112,45 +147,54 @@ function voiceScene(s){
       +`<table class="bill"><tr><th>Fact</th><th>Value</th><th>Quoted words</th></tr>${rows}</table>`
       +`<p>To confirm with the person:</p><ul class="tight">${asks}</ul>`;
   }).join('');
-  return `<h3>Voice intake</h3><p>${badge(e.outcome)}</p>`
+  return `<h3>Voice intake</h3><div class="noprov"><p>${badge(e.outcome)}</p>`
     +`<p><strong>${esc(s.next_step)}</strong> (${esc(e.rule)})</p>`
-    +`<p><small class="dim">${esc(e.basis)}</small></p>${clips}`;
+    +`<p><small class="dim">${esc(e.basis)}</small></p>${clips}</div>`;
 }
 function timeline(s){
   const t=s.timeline;
+  const seg=g=>g.prov?`<span class="num" tabindex="0" data-prov="${esc(g.prov)}">${esc(g.n)}</span>`
+    :g.noprov?`<span class="noprov">${esc(g.t)}</span>`:esc(g.t);
   const items=t.entries.map(e=>{
     if(e.kind==='question')
-      return `<li class="tl-q"><span class="tool-name"><strong>Step ${e.n} — ask_user</strong></span>`
-        +`<p>Q: ${esc(e.question)}</p><p>Why: ${esc(e.why_needed)}</p>`
-        +`<p>A: ${esc(e.answer)}</p></li>`;
+      return `<li class="tl-q"><span class="tool-name noprov"><strong>Step ${e.n} — ask_user</strong></span>`
+        +`<p class="noprov">Q: ${esc(e.question)}</p><p class="noprov">Why: ${esc(e.why_needed)}</p>`
+        +`<p>A: ${pv(e.answer)}</p></li>`;
     if(e.kind==='final'||e.kind==='stopped')
-      return `<li class="tl-final"><span class="tool-name"><strong>Step ${e.n} — ${esc(e.kind)}</strong></span>`
-        +`<p>${esc(e.text)}</p></li>`;
-    return `<li><span class="tool-name"><strong>Step ${e.n} — ${esc(e.tool)}</strong></span>`
-      +`<p>${esc(e.summary)}</p></li>`;
+      return `<li class="tl-final"><span class="tool-name noprov"><strong>Step ${e.n} — ${esc(e.kind)}</strong></span>`
+        +`<p class="noprov">${esc(e.text)}</p></li>`;
+    return `<li><span class="tool-name noprov"><strong>Step ${e.n} — ${esc(e.tool)}</strong></span>`
+      +`<p>${(e.segments||[]).map(seg).join('')}</p></li>`;
   }).join('');
   const o=t.outcome||{};
-  const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${num(o.amount_krw)} KRW</p>`:'';
+  const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${pv(o.amount)}</p>`:'';
   return `<h3>Agent timeline</h3>${head}`
-    +`<p class="pinned">${t.model_calls} model turns · ${num(t.tokens)} tokens · replayed trace</p>`
+    +`<p class="pinned">${pv(t.model_calls)} model turns · ${pv(t.tokens)} tokens · replayed trace</p>`
     +`<ol class="timeline">${items}</ol>`;
 }
 function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
 function num(n){return Number(n).toLocaleString('en-US')}
+function pv(obj){
+  if(obj&&typeof obj==='object'&&obj.prov)
+    return `<span class="num" tabindex="0" data-prov="${esc(obj.prov)}">${esc(obj.v)}</span>`;
+  if(obj&&typeof obj==='object')return esc(obj.v!==undefined?obj.v:'');
+  return esc(obj===null||obj===undefined?'':obj);
+}
 function reading(s){
   const r=s.reading;
   const checks=r.checks.map(c=>
     `<span class="pill ${c.passed?'pass':'fail'}">${c.passed?'✓':'✗'} ${esc(c.name)}</span>`
   ).join('');
+  const diags=(r.diags||[]).map(pv).join(', ')||'-';
   return `<h3>Reading</h3><p>${esc(r.docs.join(' + '))} · ${esc(r.currency)} ·
-  total ${esc(r.total)} · codes ${esc(r.diags.join(', ')||'-')}</p>
+  total ${pv(r.total)} · codes ${diags}</p>
   <p class="strip">${checks||'<span class="pill na">no bill checks</span>'}</p>`;
 }
 function eligibility(s){
   if(!s.eligibility)return `<h3>Eligibility</h3><p>Korean traveller abroad — engine path.</p>`;
   const e=s.eligibility;
   return `<h3>Eligibility</h3><p><strong>${esc(e.outcome)}</strong> (${esc(e.rule)})</p>
-  <p><small class="dim">${esc(e.basis)}</small></p>`;
+  <p class="noprov"><small class="dim">${esc(e.basis)}</small></p>`;
 }
 function badge(decision){
   const cls=decision==='PAID'?'paid':decision==='PARTIAL'?'partial':'none';
@@ -158,10 +202,12 @@ function badge(decision){
 }
 function deductible(d){
   if(!d)return '';
-  const head=`max(${d.terms.map(num).join(', ')}) = ${num(d.ours)}`;
+  const head=`max(${(d.terms||[]).map(pv).join(', ')}) = ${pv(d.ours)}`;
   const text=d.match?`${head} — matches the engine`
-    :`ClaimLens ${head} vs engine ${num(d.engine)} — FLAGGED: amounts differ; the engine amount stands.`;
-  return `<h3>Deductible check (computed by ClaimLens from the reading)</h3><p>${esc(text)}</p>`;
+    :`ClaimLens ${head} vs engine ${pv(d.engine)} — FLAGGED: amounts differ; the engine amount stands.`;
+  const c=d.cells||{};
+  const cells=`<p>① = ${pv(c.c1)} · ② = ${pv(c.c2)} · copay = ① ÷ (① + ②) = ${pv(c.copay)}</p>`;
+  return `<h3>Deductible check (computed by ClaimLens from the reading)</h3>${cells}<p>${text}</p>`;
 }
 function result(s){
   if(s.card)return engineCard(s.card);
@@ -172,11 +218,12 @@ function engineCard(c){
   const clauses=c.clauses.map(
     i=>`<li><code class="clause">${esc(i.id)}</code> (${esc(i.title)}): ${esc(i.text)}</li>`
   ).join('');
-  const guards=(c.guardrails||[]).length?`<p>Guardrails: ${esc(c.guardrails.join(', '))}</p>`:'';
-  return `<h3>Engine card</h3><p>${badge(c.decision)}</p><p class="amount">${esc(c.amount)}</p>
+  const guards=(c.guardrails||[]).length
+    ?`<p class="noprov">Guardrails: ${esc(c.guardrails.join(', '))}</p>`:'';
+  return `<h3>Engine card</h3><p>${badge(c.decision)}</p><p class="amount">${pv(c.amount)}</p>
   <p class="pinned">pre-existing open-source engine, pinned</p>
-  <p>${esc(c.summary)}</p><h3>Steps</h3><ul class="tight">${steps}</ul>
-  <h3>Cited clauses</h3><ul class="tight">${clauses}</ul>${deductible(c.deductible)}${guards}`;
+  <p class="noprov">${esc(c.summary)}</p><h3>Steps</h3><ul class="tight noprov">${steps}</ul>
+  <h3>Cited clauses</h3><ul class="tight noprov">${clauses}</ul>${deductible(c.deductible)}${guards}`;
 }
 function piiLine(label,value,conflict,mark){
   if(!value)return `<li>${esc(label)}: -</li>`;
@@ -191,33 +238,35 @@ function packPanel(p){
   const stay=v.inpatient?`inpatient, ${esc(v.period_from)} to ${esc(v.period_to)}`:'outpatient';
   const codes=p.codes||{};
   const cm=codes.cm||{};
-  const questions=(cm.questions||[]).map(q=>`<li>Needed to narrow: ${esc(q)}</li>`).join('');
-  const warn=p.codes&&p.codes.pitfall?`<li class="warn">Warning: ${esc(p.codes.pitfall.warning)}</li>`:'';
-  const estimate=p.diagnosis.final===false
-    ?'<li>Note: the certificate marks a clinical estimate; a final diagnosis may be requested.</li>':'';
-  const rows=p.items.map(
-    i=>`<tr><td>${esc(i.label_en)}<br/><span lang="ko">${esc(i.label_ko)}</span></td>`
-      +`<td class="num">${num(i.amount)}</td></tr>`
+  const questions=(codes.questions||[]).map(
+    q=>`<li class="noprov">Needed to narrow: ${esc(q)}</li>`
   ).join('');
-  const total=p.total_krw===null||p.total_krw===undefined?'-':num(p.total_krw);
+  const warn=codes.pitfall
+    ?`<li class="warn noprov">Warning: ${esc(codes.pitfall.warning)}</li>`:'';
+  const estimate=p.diagnosis.final===false
+    ?'<li class="noprov">Note: the certificate marks a clinical estimate; a final diagnosis may be requested.</li>':'';
+  const rows=p.items.map(
+    i=>`<tr><td class="noprov">${esc(i.label_en)}<br/><span lang="ko">${esc(i.label_ko)}</span></td>`
+      +`<td class="num">${pv(i.amount)}</td></tr>`
+  ).join('');
   const list=(items)=>items.map(i=>`<li>${esc(i)}</li>`).join('');
   return `<h3>Claim Pack</h3><p>${badge('not adjudicated')}</p>
   <div class="panel"><h4>Cover</h4><p><strong>${esc(p.policy_line)}</strong></p>
-  <h4>Patient and visit</h4><ul class="tight">`
+  <h4>Patient and visit</h4><ul class="tight noprov">`
   +piiLine('Name',p.patient.name,(p.pii_conflicts||{}).name,p.pii_mark)
   +piiLine('Date of birth',p.patient.date_of_birth,(p.pii_conflicts||{}).date_of_birth,p.pii_mark)
   +piiLine('Passport',p.patient.passport,(p.pii_conflicts||{}).passport,p.pii_mark)
   +piiLine('Patient ID',p.patient.patient_id,(p.pii_conflicts||{}).patient_id,p.pii_mark)
   +`<li>Hospital: ${esc(v.hospital)}</li><li>Stay: ${stay}</li></ul>
   <h4>Diagnosis codes</h4><ul class="tight">
-  <li>Certificate: ${esc(p.diagnosis.label||'-')}</li>
-  <li>KCD: ${esc(codes.kcd||'-')}</li>
-  <li>WHO ICD-10: ${esc(codes.who||'-')}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
-  <li>ICD-10-CM candidate: ${esc(cm.chosen||'-')}</li>${questions}${warn}
-  <li>${esc(codes.disclaimer||'')}</li>${estimate}</ul>
+  <li class="noprov">Certificate: ${esc(p.diagnosis.label||'-')}</li>
+  <li>KCD: ${pv(codes.kcd)}</li>
+  <li>WHO ICD-10: ${pv(codes.who)}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
+  <li>ICD-10-CM candidate: ${pv(cm.chosen)}</li>${questions}${warn}
+  <li class="noprov">${esc(codes.disclaimer||'')}</li>${estimate}</ul>
   <h4>Itemized bill (KRW)</h4><table class="bill">
   <tr><th>Item</th><th class="num">Amount</th></tr>${rows}
-  <tr><td><strong>Total</strong></td><td class="num"><strong>${total}</strong></td></tr></table>
+  <tr><td><strong>Total</strong></td><td class="num"><strong>${pv(p.total_krw)}</strong></td></tr></table>
   <ul class="tight"><li>Receipt arithmetic verified: ${p.checks_passed?'pass':'FAIL'}</li>
   <li>${esc(p.translation_note)}</li></ul>
   <h4>Checklist before leaving</h4><ul class="tight">${list(p.checklist)}</ul>
@@ -246,6 +295,7 @@ def render_page(payload: dict[str, Any]) -> str:
 <p><small class="dim">All documents are synthetic. Rendered from committed replay caches only.</small></p>
 <nav id="scenes"></nav>
 <div id="stages"></div>
+<div id="prov-panel" style="display:none" role="dialog" aria-label="Number provenance"></div>
 <script id="demo-data" type="application/json">{data}</script>
 <script>{JS}</script>
 </body>

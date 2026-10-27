@@ -18,7 +18,8 @@ from claimlens.claimpack import (
 )
 from claimlens.demo_template import render_page
 from claimlens.eligibility import check_eligibility
-from claimlens.engine import load_scenarios, replay_reading
+from claimlens.engine import copay_rate_from_bill, load_scenarios, replay_reading
+from claimlens.provenance import ProvBuilder
 from claimlens.providers.replay import ReplayProvider
 from claimlens.rationale import build_rationale
 from claimlens.reader import resolve_sample_images
@@ -49,6 +50,12 @@ VOICE_SCENE = (
 
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
+TERM_LABELS = (
+    "flat amount by institution",
+    "proportional share of claimed",
+    "claimed times copay rate",
+)
+
 
 def _rel(from_dir: Path, target: Path) -> str:
     start = os.path.normpath(os.path.abspath(from_dir))
@@ -56,7 +63,13 @@ def _rel(from_dir: Path, target: Path) -> str:
     return os.path.relpath(end, start).replace(os.sep, "/")
 
 
-def _reading_section(reading: dict[str, Any]) -> dict[str, Any]:
+def _fmt_total(total: float | None) -> str:
+    return f"{total:,.2f}".rstrip("0").rstrip(".") if total is not None else "-"
+
+
+def _reading_section(
+    reading: dict[str, Any], prov: ProvBuilder, prefix: str
+) -> dict[str, Any]:
     docs = reading["documents"]
     receipt, cert = docs[0], docs[1]
     bill = receipt.get("kr_bill")
@@ -66,13 +79,177 @@ def _reading_section(reading: dict[str, Any]) -> dict[str, Any]:
         else []
     )
     total = receipt.get("total_amount")
+    if total is None:
+        total_ref: Any = "-"
+    else:
+        pid = prov.add(
+            f"{prefix}-total",
+            "reading",
+            "Receipt total",
+            _fmt_total(total),
+            f"receipt total_amount {total}",
+        )
+        total_ref = prov.num(pid, _fmt_total(total))
+    diags = []
+    for n, diag in enumerate(cert.get("diagnoses", [])):
+        code = diag.get("code", "")
+        pid = prov.add(
+            f"{prefix}-diag-{n}",
+            "reading",
+            "Certificate diagnosis code",
+            code,
+            f"certificate diagnoses[{n}].code {code}",
+        )
+        diags.append(prov.num(pid, code))
     return {
         "docs": [d.get("doc_type", "?") for d in docs],
         "currency": receipt.get("currency", "-"),
-        "total": f"{total:,.2f}".rstrip("0").rstrip(".") if total is not None else "-",
-        "diags": [d.get("code", "") for d in cert.get("diagnoses", [])],
+        "total": total_ref,
+        "diags": diags,
         "checks": checks,
         "all_passed": all_passed([*check_kr_bill(bill), *check_kr_lines(receipt)]) if bill else None,
+    }
+
+
+def _deductible_section(
+    check: dict[str, Any], bill: dict[str, Any], prov: ProvBuilder, prefix: str
+) -> dict[str, Any]:
+    terms = []
+    for n, (value, label) in enumerate(zip(check["terms"], TERM_LABELS)):
+        pid = prov.add(
+            f"{prefix}-ded{n}",
+            "check",
+            f"Deductible term {n + 1} ({label})",
+            f"{value:,}",
+            f"deductible term {n + 1} = {value:,}",
+        )
+        terms.append(prov.num(pid, f"{value:,}"))
+    head = f"max({', '.join(f'{t:,}' for t in check['terms'])})"
+    ours_pid = prov.add(
+        f"{prefix}-ded-ours",
+        "check",
+        "ClaimLens deductible",
+        f"{check['ours']:,}",
+        head,
+        formula=f"{head} = {check['ours']:,}",
+        operands=[t["prov"] for t in terms],
+    )
+    engine_pid = prov.add(
+        f"{prefix}-ded-engine",
+        "clausegraph",
+        "Engine payable amount",
+        f"{check['engine']:,}",
+        f"engine output amount {check['engine']}",
+    )
+    cells: dict[str, Any] = {}
+    c1, c2 = (bill or {}).get("cell_1"), (bill or {}).get("cell_2")
+    for key, raw in (("c1", c1), ("c2", c2)):
+        if isinstance(raw, int):
+            pid = prov.add(
+                f"{prefix}-{key}",
+                "reading",
+                f"Receipt cell {key[1]}",
+                f"{raw:,}",
+                f"receipt cell_{key[1]} {raw}",
+            )
+            cells[key] = prov.num(pid, f"{raw:,}")
+        else:
+            cells[key] = {"v": "-"}
+    rate = copay_rate_from_bill(bill)
+    if rate is None:
+        cells["copay"] = {"v": "-"}
+    else:
+        pid = prov.add(
+            f"{prefix}-copay",
+            "check",
+            "Copay rate",
+            str(rate),
+            "copay rate from cells 1 and 2",
+            formula="① ÷ (① + ②)",
+            operands=[cells["c1"].get("prov", ""), cells["c2"].get("prov", "")],
+        )
+        cells["copay"] = prov.num(pid, str(rate))
+    return {
+        "terms": terms,
+        "ours": prov.num(ours_pid, f"{check['ours']:,}"),
+        "engine": prov.num(engine_pid, f"{check['engine']:,}"),
+        "match": check["match"],
+        "cells": cells,
+    }
+
+
+def _pack_section(
+    pack: dict[str, Any], rows: list[dict[str, Any]], prov: ProvBuilder, prefix: str
+) -> dict[str, Any]:
+    by_label = {r.get("label", ""): r for r in rows}
+    items = []
+    for n, item in enumerate(pack["items"]):
+        row = by_label.get(item["label_ko"], {})
+        cols = [int(row.get(f"col_{k}") or 0) for k in (1, 2, 3, 4)]
+        pid = prov.add(
+            f"{prefix}-line-{n}",
+            "check",
+            f"Bill line total ({item['label_ko']})",
+            f"{item['amount']:,}",
+            f"row '{item['label_ko']}' columns sum",
+            formula=" + ".join(f"{c:,}" for c in cols),
+        )
+        items.append(
+            {
+                "label_ko": item["label_ko"],
+                "label_en": item["label_en"],
+                "amount": prov.num(pid, f"{item['amount']:,}"),
+            }
+        )
+    total = pack["total_krw"]
+    total_pid = prov.add(
+        f"{prefix}-pack-total",
+        "reading",
+        "Bill total",
+        f"{total:,}" if total is not None else "-",
+        f"receipt cell_8 {total}",
+    )
+    codes = pack["codes"] or {}
+    cm = codes.get("cm") or {}
+    kcd_pid = prov.add(
+        f"{prefix}-kcd", "reading", "KCD code", codes.get("kcd", "-"), "certificate code"
+    )
+    who_pid = prov.add(
+        f"{prefix}-who",
+        "rule",
+        "WHO ICD-10 code",
+        codes.get("who", "-"),
+        "KCD-9 truncation to 4 characters",
+    )
+    cm_pid = prov.add(
+        f"{prefix}-cm",
+        "rule",
+        "ICD-10-CM candidate",
+        cm.get("chosen", "-"),
+        "FY2027 defaults plus narrowing facts",
+    )
+    return {
+        "policy_line": pack["policy_line"],
+        "patient": pack["patient"],
+        "pii_conflicts": pack["pii_conflicts"],
+        "pii_mark": PII_CHECK_MARK,
+        "visit": pack["visit"],
+        "diagnosis": pack["diagnosis"],
+        "codes": {
+            "kcd": prov.num(kcd_pid, codes.get("kcd", "-")),
+            "who": prov.num(who_pid, codes.get("who", "-")),
+            "attribute": codes.get("attribute"),
+            "cm": {"chosen": prov.num(cm_pid, cm.get("chosen", "-"))},
+            "questions": cm.get("questions", []),
+            "pitfall": codes.get("pitfall"),
+            "disclaimer": codes.get("disclaimer", ""),
+        },
+        "items": items,
+        "total_krw": prov.num(total_pid, f"{total:,}" if total is not None else "-"),
+        "checks_passed": pack["checks_passed"],
+        "translation_note": TRANSLATION_NOTE,
+        "checklist": CHECKLIST,
+        "deadline": GENERIC_DEADLINE,
     }
 
 
@@ -80,10 +257,12 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     scenarios, inbound = load_scenarios()
     reading = replay_reading(sample_id, "photo")
     receipt = reading["documents"][0]
+    prov = ProvBuilder()
+    prefix = sample_id.split("_")[0].lower()
     payload: dict[str, Any] = {
         "id": sample_id,
         "title": title,
-        "reading": _reading_section(reading),
+        "reading": _reading_section(reading, prov, prefix),
         "eligibility": None,
         "card": None,
         "pack": None,
@@ -104,63 +283,121 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         payload["images"].append({"src": src, "caption": caption})
     if sample_id == "S3_us_tourist_hip_fracture":
         pack = build_pack(sample_id, "photo", ReplayProvider())
-        payload["pack"] = {
-            "policy_line": pack["policy_line"],
-            "patient": pack["patient"],
-            "pii_conflicts": pack["pii_conflicts"],
-            "pii_mark": PII_CHECK_MARK,
-            "visit": pack["visit"],
-            "diagnosis": pack["diagnosis"],
-            "codes": pack["codes"],
-            "items": pack["items"],
-            "total_krw": pack["total_krw"],
-            "checks_passed": pack["checks_passed"],
-            "translation_note": TRANSLATION_NOTE,
-            "checklist": CHECKLIST,
-            "deadline": GENERIC_DEADLINE,
-        }
+        rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
+        payload["pack"] = _pack_section(pack, rows, prov, prefix)
     else:
         card = build_rationale(sample_id, "photo", ReplayProvider())
+        bill = receipt.get("kr_bill")
+        deductible = (
+            _deductible_section(card["deductible"], bill or {}, prov, prefix)
+            if card["deductible"]
+            else None
+        )
+        operands: list[str] = []
+        if deductible:
+            operands = (
+                [t["prov"] for t in deductible["terms"]]
+                + [deductible["ours"]["prov"]]
+                + [deductible["cells"][k].get("prov", "") for k in ("c1", "c2", "copay")]
+            )
+            operands = [o for o in operands if o]
+        amount_pid = prov.add(
+            f"{prefix}-amount",
+            "clausegraph",
+            "Payable amount",
+            f"{card['amount_krw']:,}",
+            f"engine output amount {card['amount_krw']}",
+            operands=operands,
+        )
         payload["card"] = {
             "decision": card["decision"],
-            "amount": f"{card['amount_krw']:,} KRW",
+            "amount": prov.num(amount_pid, f"{card['amount_krw']:,} KRW"),
             "summary": card["summary"],
             "steps": card["steps"],
             "clauses": card["clauses"],
-            "deductible": card["deductible"],
+            "deductible": deductible,
             "guardrails": card["guardrails"],
         }
+    payload["provenance"] = prov.records
     return payload
 
 
-def _tool_summary(tool: str, result: dict[str, Any]) -> str:
+def _tool_segments(
+    tool: str, result: dict[str, Any], prov: ProvBuilder, prefix: str, step: int
+) -> list[dict[str, str]]:
+    """Timeline line as text/number segments; every number gets provenance."""
     if result.get("error"):
-        return result["error"]
+        return [{"t": result["error"], "noprov": "1"}]
     if tool == "read_documents":
         hidden = [k for k, v in result.get("kr_cells", {}).items() if v == "hidden"]
         docs = ", ".join(result.get("documents", []))
-        return f"{docs}; {result.get('currency')} total {result.get('total')}; hidden: {hidden}"
+        total = result.get("total")
+        pid = prov.add(
+            f"{prefix}-t{step}-total",
+            "reading",
+            "Receipt total",
+            str(total),
+            f"receipt total_amount {total}",
+        )
+        return [
+            {"t": f"{docs}; {result.get('currency')} total "},
+            {"n": str(total), "prov": pid},
+            {"t": f"; hidden: {hidden}"},
+        ]
     if tool == "run_checks":
         checks = result.get("checks", [])
         passed = sum(1 for c in checks if c["passed"])
+        pid = prov.add(
+            f"{prefix}-t{step}-checks",
+            "check",
+            "Receipt checks passed",
+            f"{passed}/{len(checks)}",
+            f"{passed} of {len(checks)} receipt checks passed",
+        )
         failing = [c["name"] for c in checks if not c["passed"]]
-        text = f"{passed}/{len(checks)} pass"
-        return text if not failing else f"{text}; failing: {', '.join(failing)}"
+        tail = "" if not failing else f"; failing: {', '.join(failing)}"
+        return [{"n": f"{passed}/{len(checks)}", "prov": pid}, {"t": f" pass{tail}"}]
     if tool == "reread_cells":
-        return f"corrected: {result.get('corrected', [])}"
+        return [{"t": f"corrected: {result.get('corrected', [])}"}]
     if tool == "decide_eligibility":
-        return f"{result.get('outcome')} ({result.get('rule')})"
+        return [{"t": f"{result.get('outcome')} ({result.get('rule')})"}]
     if tool == "convert_codes":
-        text = f"WHO {result.get('who')}"
+        segs: list[dict[str, str]] = [{"t": "WHO "}]
+        pid = prov.add(
+            f"{prefix}-t{step}-who",
+            "rule",
+            "WHO ICD-10 code",
+            str(result.get("who")),
+            "KCD-9 truncation to 4 characters",
+        )
+        segs.append({"n": str(result.get("who")), "prov": pid})
         if result.get("attribute"):
-            text += f" + {result['attribute']}"
+            segs.append({"t": f" + {result['attribute']}"})
         chosen = (result.get("cm") or {}).get("chosen")
         if chosen:
-            text += f"; CM {chosen}"
-        return text
+            pid = prov.add(
+                f"{prefix}-t{step}-cm",
+                "rule",
+                "ICD-10-CM candidate",
+                str(chosen),
+                "FY2027 defaults plus narrowing facts",
+            )
+            segs += [{"t": "; CM "}, {"n": str(chosen), "prov": pid}]
+        return segs
     if tool == "adjudicate":
-        return f"{result.get('decision')} {result.get('amount_krw'):,} KRW"
-    return json.dumps(result, ensure_ascii=False)[:200]
+        pid = prov.add(
+            f"{prefix}-t{step}-amount",
+            "clausegraph",
+            "Payable amount",
+            f"{result['amount_krw']:,}",
+            f"engine output amount {result['amount_krw']}",
+        )
+        return [
+            {"t": f"{result.get('decision')} "},
+            {"n": f"{result['amount_krw']:,}", "prov": pid},
+            {"t": " KRW"},
+        ]
+    return [{"t": json.dumps(result, ensure_ascii=False)[:200], "noprov": "1"}]
 
 
 def agent_scene_payload(dst: Path) -> dict[str, Any]:
@@ -168,10 +405,19 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
 
     scene_id, title, trace_name, sample_id = AGENT_SCENE
     recorded = load_trace(trace_name)
+    prov = ProvBuilder()
+    prefix = "agent"
     entries = []
     for item in recorded["trace"]:
         kind = item["kind"]
         if kind == "question":
+            pid = prov.add(
+                f"{prefix}-t{item['n']}-answer",
+                "user",
+                "User answer",
+                item["answer"],
+                f"user answer: {item['answer']}",
+            )
             entries.append(
                 {
                     "n": item["n"],
@@ -179,7 +425,7 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
                     "tool": "ask_user",
                     "question": item["question"],
                     "why_needed": item["why_needed"],
-                    "answer": item["answer"],
+                    "answer": prov.num(pid, item["answer"]),
                 }
             )
         elif kind == "final":
@@ -192,10 +438,36 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
                     "n": item["n"],
                     "kind": kind,
                     "tool": item["tool"],
-                    "summary": _tool_summary(item["tool"], item["result"]),
+                    "segments": _tool_segments(
+                        item["tool"], item["result"], prov, prefix, item["n"]
+                    ),
                 }
             )
     tokens = sum(u.get("total_tokens", 0) for u in recorded.get("usages", []))
+    turns_pid = prov.add(
+        f"{prefix}-turns",
+        "check",
+        "Model turns",
+        str(len(recorded.get("usages", []))),
+        f"{len(recorded.get('usages', []))} recorded model turns",
+    )
+    tokens_pid = prov.add(
+        f"{prefix}-tokens",
+        "check",
+        "Total tokens",
+        f"{tokens:,}",
+        f"token sum across turns: {tokens:,}",
+    )
+    outcome = dict(recorded.get("outcome", {}))
+    if outcome.get("decision"):
+        amount_pid = prov.add(
+            f"{prefix}-amount",
+            "clausegraph",
+            "Payable amount",
+            f"{outcome['amount_krw']:,}",
+            f"engine output amount {outcome['amount_krw']}",
+        )
+        outcome["amount"] = prov.num(amount_pid, f"{outcome['amount_krw']:,} KRW")
     payload: dict[str, Any] = {
         "id": scene_id,
         "title": title,
@@ -205,11 +477,12 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
         "pack": None,
         "timeline": {
             "entries": entries,
-            "outcome": recorded.get("outcome", {}),
-            "model_calls": len(recorded.get("usages", [])),
-            "tokens": tokens,
+            "outcome": outcome,
+            "model_calls": prov.num(turns_pid, str(len(recorded.get("usages", [])))),
+            "tokens": prov.num(tokens_pid, f"{tokens:,}"),
         },
         "images": [],
+        "provenance": prov.records,
     }
     base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
     for stem, img in zip(("receipt", "medical_certificate"), resolve_sample_images(base, "photo")):

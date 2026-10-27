@@ -13,6 +13,7 @@ const pageJs = scripts[scripts.length - 1][1];
 let stagesHtml = "";
 const buttons = [];
 globalThis.document = {
+  addEventListener: () => {},
   querySelectorAll: () => [],
   getElementById: (id) => {
     if (id === "demo-data") return { textContent: source };
@@ -61,5 +62,48 @@ assert(stagesHtml.includes("I heard 20 October"), "confirmation question");
 assert(!stagesHtml.includes("WHO J20.9 + None"), "no None in timeline");
 const headlines = stagesHtml.match(/<p class="headline">/g) || [];
 assert(headlines.length === 5, `5 headlines, got ${headlines.length}`);
-assert(stagesHtml.includes("Claim Pack · 15,000,000 KRW"), "pack headline");
-console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice)");
+assert(stagesHtml.includes("Claim Pack ·"), "pack headline");
+assert(stagesHtml.includes("15,000,000"), "pack headline total");
+// Provenance coverage: every bare number on A/S2/S3/Agent must sit inside
+// a .num span or a .noprov region. Identifiers (cell_1, row1, S72) excluded.
+const SKIP_SECTIONS = new Set(["voice_factory_fall"]);
+const VOID = new Set(["img", "br", "hr", "audio", "source"]);
+for (const part of stagesHtml.split("<section")) {
+  const idMatch = part.match(/id="([^"]+)"/);
+  if (!idMatch || SKIP_SECTIONS.has(idMatch[1])) continue;
+  const stack = [];
+  const inProv = () => stack.some((c) => c.prov);
+  const inNoprov = () => stack.some((c) => c.noprov);
+  const token = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)(\s[^<>]*)?(\/?)>|([^<>]+)/g;
+  let tok;
+  while ((tok = token.exec(part))) {
+    if (tok[5] !== undefined) {
+      if (inProv() || inNoprov()) continue;
+      const bare = tok[5].match(/(?<![A-Za-z_0-9-])\d[\d,]*(\.\d+)?/g) || [];
+      assert(bare.length === 0, `${idMatch[1]}: bare number ${bare[0]} in ${tok[5].trim().slice(0, 60)}`);
+    } else if (tok[1] === "/") {
+      stack.pop();
+    } else if (tok[4] !== "/" && !VOID.has(tok[2])) {
+      const attrs = tok[3] || "";
+      stack.push({
+        prov: attrs.includes("data-prov="),
+        noprov: /class="[^"]*\bnoprov\b/.test(attrs),
+      });
+    }
+  }
+}
+// Every data-prov id resolves to a record with operands that resolve too.
+const payload = JSON.parse(source);
+const records = {};
+payload.scenes.forEach((s) => Object.assign(records, s.provenance || {}));
+const refs = [...stagesHtml.matchAll(/data-prov="([^"]+)"/g)].map((m) => m[1]);
+assert(refs.length > 20, `provenance spans, got ${refs.length}`);
+for (const id of new Set(refs)) {
+  assert(records[id], `record for ${id}`);
+  for (const op of records[id].operands || []) assert(records[op], `operand ${op} of ${id}`);
+}
+assert(records["s2-amount"].operands.includes("s2-ded0"), "amount lights up terms");
+assert(records["s2-amount"].operands.includes("s2-c1"), "amount lights up cell 1");
+assert(stagesHtml.includes('tabindex="0" data-prov='), "keyboard-focusable numbers");
+assert(html.includes('id="prov-panel"'), "provenance panel element");
+console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");
