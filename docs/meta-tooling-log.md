@@ -525,3 +525,30 @@ inspired-by only.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: own mark, UI language switch, MCP server
+
+Round 3 items 29, 25, 26.
+
+### Muse Code (coding agent)
+
+- Item 29: the blue ring is now our own inline-SVG mark (a lens over
+  a document corner) in the accent colour, shared by construction
+  with the favicon data URL. Harness asserts the mark, the favicon,
+  and no ring.
+- Item 25: demo chrome (labels, step names, buttons, tagline, section
+  headers, provenance labels — not document contents) switches
+  between English, Korean, and Vietnamese from a topbar switcher;
+  the page re-renders in place. Harness checks every UI row has
+  three non-empty entries and renders ko/vi. Phone layout unchanged
+  (375 px media query, wrapping topbar).
+- Item 26: new `claimlens mcp` serves read_documents, run_checks,
+  decide_eligibility, convert_codes, adjudicate, and
+  build_claim_pack over stdio JSON-RPC with no extra dependencies;
+  every result carries provenance records. A client test lists and
+  calls all six tools in replay mode.
+- Tests: 131 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

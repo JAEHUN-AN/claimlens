@@ -196,6 +196,13 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from claimlens.mcp import main as serve_mcp
+
+    serve_mcp()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -236,6 +243,8 @@ def build_parser() -> argparse.ArgumentParser:
     agent_eval.add_argument("--live", action="store_true", help="Record live instead of replaying.")
     agent_eval.add_argument("--output", default=None, help="Write the table to a Markdown file.")
     agent_eval.set_defaults(func=cmd_agent_eval)
+    mcp = sub.add_parser("mcp", help="MCP server over stdio (JSON-RPC, no extra deps).")
+    mcp.set_defaults(func=cmd_mcp)
     return parser
 
 
