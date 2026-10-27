@@ -1,0 +1,12 @@
+{
+  "model": "meta-models/muse-spark-open-1026",
+  "instructions": "Translate Korean hospital charge labels into short English.\nCopy each Korean label exactly into ko and give a plain English equivalent in\nen. Translate only; never add amounts, codes, or explanations.\nLabels:\n- 입원료(2·3인실)\n- 식대\n- 진찰료\n- 투약및조제료\n- 주사료\n- 마취료\n- 처치 및 수술료\n- 검사료\n- 영상진단료\n- CT진단료\n- 치료재료대\n- 제증명수수료",
+  "output_text": "{\"labels\": [{\"ko\": \"입원료(2·3인실)\", \"en\": \"Inpatient fee (2-3 person room)\"}, {\"ko\": \"식대\", \"en\": \"Meal fee\"}, {\"ko\": \"진찰료\", \"en\": \"Consultation fee\"}, {\"ko\": \"투약및조제료\", \"en\": \"Medication and dispensing fee\"}, {\"ko\": \"주사료\", \"en\": \"Injection fee\"}, {\"ko\": \"마취료\", \"en\": \"Anesthesia fee\"}, {\"ko\": \"처치 및 수술료\", \"en\": \"Procedure and surgery fee\"}, {\"ko\": \"검사료\", \"en\": \"Examination fee\"}, {\"ko\": \"영상진단료\", \"en\": \"Imaging fee\"}, {\"ko\": \"CT진단료\", \"en\": \"CT scan fee\"}, {\"ko\": \"치료재료대\", \"en\": \"Medical supplies cost\"}, {\"ko\": \"제증명수수료\", \"en\": \"Certificate issuance fee\"}]}",
+  "reasoning_chars": 0,
+  "usage": {
+    "input_tokens": 797,
+    "output_tokens": 240,
+    "total_tokens": 1037,
+    "reasoning_tokens": 0
+  }
+}

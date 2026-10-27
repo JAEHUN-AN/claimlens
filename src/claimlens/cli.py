@@ -77,10 +77,10 @@ def cmd_read(args: argparse.Namespace) -> int:
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
-    from claimlens.eval import eval_all, format_markdown
+    from claimlens.eval import eval_all, format_markdown, format_open_section, open_translation_row
 
     rows = eval_all()
-    text = format_markdown(rows)
+    text = format_markdown(rows) + "\n" + format_open_section(open_translation_row())
     if args.output:
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write("# ClaimLens reading accuracy\n\n")

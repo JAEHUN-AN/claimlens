@@ -250,6 +250,49 @@ def format_markdown(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def open_translation_row() -> dict[str, Any]:
+    """Hosted vs open label translation, both from replay caches."""
+    from claimlens.claimpack import translate_labels
+    from claimlens.engine import replay_reading
+    from claimlens.providers.baseten import MODEL as OPEN_MODEL
+    from claimlens.providers.baseten import translate_labels_open
+    from claimlens.providers.meta import MODEL as HOSTED_MODEL
+    from claimlens.providers.replay import ReplayProvider
+
+    reading = replay_reading("S3_us_tourist_hip_fracture", "photo")
+    rows = reading["documents"][0]["kr_bill"]["charge_rows"]
+    labels = [r.get("label", "") for r in rows]
+    hosted = translate_labels(labels, ReplayProvider())
+    opened = translate_labels_open(labels)
+    identical = sum(1 for ko in labels if hosted.get(ko) == opened["table"].get(ko))
+    usage = opened.get("usage", {})
+    total = int(usage.get("total_tokens", 0))
+    reasoning = int(usage.get("reasoning_tokens", 0))
+    return {
+        "step": "S3 row labels",
+        "hosted": HOSTED_MODEL,
+        "open": OPEN_MODEL,
+        "labels": len(labels),
+        "identical": f"{identical}/{len(labels)}",
+        "open_tokens": f"{total} ({reasoning} reasoning)",
+        "open_cost": "-",
+    }
+
+
+def format_open_section(row: dict[str, Any]) -> str:
+    header = (
+        "| step | hosted model | open model | labels | identical "
+        "| open tokens (reasoning) | open cost |"
+    )
+    sep = "|---|---|---|---|---|---|---|"
+    body = (
+        f"| {row['step']} | {row['hosted']} | {row['open']} | {row['labels']} "
+        f"| {row['identical']} | {row['open_tokens']} | {row['open_cost']} |"
+    )
+    section = f"{header}\n{sep}\n{body}\n"
+    return "## Pack translation: hosted Spark vs Spark Open\n\n" + section
+
+
 def cache_key_for(sample_id: str, variant: str) -> str:
     from claimlens.providers.meta import MODEL, prepare_image
 
