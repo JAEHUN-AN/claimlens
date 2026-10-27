@@ -5,11 +5,17 @@ description = "Reads cross-border medical paperwork with Meta Muse Spark."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
+# Pre-existing open-source adjudication engine, pinned to tag
+# claimlens-base-20261026 (commit a7f6b9a7de9750d8aa7164b723b311ea35bbd9e9).
+# Archive URL carries the same immutable commit; the sandbox git client cannot
+# fetch over TLS, so the equivalent git+https URL is left for normal terminals:
+# clausegraph[graph] @ git+https://github.com/JAEHUN-AN/clausegraph@claimlens-base-20261026
 dependencies = [
   "pydantic>=2.9",
   "openai>=1.50",
   "python-dotenv>=1.0",
   "pillow>=10.0",
+  "clausegraph[graph] @ https://github.com/JAEHUN-AN/clausegraph/archive/a7f6b9a7de9750d8aa7164b723b311ea35bbd9e9.zip",
 ]
 
 [project.scripts]
