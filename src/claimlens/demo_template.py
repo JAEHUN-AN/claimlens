@@ -60,22 +60,120 @@ border:1px solid #333;border-radius:.4rem;padding:.7rem .9rem;font-size:.9rem;
 box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:10}
 #prov-panel p{margin:.2rem 0}
 #prov-panel .kind{font-size:.75rem;font-weight:700;text-transform:uppercase;color:#555}
+#flow-view{border-top:2px solid #333;margin-top:.5rem;padding-top:.8rem}
+.flow-pick{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0}
+.fpick{display:flex;align-items:center;gap:.4rem;padding:.35rem .6rem;cursor:pointer;font-size:.85rem}
+img.thumb{width:44px;height:44px;object-fit:cover;border:1px solid #ccc}
+#flow-drop{border:2px dashed #999;border-radius:.4rem;padding:.8rem;text-align:center;
+color:#555;margin:.4rem 0}
+.flow-main{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:1.2rem;
+align-items:start;margin-top:.4rem}
+.fstep{display:flex;gap:.6rem;align-items:baseline;padding:.35rem .5rem;
+border-left:3px solid #ccc;margin-bottom:.25rem}
+.fstep.active{border-color:#1a73e8;background:#eef4fd}
+.fstep.done{border-color:#2e7d32}
+.fstep span{flex:1}
+#flow-play{padding:.45rem 1.2rem;font-size:1rem;cursor:pointer}
+#flow-play:disabled{cursor:default;opacity:.5}
+.flow-result{margin-top:.6rem}
 """
 
 JS = """
 function show(id){
   document.querySelectorAll('section.scene').forEach(s=>s.classList.remove('active'));
+  const f=document.getElementById('flow-view');
+  if(id==='flow'){if(f)f.style.display='block';return;}
+  if(f)f.style.display='none';
   document.getElementById(id).classList.add('active');
 }
 const data=JSON.parse(document.getElementById('demo-data').textContent);
 const PROV={};
 data.scenes.forEach(s=>Object.assign(PROV,s.provenance||{}));
 const nav=document.getElementById('scenes');
-data.scenes.forEach((s,i)=>{
+const fb=document.createElement('button');
+fb.textContent='Guided flow';fb.onclick=()=>show('flow');
+nav.appendChild(fb);
+const exLabel=document.createElement('span');
+exLabel.textContent='Examples: ';
+nav.appendChild(exLabel);
+data.scenes.forEach((s)=>{
   const b=document.createElement('button');
   b.textContent=s.title;b.onclick=()=>show(s.id);
   nav.appendChild(b);
-  document.getElementById('stages').insertAdjacentHTML('beforeend',stage(s,i===0));
+  document.getElementById('stages').insertAdjacentHTML('beforeend',stage(s,false));
+});
+document.getElementById('stages').insertAdjacentHTML('afterbegin',flowView(data.flow));
+let flowTimer=null;
+function reducedMotion(){
+  return typeof window!=='undefined'&&window.matchMedia
+    &&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function pickFlow(id){
+  const ex=(data.flow.examples||[]).find(e=>e.id===id);
+  if(!ex)return;
+  if(flowTimer){clearTimeout(flowTimer);flowTimer=null;}
+  document.getElementById('flow-steps').innerHTML=ex.steps.map((s,i)=>
+    `<div class="fstep" id="fstep-${i}"><strong>${esc(s.label)}</strong>`
+    +`<span>${esc(s.detail)}</span><small class="dim">${esc(s.meta)}</small></div>`
+  ).join('');
+  document.getElementById('flow-result').innerHTML='';
+  document.getElementById('flow-msg').textContent='';
+  const play=document.getElementById('flow-play');
+  play.disabled=false;
+  play.onclick=()=>playFlow(id);
+}
+function playFlow(id){
+  const ex=(data.flow.examples||[]).find(e=>e.id===id);
+  if(!ex)return;
+  if(flowTimer){clearTimeout(flowTimer);flowTimer=null;}
+  document.getElementById('flow-result').innerHTML='';
+  const boxes=[...document.querySelectorAll('#flow-steps .fstep')];
+  boxes.forEach(b=>b.classList.remove('active','done'));
+  if(reducedMotion()||!boxes.length){
+    boxes.forEach(b=>b.classList.add('done'));
+    document.getElementById('flow-result').innerHTML=flowResult(ex);
+    return;
+  }
+  let i=0;
+  const next=()=>{
+    if(i>0)boxes[i-1].classList.replace('active','done');
+    if(i>=boxes.length){
+      document.getElementById('flow-result').innerHTML=flowResult(ex);
+      return;
+    }
+    boxes[i].classList.add('active');
+    i+=1;
+    flowTimer=setTimeout(next,650);
+  };
+  next();
+}
+function flowView(f){
+  const picks=(f.examples||[]).map(e=>{
+    const thumb=e.thumb?`<img class="thumb" src="${esc(e.thumb)}" onerror="this.remove()"/>`:'';
+    return `<button class="fpick" onclick="pickFlow('${e.id}')">${thumb}${esc(e.title)}</button>`;
+  }).join('');
+  return `<div id="flow-view"><h2>Process a claim</h2>`
+    +`<p><small class="dim">Replay mode: pick a sample. Every step below replays a recording.</small></p>`
+    +`<div class="flow-pick">${picks}</div>`
+    +`<div id="flow-drop">Drop a document photo here — or pick an example above.</div>`
+    +`<p id="flow-msg" role="status"></p>`
+    +`<div class="flow-main"><div id="flow-steps"></div>`
+    +`<div><button id="flow-play" disabled>Play</button><div id="flow-result"></div></div></div></div>`;
+}
+function flowResult(ex){
+  return `<div class="flow-result"><p>${badge(ex.result.badge)}</p>`
+    +`<p class="amount">${esc(ex.result.title)}</p>`
+    +`<p><button onclick="show('${ex.result.scene}')">See the full example</button></p></div>`;
+}
+document.addEventListener('dragover',e=>{
+  if(e.target&&e.target.closest&&e.target.closest('#flow-drop'))e.preventDefault();
+});
+document.addEventListener('drop',e=>{
+  const dz=e.target&&e.target.closest?e.target.closest('#flow-drop'):null;
+  if(!dz)return;
+  e.preventDefault();
+  document.getElementById('flow-msg').textContent
+    ='live mode needs an API key — run `claimlens` locally';
 });
 document.addEventListener('click',e=>{
   const el=e.target.closest?e.target.closest('.num'):null;

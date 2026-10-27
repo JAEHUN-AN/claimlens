@@ -71,6 +71,20 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     for entry in timeline["entries"]:
         for seg in entry.get("segments", []):
             assert "None" not in seg.get("t", "") + seg.get("n", "")
+    flow = payload["flow"]["examples"]
+    assert [e["id"] for e in flow] == [
+        "A_niseko_wrist",
+        "S2_seoul_worker_bronchitis",
+        "S3_us_tourist_hip_fracture",
+        "agent_s2_hidden_copay",
+        "voice_factory_fall",
+    ]
+    for example in flow:
+        assert len(example["steps"]) >= 3
+        assert all(s["label"] and s["detail"] and s["meta"] for s in example["steps"])
+        assert example["result"]["badge"]
+    assert [s["key"] for s in flow[3]["steps"]].count("ask_user") == 1
+    assert flow[4]["result"]["badge"] == "work_injury"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

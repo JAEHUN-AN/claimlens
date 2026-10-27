@@ -50,6 +50,17 @@ VOICE_SCENE = (
 
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
+FLOW_LABELS = {
+    "read_documents": "Reading",
+    "run_checks": "Checks",
+    "reread_cells": "Re-read",
+    "decide_eligibility": "Eligibility",
+    "convert_codes": "Codes",
+    "adjudicate": "Decision",
+    "build_claim_pack": "Claim Pack",
+    "ask_user": "Question",
+}
+
 TERM_LABELS = (
     "flat amount by institution",
     "proportional share of claimed",
@@ -281,12 +292,18 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
             src = _rel(dst.parent, masked_path)
             caption = f"{DOC_CAPTION[stem]} (masked copy)"
         payload["images"].append({"src": src, "caption": caption})
+    flow_tokens: dict[str, int | None] = {"reading": None, "card": None, "pack": None}
+    flow_tokens["reading"] = _reading_tokens(sample_id, "photo")
     if sample_id == "S3_us_tourist_hip_fracture":
-        pack = build_pack(sample_id, "photo", ReplayProvider())
+        pack_provider = ReplayProvider()
+        pack = build_pack(sample_id, "photo", pack_provider)
+        flow_tokens["pack"] = sum(c.total_tokens for c in pack_provider.calls)
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         payload["pack"] = _pack_section(pack, rows, prov, prefix)
     else:
-        card = build_rationale(sample_id, "photo", ReplayProvider())
+        card_provider = ReplayProvider()
+        card = build_rationale(sample_id, "photo", card_provider)
+        flow_tokens["card"] = sum(c.total_tokens for c in card_provider.calls)
         bill = receipt.get("kr_bill")
         deductible = (
             _deductible_section(card["deductible"], bill or {}, prov, prefix)
@@ -319,7 +336,94 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
             "guardrails": card["guardrails"],
         }
     payload["provenance"] = prov.records
+    payload["flow_tokens"] = flow_tokens
     return payload
+
+
+def _reading_tokens(sample_id: str, variant: str) -> int | None:
+    from claimlens.prompts import READING_INSTRUCTIONS
+    from claimlens.reader import reading_schema
+
+    base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
+    provider = ReplayProvider()
+    provider.read_documents(
+        resolve_sample_images(base, variant), READING_INSTRUCTIONS, reading_schema()
+    )
+    return provider.calls[0].total_tokens if provider.calls else None
+
+
+def _tokens_meta(tokens: int | None) -> str:
+    return f"{tokens:,} tokens (recorded)" if tokens else "recorded"
+
+
+def _scene_flow(sample_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    reading = payload["reading"]
+    total = reading["total"]
+    total_v = total["v"] if isinstance(total, dict) else total
+    tokens = payload.get("flow_tokens") or {}
+    steps = [
+        {
+            "key": "reading",
+            "label": "Reading",
+            "detail": f"{' + '.join(reading['docs'])} · {reading['currency']} total {total_v}",
+            "meta": _tokens_meta(tokens.get("reading")),
+        }
+    ]
+    checks = reading.get("checks", [])
+    if checks:
+        passed = sum(1 for c in checks if c["passed"])
+        steps.append(
+            {
+                "key": "checks",
+                "label": "Checks",
+                "detail": f"{passed}/{len(checks)} pass",
+                "meta": "deterministic",
+            }
+        )
+    elig = payload.get("eligibility")
+    steps.append(
+        {
+            "key": "eligibility",
+            "label": "Eligibility",
+            "detail": elig["outcome"] if elig else "Korean traveller abroad — engine path",
+            "meta": "deterministic",
+        }
+    )
+    if payload.get("card"):
+        card = payload["card"]
+        amount_v = card["amount"]["v"] if isinstance(card["amount"], dict) else card["amount"]
+        steps.append(
+            {
+                "key": "decision",
+                "label": "Decision",
+                "detail": f"{card['decision']} {amount_v}",
+                "meta": _tokens_meta(tokens.get("card")),
+            }
+        )
+        result = {"badge": card["decision"], "title": amount_v, "scene": sample_id}
+    else:
+        pack = payload["pack"]
+        total_v = pack["total_krw"]["v"]
+        steps.append(
+            {
+                "key": "pack",
+                "label": "Claim Pack",
+                "detail": f"{len(pack['items'])} lines · total {total_v} KRW",
+                "meta": _tokens_meta(tokens.get("pack")),
+            }
+        )
+        result = {
+            "badge": "not adjudicated",
+            "title": f"Claim Pack · {total_v} KRW",
+            "scene": sample_id,
+        }
+    return {
+        "id": sample_id,
+        "title": payload["title"],
+        "thumb": payload["images"][0]["src"] if payload.get("images") else None,
+        "steps": steps,
+        "result": result,
+    }
 
 
 def _tool_segments(
@@ -492,6 +596,49 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
     return payload
 
 
+def _agent_flow(payload: dict[str, Any]) -> dict[str, Any]:
+    from claimlens.agent import load_trace
+
+    recorded = load_trace(AGENT_SCENE[2])
+    usages = recorded.get("usages", []) or []
+    steps = []
+    trace = recorded.get("trace", [])
+    for n, item in enumerate(trace):
+        kind = item["kind"]
+        use = usages[n] if n < len(usages) else {}
+        meta = _tokens_meta(use.get("total_tokens"))
+        if kind == "question":
+            steps.append(
+                {
+                    "key": "ask_user",
+                    "label": "Question",
+                    "detail": item["question"][:90],
+                    "meta": f"{meta} · user answers",
+                }
+            )
+        elif kind in ("final", "stopped"):
+            continue
+        else:
+            tool = item["tool"]
+            segs = _tool_segments(tool, item["result"], ProvBuilder(), "flow", n)
+            detail = "".join(s.get("n", s.get("t", "")) for s in segs)[:100]
+            steps.append(
+                {"key": tool, "label": FLOW_LABELS.get(tool, tool), "detail": detail, "meta": meta}
+            )
+    outcome = recorded.get("outcome", {})
+    return {
+        "id": payload["id"],
+        "title": payload["title"],
+        "thumb": payload["images"][0]["src"] if payload.get("images") else None,
+        "steps": steps,
+        "result": {
+            "badge": outcome.get("decision", "?"),
+            "title": f"{outcome.get('amount_krw', 0):,} KRW",
+            "scene": payload["id"],
+        },
+    }
+
+
 def voice_scene_payload(dst: Path) -> dict[str, Any]:
     from claimlens.providers.replay import ReplayProvider
     from claimlens.voice import intake
@@ -527,11 +674,67 @@ def voice_scene_payload(dst: Path) -> dict[str, Any]:
     }
 
 
+def _voice_flow(payload: dict[str, Any]) -> dict[str, Any]:
+    from claimlens.providers.replay import ReplayProvider
+    from claimlens.voice import intake
+
+    provider = ReplayProvider()
+    steps = []
+    for lang, clip in VOICE_SCENE[2]:
+        result = intake(clip, live=False, provider=provider)
+        seconds = (result.get("audio_duration_ms") or 0) / 1000
+        steps.append(
+            {
+                "key": "transcribe",
+                "label": f"Transcription ({lang})",
+                "detail": f"clip {seconds:.1f} s · {len(result['transcript'].split())} words",
+                "meta": "Muse Voice Transcribe (recorded)",
+            }
+        )
+    tokens = sum(c.total_tokens for c in provider.calls)
+    steps.append(
+        {
+            "key": "facts",
+            "label": "Fact extraction",
+            "detail": "6 facts + quoted words, both clips",
+            "meta": _tokens_meta(tokens),
+        }
+    )
+    steps.append(
+        {
+            "key": "eligibility",
+            "label": "Eligibility",
+            "detail": f"{payload['eligibility']['outcome']} ({payload['eligibility']['rule']})",
+            "meta": "deterministic",
+        }
+    )
+    return {
+        "id": payload["id"],
+        "title": payload["title"],
+        "thumb": None,
+        "steps": steps,
+        "result": {
+            "badge": payload["eligibility"]["outcome"],
+            "title": payload["next_step"],
+            "scene": payload["id"],
+        },
+    }
+
+
 def export_demo(dst: Path | str = "docs/demo.html") -> Path:
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
     scenes.append(agent_scene_payload(dst))
     scenes.append(voice_scene_payload(dst))
+    flow = {
+        "examples": [
+            _scene_flow(scenes[0]["id"], scenes[0]),
+            _scene_flow(scenes[1]["id"], scenes[1]),
+            _scene_flow(scenes[2]["id"], scenes[2]),
+            _agent_flow(scenes[3]),
+            _voice_flow(scenes[4]),
+        ]
+    }
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(render_page({"scenes": scenes}), encoding="utf-8")
+    dst.write_text(render_page({"scenes": scenes, "flow": flow}), encoding="utf-8")
     return dst

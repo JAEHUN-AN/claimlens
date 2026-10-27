@@ -17,11 +17,11 @@ globalThis.document = {
   querySelectorAll: () => [],
   getElementById: (id) => {
     if (id === "demo-data") return { textContent: source };
-    if (id === "scenes") return { appendChild: (b) => buttons.push(b) };
+    if (id === "scenes") return { appendChild: (b) => { if (b.tag === "button") buttons.push(b); } };
     if (id === "stages") return { insertAdjacentHTML: (_p, h) => { stagesHtml += h; } };
     return { classList: { add() {}, remove() {} } };
   },
-  createElement: () => ({}),
+  createElement: (tag) => ({ tag }),
 };
 // eslint-disable-next-line no-eval
 eval(pageJs);
@@ -31,7 +31,12 @@ function assert(cond, msg) {
 }
 const sections = stagesHtml.match(/<section class="scene/g) || [];
 assert(sections.length === 5, `5 scenes, got ${sections.length}`);
-assert(buttons.length === 5, `5 nav buttons, got ${buttons.length}`);
+assert(buttons.length === 6, `6 nav buttons, got ${buttons.length}`);
+assert(stagesHtml.includes('id="flow-view"'), "flow first screen");
+assert(stagesHtml.includes("Drop a document photo"), "drop zone");
+assert((stagesHtml.match(/class="fpick"/g) || []).length === 5, "5 example pickers");
+assert(html.includes("prefers-reduced-motion"), "reduced-motion guard");
+assert(html.includes("live mode needs an API key"), "unknown-file message");
 assert(stagesHtml.includes(">PAID<"), "PAID badge");
 assert(stagesHtml.includes(">PARTIAL<"), "PARTIAL badge");
 assert(stagesHtml.includes(">not adjudicated<"), "not-adjudicated badge");

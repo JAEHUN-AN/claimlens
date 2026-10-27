@@ -417,3 +417,33 @@ Round 2 items 18 and 20 (19 waits on owner phone-photo files).
 ### Model APIs
 
 - Live calls: Spark 1 (Vietnamese pack translation, about $0.01).
+
+## 2026-10-27 — Backlog session: provenance and product flow
+
+Round 3 items 21 and 22.
+
+### Muse Code (coding agent)
+
+- Item 21: new `src/claimlens/provenance.py` — every demo number on
+  A/S2/S3/Agent carries a record (reading, check, clausegraph, rule,
+  user) built in Python where the number is produced, with source text
+  and, for checks, the formula plus operand ids. Clicking PARTIAL
+  22,500 lights up the deductible terms, cells 1-2, the copay formula,
+  and the matched engine line. Keyboard-focusable spans, Esc closes.
+  Model prose, PII, dates, and the voice scene stay out of scope and
+  are marked noprov. Tests: payload reference integrity plus a render
+  harness asserting no bare number is missing a record. The owner
+  checks the panel in a real browser.
+- Item 22: the demo opens on a guided flow — pick one of five samples
+  (or drop a photo, which answers "live mode needs an API key — run
+  `claimlens` locally"), play the recorded pipeline steps lighting up
+  one by one, then land on the result card with a link to the full
+  example. Step badges show recorded tokens (or "deterministic");
+  durations do not exist in the recordings and are not invented —
+  per-step latency is future work. prefers-reduced-motion plays
+  instantly. The owner plays all five in a real browser at 1280x720.
+- Tests: 119 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: 0 ($0). Everything from replay caches.
