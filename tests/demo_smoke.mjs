@@ -111,4 +111,9 @@ assert(records["s2-amount"].operands.includes("s2-ded0"), "amount lights up term
 assert(records["s2-amount"].operands.includes("s2-c1"), "amount lights up cell 1");
 assert(stagesHtml.includes('tabindex="0" data-prov='), "keyboard-focusable numbers");
 assert(html.includes('id="prov-panel"'), "provenance panel element");
+assert(html.includes("--paper"), "design tokens");
+assert(html.includes("prefers-color-scheme"), "dark mode stays readable");
+assert(html.includes("max-width:640px"), "phone layout");
+assert(html.includes("data-goto"), "panel lists related values");
+assert(html.includes("scrollIntoView"), "related values scroll to target");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");
