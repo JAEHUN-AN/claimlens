@@ -3,6 +3,20 @@
 import json
 from typing import Any
 
+# Own mark: a magnifying lens over a document corner. Shared inner shapes
+# keep the topbar SVG and the favicon data URL identical by construction.
+MARK_SVG = (
+    '<path d="M4 2.5h5.5L13 6v6.5"/><path d="M9.5 2.5V6H13"/>'
+    '<circle cx="11.5" cy="12.5" r="4"/><path d="M14.5 15.5l3 3"/>'
+)
+FAVICON = (
+    "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
+    "viewBox='0%200%2020%2020'%20fill='none'%20stroke='%230064E0'"
+    "%20stroke-width='1.8'%3E"
+    + MARK_SVG.replace('"', "'").replace("<", "%3C").replace(">", "%3E").replace(" ", "%20")
+    + "%3C/svg%3E"
+)
+
 CSS = """
 :root{
 --paper:#F0F2F5;--paper-2:#FFFFFF;--ink:#050505;--ink-dim:#65676B;--line:#E4E6EB;
@@ -25,7 +39,7 @@ body{font-family:var(--sans);margin:0;color:var(--ink);background:var(--paper)}
 .topbar{position:sticky;top:0;z-index:5;background:var(--paper-2);border-bottom:1px solid var(--line)}
 .topbar-inner{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.6rem 1rem}
 .brandrow{display:flex;align-items:center;gap:.5rem}
-.lens{width:18px;height:18px;border:3px solid var(--accent);border-radius:50%;flex:none}
+.mark{width:18px;height:18px;color:var(--accent);flex:none}
 h1{font-size:1.2rem;margin:0;letter-spacing:-.01em}
 .replay-tag{font-size:.75rem;font-weight:700;color:var(--accent);background:var(--tab-active-bg);
 padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
@@ -462,13 +476,18 @@ def render_page(payload: dict[str, Any]) -> str:
     # Script text is not entity-decoded: emit raw JSON, only neutralizing
     # the closing tag.
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+    mark = (
+        '<svg class="mark" viewBox="0 0 20 20" fill="none" '
+        f'stroke="currentColor" stroke-width="1.8" aria-hidden="true">{MARK_SVG}</svg>'
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"/>
 <title>ClaimLens</title>
+<link rel="icon" href="{FAVICON}"/>
 <style>{CSS}</style></head>
 <body>
-<header class="topbar"><div class="wrap topbar-inner"><div class="brandrow"><span class="lens" aria-hidden="true"></span><h1>ClaimLens</h1><span class="replay-tag">replay demo</span></div><p class="topnote"><small class="dim">All documents are synthetic. Rendered from committed replay caches only.</small></p></div></header>
+<header class="topbar"><div class="wrap topbar-inner"><div class="brandrow">{mark}<h1>ClaimLens</h1><span class="replay-tag">replay demo</span></div><p class="topnote"><small class="dim">All documents are synthetic. Rendered from committed replay caches only.</small></p></div></header>
 <div class="wrap"><nav id="scenes" aria-label="Demo scenes"></nav>
 <div id="stages"></div></div>
 <div id="prov-panel" style="display:none" role="dialog" aria-label="Number provenance"></div>
