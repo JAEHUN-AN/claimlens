@@ -56,4 +56,7 @@ assert(stagesHtml.includes(">work_injury<"), "work_injury badge");
 assert(stagesHtml.includes("industrial accident compensation insurance first"), "next step");
 assert(stagesHtml.includes("<audio"), "audio player");
 assert(stagesHtml.includes("hurt my left wrist"), "en transcript");
+assert(stagesHtml.includes("to confirm"), "confirmation marks");
+assert(stagesHtml.includes("I heard 20 October"), "confirmation question");
+assert(!stagesHtml.includes("WHO J20.9 + None"), "no None in timeline");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice)");

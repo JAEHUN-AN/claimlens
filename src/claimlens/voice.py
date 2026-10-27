@@ -24,6 +24,25 @@ ASR_MODEL = "muse-voice-transcribe-1.0"
 ASR_RATE = 24000
 VOICE_CACHE_DIR = "cache/voice"
 NEXT_STEP = {"work_injury": "industrial accident compensation insurance first"}
+CONFIRM_FIELDS = ("incident_date", "visa")
+CONFIRM_WHY = (
+    "Spoken dates and codes vary between recognitions; "
+    "confirm with the person before filing."
+)
+MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
 
 FACTS_PREAMBLE = """Read the spoken incident report below and extract eligibility facts.
 Today is 2026-10-27; resolve spoken dates against it as YYYY-MM-DD.
@@ -147,6 +166,36 @@ def facts_to_person(facts: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def heard_as(field: str, value: str) -> str:
+    """Spoken value in words for a confirmation question."""
+    if field == "incident_date":
+        try:
+            _, month, day = (int(part) for part in value.split("-"))
+            return f"{day} {MONTHS[month - 1]}"
+        except (ValueError, IndexError):
+            return value
+    if field == "visa":
+        return f"visa {value}"
+    return value
+
+
+def confirmations_for(facts: dict[str, Any]) -> list[dict[str, str]]:
+    """Ask_user-shaped questions for facts that must not stand as certain."""
+    out = []
+    for field in CONFIRM_FIELDS:
+        value = facts.get(field)
+        if not value:
+            continue
+        out.append(
+            {
+                "field": field,
+                "question": f"I heard {heard_as(field, value)} — is that right?",
+                "why": CONFIRM_WHY,
+            }
+        )
+    return out
+
+
 def intake(clip: str, live: bool, provider: Any) -> dict[str, Any]:
     """Transcript, facts, eligibility, and next step for one clip."""
     from claimlens.eligibility import check_eligibility
@@ -162,6 +211,11 @@ def intake(clip: str, live: bool, provider: Any) -> dict[str, Any]:
         "audio_duration_ms": record.get("audio_duration_ms"),
         "facts": plain,
         "quotes": quotes,
+        "to_confirm": {
+            field: {"value": plain.get(field, ""), "quote": quotes.get(field, "")}
+            for field in CONFIRM_FIELDS
+        },
+        "confirmations": confirmations_for(plain),
         "eligibility": eligibility,
         "next_step": NEXT_STEP.get(eligibility["outcome"], ""),
     }

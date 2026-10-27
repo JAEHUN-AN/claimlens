@@ -61,6 +61,11 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert voice["next_step"] == "industrial accident compensation insurance first"
     assert [c["lang"] for c in voice["clips"]] == ["en", "ko"]
     assert all(c["transcript"] and c["audio"].endswith(".wav") for c in voice["clips"])
+    ko_clip = voice["clips"][1]
+    assert ko_clip["to_confirm"] == ["incident_date", "visa"]
+    assert ko_clip["confirmations"][0]["question"].startswith("I heard 20 October")
+    for entry in timeline["entries"]:
+        assert "None" not in entry.get("summary", "")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

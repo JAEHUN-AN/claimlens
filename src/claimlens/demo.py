@@ -151,8 +151,13 @@ def _tool_summary(tool: str, result: dict[str, Any]) -> str:
     if tool == "decide_eligibility":
         return f"{result.get('outcome')} ({result.get('rule')})"
     if tool == "convert_codes":
-        cm = (result.get("cm") or {}).get("chosen", "-")
-        return f"WHO {result.get('who')} + {result.get('attribute')}; CM {cm}"
+        text = f"WHO {result.get('who')}"
+        if result.get("attribute"):
+            text += f" + {result['attribute']}"
+        chosen = (result.get("cm") or {}).get("chosen")
+        if chosen:
+            text += f"; CM {chosen}"
+        return text
     if tool == "adjudicate":
         return f"{result.get('decision')} {result.get('amount_krw'):,} KRW"
     return json.dumps(result, ensure_ascii=False)[:200]
@@ -231,6 +236,8 @@ def voice_scene_payload(dst: Path) -> dict[str, Any]:
                 "transcript": result["transcript"],
                 "facts": result["facts"],
                 "quotes": result["quotes"],
+                "to_confirm": sorted(result["to_confirm"]),
+                "confirmations": result["confirmations"],
             }
         )
     first = intake(clips[0][1], live=False, provider=provider)

@@ -47,6 +47,8 @@ ol.timeline p{margin:.15rem 0;font-size:.92rem}
 ul.tight{margin:.3rem 0;padding-left:1.2rem}
 ul.tight li{margin:.15rem 0}
 .warn{color:#7a4d0b;font-weight:600}
+.totag{display:inline-block;background:#fff1c1;color:#6b4e00;font-size:.75rem;
+font-weight:600;padding:0 .4rem;border-radius:.25rem}
 small.dim{color:#666}
 """
 
@@ -74,14 +76,20 @@ function stage(s,first){
 function voiceScene(s){
   const e=s.eligibility;
   const clips=s.clips.map(c=>{
-    const rows=Object.keys(c.facts).map(k=>
-      `<tr><td>${esc(k)}</td><td>${esc(String(c.facts[k]))}</td>`
-      +`<td><small class="dim">${esc(c.quotes[k]||'')}</small></td></tr>`
+    const pending=new Set(c.to_confirm||[]);
+    const rows=Object.keys(c.facts).map(k=>{
+      const tag=pending.has(k)?' <span class="totag">to confirm</span>':'';
+      return `<tr><td>${esc(k)}</td><td>${esc(String(c.facts[k]))}${tag}</td>`
+        +`<td><small class="dim">${esc(c.quotes[k]||'')}</small></td></tr>`;
+    }).join('');
+    const asks=(c.confirmations||[]).map(
+      q=>`<li>${esc(q.question)} <small class="dim">(${esc(q.why)})</small></li>`
     ).join('');
     return `<h4>Clip (${esc(c.lang)})</h4>`
       +`<audio controls preload="none" src="${esc(c.audio)}"></audio>`
       +`<p>${esc(c.transcript)}</p>`
-      +`<table class="bill"><tr><th>Fact</th><th>Value</th><th>Quoted words</th></tr>${rows}</table>`;
+      +`<table class="bill"><tr><th>Fact</th><th>Value</th><th>Quoted words</th></tr>${rows}</table>`
+      +`<p>To confirm with the person:</p><ul class="tight">${asks}</ul>`;
   }).join('');
   return `<h3>Voice intake</h3><p>${badge(e.outcome)}</p>`
     +`<p><strong>${esc(s.next_step)}</strong> (${esc(e.rule)})</p>`

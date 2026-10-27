@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"body_part\":\"left wrist\",\"incident_date\":\"2026-10-20\",\"korean_employer\":true,\"mechanism\":\"slipped on stairs while carrying box\",\"quote_body_part\":\"왼쪽 손목을 다쳤어요\",\"quote_incident_date\":\"십 월 이십 일\",\"quote_korean_employer\":\"저는 안산 공장에서 일해요.\",\"quote_mechanism\":\"상자를 들고 계단에서 미끄러져서\",\"quote_visa\":\"비자는 이구, 이 나인이에요.\",\"quote_work_related\":\"야간 근무 중에\",\"visa\":\"E-9\",\"work_related\":true}",
+  "usage": {
+    "input_tokens": 168,
+    "output_tokens": 1098,
+    "total_tokens": 1266
+  },
+  "recorded_at": "2026-10-27T04:32:35.631006+00:00"
+}
