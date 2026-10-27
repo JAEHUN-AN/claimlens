@@ -198,3 +198,43 @@ Items 0b, 6, and 8.
 - Live calls: 3 text-only writes, 1,184 input / 3,668 output tokens total
   (A rationale 523/1,648; S2 rationale 540/1,174; S3 labels 121/846).
   Session total about $0.02-0.03.
+
+## 2026-10-27 — Backlog session: PII marks, deductible check, masking
+
+Items 0c and 9.
+
+### Muse Code (coding agent)
+
+- Item 0c-a: every pack PII line with a value now ends in "check against
+  your passport/ID" (Markdown and HTML). A new cross-document check collects
+  each PII kind per document; conflicting values print both readings with a
+  "differs between documents" flag instead of one as if certain. S3 replay
+  test pins four marks.
+- Item 0c-b: S2 rationale cards carry a deductible section computed by code
+  from engine inputs (flat 20,000/10,000 by institution, 20% of claimed,
+  claimed times copay rate). The card shows
+  "max(20,000, 9,000, 22,500) = 22,500 — matches the engine"; a mismatch
+  would show both figures flagged while the engine amount stands. Travel
+  cards have no such section. Tests pin the match, the absence, and the
+  mismatch branch.
+- Item 9: new `src/claimlens/masking.py` plus `claimlens mask`. One noun
+  phrase per SAM 3.1 request over the same responses endpoint; box tags
+  parsed in both the recorded `key=value` form and the bare six-number
+  form; filled boxes painted on a copy scaled from the tag w/h. Responses
+  cached under `cache/sam/` by image bytes, phrase, and model. S2 seal
+  (receipt photo) and S3 signature (cert clean) mask from replay; after
+  images saved to `docs/masking/` (before images are the samples; working
+  copies live in git-ignored `out/masking/`). Text-field PII stays in
+  reading results and never enters the image path, so no redaction code
+  was added.
+- Tests: 87 passed (`ruff check` clean before each commit). No push.
+
+### Muse Spark and SAM (model APIs)
+
+- SAM live calls: 6. S2 receipt clean returned empty text three times for
+  "red circular seal" (raw SSE confirmed genuinely empty, not a parse
+  miss) plus once for "red seal", against the 10/26 probe record; the
+  photo variant succeeded first try, so the S2 seal pins the photo. S3
+  "signature" succeeded first try. The stream reports no usage block, so
+  only the call count is recorded; cost is within the $1 session budget
+  on Spark-equivalent rates.
