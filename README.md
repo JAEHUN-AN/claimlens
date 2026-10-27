@@ -2,6 +2,8 @@
 
 Medical paperwork that crosses borders — in both directions.
 
+**Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
+
 ClaimLens reads hospital bills and medical certificates for people whose care crosses a border
 (Koreans treated abroad, foreigners treated in Korea). When a Korean policy applies, it prepares a
 claim decision with the cited policy clauses. When no policy applies, it does not decide — it builds
