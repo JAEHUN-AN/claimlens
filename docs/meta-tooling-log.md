@@ -134,3 +134,35 @@ closed item 3 and item 5. Boxes stay unchecked for the owner to tick on push.
   All sandbox runs used `uv run --no-sync`. Normal terminals are unaffected.
 - Owner fix kept: `[tool.hatch.metadata] allow-direct-references = true`,
   needed for the direct-URL dependency at build time.
+
+## 2026-10-27 — Backlog session: review fixes and code conversion
+
+Items 0 and 7. The review premise checked out with one correction: S3 clean
+had 0 line items but 12 charge rows, so the gap was line-item coverage, not
+the row sums (those already fail on empty rows).
+
+### Muse Code (coding agent)
+
+- Item 0a: new `lines_present` / `lines_count` / `lines_sum` checks for Korean
+  receipts. Line amounts are per-row totals, so the sum compares against cell 6
+  (this first broke S2, whose line sum is 90,000 against a 45,000 patient
+  total, and was corrected). Verify went receipt-level with a line-item
+  re-read path (tiny schema carries the item table); `claimlens read` now
+  reports a verification block. Replay test pins the S3 clean recovery.
+- Item 0b: eval loaded `.env` only on the live path, so replay costs were
+  null; rates now load up front and `docs/eval.md` shows $0.0090-0.0171.
+- Item 7: new `src/claimlens/codes.py` (SPEC 5.5) — KCD normalize/edition,
+  U-code refusal, WHO truncation, fracture open/closed attribute, I84 to K64,
+  CM candidates with FY2027 defaults plus narrowing questions, and the
+  three-row prefix pitfall table. Limits: no WHO 2019 terminal list locally,
+  so no general terminal check; the 254-code fracture set is a documented
+  family heuristic; CM rules shipped for S72.1 only; HIRA English names are
+  out of scope.
+- Tests: 65 passed (`ruff check` clean before each commit). No push.
+
+### Muse Spark (model API)
+
+- Live calls: 1 narrow re-read (S3 clean item table, single receipt image):
+  1,846 input / 1,217 output tokens, about $0.008. It returned all 12 rows
+  summing to 15,000,000, so the reading verified with `corrected:
+  ["line_items"]` instead of ending in manual review. Session total $0.008.
