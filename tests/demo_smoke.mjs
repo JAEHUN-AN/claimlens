@@ -12,6 +12,7 @@ const pageJs = scripts[scripts.length - 1][1];
 
 let stagesHtml = "";
 const buttons = [];
+const els = {};
 globalThis.document = {
   addEventListener: () => {},
   querySelectorAll: () => [],
@@ -24,12 +25,15 @@ globalThis.document = {
         insertAdjacentHTML: (_p, h) => { stagesHtml += h; },
       };
     }
-    return { classList: { add() {}, remove() {} } };
+    if (!els[id]) els[id] = { classList: { add() {}, remove() {} } };
+    return els[id];
   },
   createElement: (tag) => ({ tag }),
 };
 // eslint-disable-next-line no-eval
-eval(pageJs + "\n;globalThis.__UI=UI;globalThis.__setLang=setLang;");
+eval(pageJs + "\n;globalThis.__UI=UI;globalThis.__setLang=setLang;"
+  + "\n;globalThis.__setPackLang=setPackLang;globalThis.__packBody=packBody;"
+  + "\n;globalThis.__packStore=()=>PACKSTORE;");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(`smoke: ${msg}`);
@@ -38,7 +42,10 @@ const sections = stagesHtml.match(/<section class="scene/g) || [];
 assert(sections.length === 5, `5 scenes, got ${sections.length}`);
 assert(buttons.length === 6, `6 nav buttons, got ${buttons.length}`);
 assert(stagesHtml.includes('id="flow-view"'), "flow first screen");
-assert(stagesHtml.includes("Drop a document photo"), "drop zone");
+assert(els["flow-steps"].innerHTML.includes("Reading"), "preselect fills steps");
+assert(els["flow-play"].disabled === false, "preselect enables play");
+assert(stagesHtml.includes("Want to try your own document?"), "drop zone");
+assert(stagesHtml.includes("every number is clickable"), "number tip");
 assert((stagesHtml.match(/class="fpick"/g) || []).length === 5, "5 example pickers");
 assert(html.includes("prefers-reduced-motion"), "reduced-motion guard");
 assert(html.includes("live mode needs an API key"), "unknown-file message");
@@ -50,6 +57,7 @@ assert(stagesHtml.includes("22,500"), "deductible amount");
 assert(stagesHtml.includes("2,216,050 KRW"), "A amount");
 assert(stagesHtml.includes("pre-existing open-source engine, pinned"), "pinned label");
 assert(stagesHtml.includes("We do not have your policy"), "policy line");
+assert(stagesHtml.includes('id="packswitch"'), "pack vi toggle");
 assert(stagesHtml.includes("check against your passport/ID"), "PII mark");
 assert(stagesHtml.includes("(masked copy)"), "masked caption");
 assert(!stagesHtml.includes("# Claim decision"), "no raw markdown");
@@ -69,6 +77,9 @@ assert(stagesHtml.includes("<audio"), "audio player");
 assert(stagesHtml.includes("hurt my left wrist"), "en transcript");
 assert(stagesHtml.includes("Medical paperwork that crosses borders"), "product tagline");
 assert(stagesHtml.includes("Decide or build a Claim Pack"), "three-step strip");
+assert(stagesHtml.includes("Reading accuracy (offline eval)"), "eval subtitle");
+assert(stagesHtml.includes("Open weights match hosted on A/B"), "eval open line");
+assert(stagesHtml.includes("<td>S3</td>"), "eval S3 row");
 assert(html.includes("<title>ClaimLens</title>"), "tab title");
 assert(html.includes('class="topbar"'), "topbar header");
 assert(!stagesHtml.includes('class="brand"'), "no duplicate brand");
@@ -79,6 +90,7 @@ assert(html.indexOf('class="topbar"') < html.indexOf('id="scenes"'), "hero above
 assert((stagesHtml.match(/>work_injury</g) || []).length === 1, "one work_injury badge");
 assert(stagesHtml.includes("to confirm"), "confirmation marks");
 assert(stagesHtml.includes("I heard 20 October"), "confirmation question");
+assert(stagesHtml.includes("10월 20일로 들었습니다 — 맞나요?"), "ko confirmation question");
 assert(!stagesHtml.includes("WHO J20.9 + None"), "no None in timeline");
 const headlines = stagesHtml.match(/<p class="headline">/g) || [];
 assert(headlines.length === 5, `5 headlines, got ${headlines.length}`);
@@ -144,6 +156,7 @@ globalThis.__setLang("ko");
 assert(stagesHtml.includes("청구 처리"), "ko flow header");
 assert(stagesHtml.includes("장면 A"), "ko scene title");
 assert(stagesHtml.includes("확인 필요"), "ko to-confirm tag");
+assert(stagesHtml.includes("판독 정확도 (오프라인 평가)"), "ko eval subtitle");
 assert(!stagesHtml.includes("Process a claim"), "flow re-rendered, not appended");
 assert(!stagesHtml.includes("Scene S2 — insured worker"), "scene re-rendered, not appended");
 assert((stagesHtml.match(/<section class="scene/g) || []).length === 5, "still 5 scenes");
@@ -151,6 +164,15 @@ assert((stagesHtml.match(/id="flow-view"/g) || []).length === 1, "single flow ca
 globalThis.__setLang("vi");
 assert(stagesHtml.includes("Xử lý bồi thường"), "vi flow header");
 assert(stagesHtml.includes("Cảnh S2"), "vi scene title");
+assert(stagesHtml.includes("Độ chính xác bản đọc (đánh giá ngoại tuyến)"), "vi eval subtitle");
 globalThis.__setLang("en");
 assert(stagesHtml.includes("2,216,050 KRW"), "amounts unchanged by switch");
+globalThis.__setPackLang("vi");
+const packStore = globalThis.__packStore();
+const packVI = globalThis.__packBody(packStore.p, packStore.v);
+assert(packVI.includes("Tiền nằm viện"), "vi pack row label");
+assert(packVI.includes("15,000,000"), "vi pack same total");
+assert(packVI.includes('data-prov="s3-pack-total"'), "vi pack same provenance");
+assert(!packVI.includes("We do not have your policy"), "vi pack swaps sentences");
+globalThis.__setPackLang("en");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");

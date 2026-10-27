@@ -297,6 +297,50 @@ def _pack_section(
     }
 
 
+def _pack_vi_overlay(pack_vi: dict[str, Any]) -> dict[str, Any]:
+    """Template-ready Vietnamese text; amounts/codes/dates stay on the EN pack."""
+    s = pack_vi["sentences"]
+    return {
+        "text": {
+            "policy_line": s["policy_line"],
+            "pii_mark": s["pii_mark"],
+            "name": s["f_name"],
+            "dob": s["f_dob"],
+            "passport": s["f_passport"],
+            "pid": s["f_pid"],
+            "hospital": s["f_hospital"],
+            "stay": s["f_stay"],
+            "stay_in": s["stay_in"],
+            "stay_out": s["stay_out"],
+            "stay_to": s["stay_to"],
+            "certificate": s["f_certificate"] + ":",
+            "kcd": s["f_kcd"] + ":",
+            "who": s["f_who"] + ":",
+            "cm": s["f_cm"] + ":",
+            "needed": s["t_needed"] + ": ",
+            "warning": s["t_warning"] + ": ",
+            "estimate": s["t_note_estimate"],
+            "total": s["f_total"],
+            "verified": s["f_verified"] + ": ",
+            "differs": s["differs"] + "; ",
+            "disclaimer": s["d_disclaimer"],
+            "translation_note": s["translation_note"],
+            "checklist": [s["check_0"], s["check_1"], s["check_2"]],
+            "deadline": s["deadline"],
+            "h_patient": s["h_patient"],
+            "h_codes": s["h_codes"],
+            "h_bill": s["h_bill"],
+            "h_checklist": s["h_checklist"],
+            "h_deadlines": s["h_deadlines"],
+        },
+        "items": [
+            {"label": item["label"], "amount": item["amount"]}
+            for item in pack_vi["items"]
+        ],
+        "total_krw": pack_vi["total_krw"],
+    }
+
+
 def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     scenarios, inbound = load_scenarios()
     reading = replay_reading(sample_id, "photo")
@@ -311,6 +355,7 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         "eligibility": None,
         "card": None,
         "pack": None,
+        "pack_vi": None,
         "images": [],
     }
     if sample_id in inbound:
@@ -334,6 +379,9 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         flow_tokens["pack"] = sum(c.total_tokens for c in pack_provider.calls)
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         payload["pack"] = _pack_section(pack, rows, prov, prefix)
+        vi_provider = ReplayProvider()
+        pack_vi_raw = build_pack(sample_id, "photo", vi_provider, lang="vi")
+        payload["pack_vi"] = _pack_vi_overlay(pack_vi_raw)
     else:
         card_provider = ReplayProvider()
         card = build_rationale(sample_id, "photo", card_provider)
@@ -685,7 +733,7 @@ def voice_scene_payload(dst: Path) -> dict[str, Any]:
     audio_dir = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / "audio"
     rendered = []
     for lang, clip in clips:
-        result = intake(clip, live=False, provider=provider)
+        result = intake(clip, live=False, provider=provider, lang=lang)
         rendered.append(
             {
                 "lang": lang,
@@ -697,7 +745,7 @@ def voice_scene_payload(dst: Path) -> dict[str, Any]:
                 "confirmations": result["confirmations"],
             }
         )
-    first = intake(clips[0][1], live=False, provider=provider)
+    first = intake(clips[0][1], live=False, provider=provider, lang=clips[0][0])
     return {
         "id": scene_id,
         "title": title,
@@ -719,7 +767,7 @@ def _voice_flow(payload: dict[str, Any]) -> dict[str, Any]:
     provider = ReplayProvider()
     steps = []
     for lang, clip in VOICE_SCENE[2]:
-        result = intake(clip, live=False, provider=provider)
+        result = intake(clip, live=False, provider=provider, lang=lang)
         seconds = (result.get("audio_duration_ms") or 0) / 1000
         steps.append(
             {
@@ -760,6 +808,55 @@ def _voice_flow(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _eval_section() -> dict[str, Any]:
+    from claimlens.eval import eval_all
+
+    rows = []
+    matched: list[str] = []
+    differed: list[str] = []
+    for row in eval_all():
+        if row.get("variant") != "photo" or "error" in row:
+            continue
+        letter = row["sample"].split("_")[0]
+        checks = " ".join(
+            part for part in (row["kr_cells"], row["checks"]) if part != "n/a"
+        ) or "n/a"
+        opened = row.get("open") or {}
+        rows.append(
+            {
+                "sample": letter,
+                "total": row["total"],
+                "lines": row["lines"],
+                "diags": row["diags"],
+                "checks": checks,
+                "pii": row["pii"],
+                "open_total": opened.get("total", "-"),
+                "open_lines": opened.get("lines", "-"),
+                "open_checks": opened.get("checks", "-"),
+            }
+        )
+        if not opened:
+            differed.append(f"{letter} no open reading")
+            continue
+        aspects = [
+            aspect
+            for aspect, hosted, open_v in (
+                ("total", row["total"], opened.get("total")),
+                ("lines", row["lines"], opened.get("lines")),
+                ("checks", row["checks"], opened.get("checks")),
+            )
+            if hosted != open_v
+        ]
+        if aspects:
+            differed.extend(f"{letter} {aspect}" for aspect in aspects)
+        else:
+            matched.append(letter)
+    match_part = "/".join(matched) or "none"
+    differ_part = ", ".join(differed) or "none"
+    line = f"Open weights match hosted on {match_part}; differ on {differ_part}."
+    return {"rows": rows, "open_line": line}
+
+
 def export_demo(dst: Path | str = "docs/demo.html") -> Path:
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
@@ -772,7 +869,8 @@ def export_demo(dst: Path | str = "docs/demo.html") -> Path:
             _scene_flow(scenes[2]["id"], scenes[2]),
             _agent_flow(scenes[3]),
             _voice_flow(scenes[4]),
-        ]
+        ],
+        "eval": _eval_section(),
     }
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_page({"scenes": scenes, "flow": flow}), encoding="utf-8")

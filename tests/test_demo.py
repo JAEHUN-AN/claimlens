@@ -50,6 +50,14 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "v": "15,000,000",
         "prov": "s3-pack-total",
     }
+    pack_vi = payload["scenes"][2]["pack_vi"]
+    assert len(pack_vi["items"]) == 12
+    assert pack_vi["total_krw"] == 15000000
+    assert sum(i["amount"] for i in pack_vi["items"]) == 15000000
+    assert (
+        pack_vi["items"][0]["label"]
+        != payload["scenes"][2]["pack"]["items"][0]["label_en"]
+    )
     first_images = payload["scenes"][0]["images"]
     assert set(first_images[0]) == {"src", "caption"}
     assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]
@@ -67,7 +75,8 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert all(c["transcript"] and c["audio"].endswith(".wav") for c in voice["clips"])
     ko_clip = voice["clips"][1]
     assert ko_clip["to_confirm"] == ["incident_date", "visa"]
-    assert ko_clip["confirmations"][0]["question"].startswith("I heard 20 October")
+    assert ko_clip["confirmations"][0]["question"] == "10월 20일로 들었습니다 — 맞나요?"
+    assert ko_clip["confirmations"][1]["question"] == "비자 E-9로 들었습니다 — 맞나요?"
     for entry in timeline["entries"]:
         for seg in entry.get("segments", []):
             assert "None" not in seg.get("t", "") + seg.get("n", "")
@@ -85,6 +94,24 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         assert example["result"]["badge"]
     assert [s["key"] for s in flow[3]["steps"]].count("ask_user") == 1
     assert flow[4]["result"]["badge"] == "work_injury"
+    evaluation = payload["flow"]["eval"]
+    assert [r["sample"] for r in evaluation["rows"]] == ["A", "B", "C", "S2", "S3"]
+    assert (evaluation["rows"][0]["lines"], evaluation["rows"][0]["pii"]) == ("6/6", "4/4")
+    b, c, s2 = evaluation["rows"][1], evaluation["rows"][2], evaluation["rows"][3]
+    assert (b["lines"], b["diags"], b["checks"], b["pii"]) == ("7/7", "2/2", "n/a", "4/4")
+    assert (c["lines"], c["diags"], c["checks"], c["pii"]) == ("7/7", "2/2", "n/a", "4/4")
+    assert (s2["lines"], s2["diags"], s2["checks"], s2["pii"]) == ("5/5", "1/1", "10/10 pass", "2/2")
+    s3 = evaluation["rows"][4]
+    assert (s3["total"], s3["lines"], s3["diags"], s3["checks"], s3["pii"]) == (
+        "ok",
+        "12/12",
+        "1/1",
+        "10/10 pass",
+        "3/4",
+    )
+    assert evaluation["open_line"] == (
+        "Open weights match hosted on A/B; differ on C total, S2 checks, S3 checks."
+    )
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

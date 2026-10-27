@@ -5,8 +5,10 @@ import json
 import wave
 from pathlib import Path
 
+import pytest
+
 from claimlens.providers.replay import ReplayProvider
-from claimlens.voice import intake, to_asr_wav, transcribe
+from claimlens.voice import confirmations_for, intake, to_asr_wav, transcribe
 
 
 def truth():
@@ -49,16 +51,26 @@ def test_ko_facts_match_truth():
 
 
 def test_heard_facts_need_confirmation():
-    for clip in ("W_factory_fall_en", "W_factory_fall_ko"):
-        result = intake(clip, live=False, provider=ReplayProvider())
+    for clip, lang in (("W_factory_fall_en", "en"), ("W_factory_fall_ko", "ko")):
+        result = intake(clip, live=False, provider=ReplayProvider(), lang=lang)
         assert set(result["to_confirm"]) == {"incident_date", "visa"}
         for field, entry in result["to_confirm"].items():
             assert entry["value"] == result["facts"][field]
             assert entry["quote"] == result["quotes"][field]
             assert entry["quote"] in result["transcript"]
         assert [c["field"] for c in result["confirmations"]] == ["incident_date", "visa"]
-        assert result["confirmations"][0]["question"].startswith("I heard 20 October")
-        assert result["confirmations"][1]["question"] == "I heard visa E-9 — is that right?"
+        if lang == "en":
+            assert result["confirmations"][0]["question"].startswith("I heard 20 October")
+            assert result["confirmations"][1]["question"] == "I heard visa E-9 — is that right?"
+        else:
+            assert result["confirmations"][0]["question"] == "10월 20일로 들었습니다 — 맞나요?"
+            assert result["confirmations"][1]["question"] == "비자 E-9로 들었습니다 — 맞나요?"
+            assert result["confirmations"][0]["why"].startswith("음성 인식은 들을 때마다")
+
+
+def test_confirmations_reject_vietnamese():
+    with pytest.raises(ValueError, match="Unsupported confirmation language"):
+        confirmations_for({"incident_date": "2026-10-20", "visa": "E-9"}, "vi")
 
 
 def test_quotes_come_from_transcript():

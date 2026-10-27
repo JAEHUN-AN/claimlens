@@ -74,7 +74,7 @@ FLOW = {
         "tagline": "국경을 넘나드는 의료 서류 — 양방향으로",
         "strip": ["읽기", "검증", "판정 또는 Claim Pack 작성"],
         "h2": "청구 처리",
-        "drop": "문서 사진을 여기에 놓으세요 — 또는 위에서 예시를 고르세요.",
+        "drop": "직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요.",
         "play": "재생",
         "s2_steps": ["읽기", "검증", "자격", "판정"],
         "voice_first": "받아쓰기 (en)",
@@ -83,7 +83,7 @@ FLOW = {
         "tagline": "Giấy tờ y tế vượt biên giới — theo cả hai chiều",
         "strip": ["Đọc", "Xác minh", "Quyết định hoặc lập Claim Pack"],
         "h2": "Xử lý bồi thường",
-        "drop": "Thả ảnh tài liệu vào đây — hoặc chọn một ví dụ ở trên.",
+        "drop": "Muốn thử tài liệu của bạn? Tải lên trực tiếp cần API key — hoặc hãy khám phá ví dụ ở trên.",
         "play": "Chạy",
         "s2_steps": ["Đọc", "Kiểm tra", "Điều kiện", "Quyết định"],
         "voice_first": "Chép lời (en)",
@@ -93,7 +93,7 @@ FLOW = {
 EN_CHROME = [
     "Process a claim",
     "Medical paperwork that crosses borders",
-    "Drop a document photo",
+    "Want to try your own document?",
     "Scene S2 — insured worker treated in Seoul",
     "See the full example",
 ]

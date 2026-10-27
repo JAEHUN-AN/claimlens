@@ -29,6 +29,11 @@ CONFIRM_WHY = (
     "Spoken dates and codes vary between recognitions; "
     "confirm with the person before filing."
 )
+CONFIRM_WHY_KO = (
+    "음성 인식은 들을 때마다 날짜·코드가 달라질 수 있어 "
+    "제출 전 본인 확인이 필요합니다."
+)
+CONFIRM_LANGS = ("en", "ko")
 MONTHS = (
     "January",
     "February",
@@ -166,37 +171,47 @@ def facts_to_person(facts: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def heard_as(field: str, value: str) -> str:
-    """Spoken value in words for a confirmation question."""
+def heard_as(field: str, value: str, lang: str = "en") -> str:
+    """Spoken value in words for a confirmation question.
+
+    Only en/ko: there is no Vietnamese voice clip, so vi is unsupported.
+    """
+    if lang not in CONFIRM_LANGS:
+        raise ValueError(f"Unsupported confirmation language {lang!r}.")
     if field == "incident_date":
         try:
             _, month, day = (int(part) for part in value.split("-"))
-            return f"{day} {MONTHS[month - 1]}"
         except (ValueError, IndexError):
             return value
+        if lang == "ko":
+            return f"{month}월 {day}일"
+        return f"{day} {MONTHS[month - 1]}"
     if field == "visa":
-        return f"visa {value}"
+        return f"비자 {value}" if lang == "ko" else f"visa {value}"
     return value
 
 
-def confirmations_for(facts: dict[str, Any]) -> list[dict[str, str]]:
+def confirmations_for(facts: dict[str, Any], lang: str = "en") -> list[dict[str, str]]:
     """Ask_user-shaped questions for facts that must not stand as certain."""
+    if lang not in CONFIRM_LANGS:
+        raise ValueError(f"Unsupported confirmation language {lang!r}.")
     out = []
     for field in CONFIRM_FIELDS:
         value = facts.get(field)
         if not value:
             continue
-        out.append(
-            {
-                "field": field,
-                "question": f"I heard {heard_as(field, value)} — is that right?",
-                "why": CONFIRM_WHY,
-            }
-        )
+        heard = heard_as(field, value, lang)
+        if lang == "ko":
+            question = f"{heard}로 들었습니다 — 맞나요?"
+            why = CONFIRM_WHY_KO
+        else:
+            question = f"I heard {heard} — is that right?"
+            why = CONFIRM_WHY
+        out.append({"field": field, "question": question, "why": why})
     return out
 
 
-def intake(clip: str, live: bool, provider: Any) -> dict[str, Any]:
+def intake(clip: str, live: bool, provider: Any, lang: str = "en") -> dict[str, Any]:
     """Transcript, facts, eligibility, and next step for one clip."""
     from claimlens.eligibility import check_eligibility
 
@@ -215,7 +230,7 @@ def intake(clip: str, live: bool, provider: Any) -> dict[str, Any]:
             field: {"value": plain.get(field, ""), "quote": quotes.get(field, "")}
             for field in CONFIRM_FIELDS
         },
-        "confirmations": confirmations_for(plain),
+        "confirmations": confirmations_for(plain, lang),
         "eligibility": eligibility,
         "next_step": NEXT_STEP.get(eligibility["outcome"], ""),
     }

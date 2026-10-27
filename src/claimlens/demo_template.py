@@ -46,6 +46,7 @@ padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
 .langswitch{display:flex;gap:.25rem;margin-left:.4rem}
 .langswitch button{padding:.25rem .6rem;font-size:.8rem;border-radius:999px;cursor:pointer}
 .langswitch button.active{background:var(--tab-active-bg);color:var(--accent)}
+.packlang-row{margin:0 0 .5rem;text-align:right}
 .topnote{margin:0 0 0 auto;font-size:.8rem}
 h2{font-size:1.05rem;margin:.2rem 0 .6rem}
 h3{font-size:.92rem;margin:.9rem 0 .3rem}
@@ -128,6 +129,7 @@ ol.strip3 li:not(:last-child)::after{content:"→";margin-left:.7rem;color:var(-
 .flow-pick{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0}
 .fpick{display:flex;align-items:center;gap:.5rem;padding:.4rem .8rem .4rem .4rem;
 cursor:pointer;font-size:.85rem;border-radius:8px}
+.fpick.active{background:var(--tab-active-bg);box-shadow:inset 0 0 0 2px var(--accent)}
 img.thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
 #flow-drop{border:2px dashed var(--line);border-radius:8px;padding:.8rem;text-align:center;
 color:var(--ink-dim);margin:.4rem 0}
@@ -151,6 +153,13 @@ transition:background .2s ease}
 .topnote{margin-left:0}
 #prov-panel{left:.6rem;right:.6rem;max-width:none}
 table.bill{font-size:.85rem}}
+@media print{
+:root{--paper:#fff;--paper-2:#fff;--ink:#000;--ink-dim:#333;--line:#999}
+body{background:#fff}
+.topbar{position:static}
+#langswitch,#scenes,#flow-play,#flow-drop,#prov-panel{display:none}
+.panel,table.bill,ol.timeline li{break-inside:avoid}
+img.doc{max-height:180px}}
 """
 
 JS = """
@@ -158,6 +167,8 @@ const LANGS=["en","ko","vi"];
 let LANG="en";
 let currentView="flow";
 let flowTimer=null;
+let PACKLANG="en";
+let PACKSTORE=null;
 // UI chrome strings only (labels, step names, buttons). Document contents
 // stay in their own language. Every row is [en, ko, vi].
 const UI={
@@ -173,7 +184,8 @@ strip_2:["Verify","검증","Xác minh"],
 strip_3:["Decide or build a Claim Pack","판정 또는 Claim Pack 작성","Quyết định hoặc lập Claim Pack"],
 flow_h2:["Process a claim","청구 처리","Xử lý bồi thường"],
 flow_note:["Replay mode: pick a sample. Every step below replays a recording.","리플레이 모드: 예시를 고르세요. 아래 단계는 모두 녹화본을 재생합니다.","Chế độ phát lại: hãy chọn một mẫu. Mọi bước dưới đây đều phát lại bản ghi."],
-drop:["Drop a document photo here — or pick an example above.","문서 사진을 여기에 놓으세요 — 또는 위에서 예시를 고르세요.","Thả ảnh tài liệu vào đây — hoặc chọn một ví dụ ở trên."],
+drop:["Want to try your own document? Live upload needs an API key — or pick an example above.","직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요.","Muốn thử tài liệu của bạn? Tải lên trực tiếp cần API key — hoặc hãy khám phá ví dụ ở trên."],
+tip_numbers:["Tip: every number is clickable — select one to see its source.","팁: 모든 숫자를 누르면 출처를 볼 수 있습니다.","Mẹo: bạn có thể nhấn vào mọi con số để xem nguồn của nó."],
 play:["Play","재생","Chạy"],
 see_full:["See the full example","전체 예시 보기","Xem ví dụ đầy đủ"],
 live_msg:["live mode needs an API key — run `claimlens` locally","라이브 모드에는 API 키가 필요합니다 — `claimlens`를 로컬에서 실행하세요","chế độ trực tiếp cần API key — hãy chạy `claimlens` trên máy của bạn"],
@@ -210,6 +222,11 @@ h_checklist:["Checklist before leaving","떠나기 전 확인 목록","Danh sác
 h_deadlines:["Filing deadlines","제출 기한","Thời hạn nộp hồ sơ"],
 h_agent:["Agent timeline","에이전트 타임라인","Dòng thời gian agent"],
 h_voice:["Voice intake","음성 접수","Tiếp nhận bằng giọng nói"],
+h_eval:["Reading accuracy (offline eval)","판독 정확도 (오프라인 평가)","Độ chính xác bản đọc (đánh giá ngoại tuyến)"],
+eval_foot:["Full table with tokens and cost: docs/eval.md in the repo.","토큰·비용 포함 전체 표: 저장소의 docs/eval.md.","Bảng đầy đủ kèm token và chi phí: docs/eval.md trong kho."],
+th_sample:["Sample","샘플","Mẫu"],
+th_lines:["Lines","항목","Dòng"],
+th_diags:["Diags","진단","Chẩn đoán"],
 total_w:["total","합계","tổng"],
 codes_w:["codes","코드","mã"],
 no_checks:["no bill checks","청구서 검사 없음","không có kiểm tra hóa đơn"],
@@ -339,6 +356,7 @@ function render(){
   });
   st.insertAdjacentHTML('afterbegin',flowView(data.flow));
   show(currentView);
+  pickFlow('A_niseko_wrist');
 }
 render();
 function reducedMotion(){
@@ -358,6 +376,10 @@ function pickFlow(id){
   const play=document.getElementById('flow-play');
   play.disabled=false;
   play.onclick=()=>playFlow(id);
+  document.querySelectorAll('.fpick').forEach(b=>{
+    if(b.classList&&b.classList.toggle&&b.getAttribute)
+      b.classList.toggle('active',b.getAttribute('data-ex')===id);
+  });
 }
 function playFlow(id){
   const ex=(data.flow.examples||[]).find(e=>e.id===id);
@@ -387,18 +409,32 @@ function playFlow(id){
 function flowView(f){
   const picks=(f.examples||[]).map(e=>{
     const thumb=e.thumb?`<img class="thumb" src="${esc(e.thumb)}" onerror="this.remove()"/>`:'';
-    return `<button class="fpick" onclick="pickFlow('${e.id}')">${thumb}${esc(titleOf(e))}</button>`;
+    return `<button class="fpick" data-ex="${e.id}" onclick="pickFlow('${e.id}')">${thumb}${esc(titleOf(e))}</button>`;
   }).join('');
   return `<div id="flow-view">`
     +`<p class="tagline">${esc(t('tagline'))}</p>`
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
     +`<p><small class="dim">${esc(t('flow_note'))}</small></p>`
+    +`<p id="flow-tip"><small class="dim">${esc(t('tip_numbers'))}</small></p>`
     +`<div class="flow-pick">${picks}</div>`
     +`<div id="flow-drop">${esc(t('drop'))}</div>`
     +`<p id="flow-msg" role="status"></p>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
-    +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div></div>`;
+    +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
+    +evalBlock(f.eval)+`</div>`;
+}
+function evalBlock(e){
+  if(!e)return '';
+  const rows=(e.rows||[]).map(r=>`<tr><td>${esc(r.sample)}</td><td>${esc(r.total)}</td>`
+    +`<td>${esc(r.lines)}</td><td>${esc(r.diags)}</td>`
+    +`<td>${esc(r.checks)}</td><td>${esc(r.pii)}</td></tr>`).join('');
+  return `<h3>${esc(t('h_eval'))}</h3><table class="bill">`
+    +`<tr><th>${esc(t('th_sample'))}</th><th>${esc(t('total_cap'))}</th>`
+    +`<th>${esc(t('th_lines'))}</th><th>${esc(t('th_diags'))}</th>`
+    +`<th>${esc(t('step_checks'))}</th><th>PII</th></tr>${rows}</table>`
+    +`<p><small class="dim">${esc(e.open_line||'')}</small></p>`
+    +`<p><small class="dim">${esc(t('eval_foot'))}</small></p>`;
 }
 function flowResult(ex){
   return `<div class="flow-result"><p>${badge(ex.result.badge)}</p>`
@@ -563,7 +599,25 @@ function deductible(d){
 }
 function result(s){
   if(s.card)return engineCard(s.card);
-  return packPanel(s.pack);
+  return packPanel(s.pack,s.pack_vi||null);
+}
+function ptxt(key){
+  const o=PACKSTORE&&PACKSTORE.v;
+  return (PACKLANG==='vi'&&o&&o.text&&o.text[key])||null;
+}
+function ptx(key,fb){
+  const v=ptxt(key);
+  return esc(v===null?fb:v);
+}
+function setPackLang(pl){
+  if(pl!=='en'&&pl!=='vi')return;
+  PACKLANG=pl;
+  document.querySelectorAll('#packswitch button').forEach(b=>{
+    if(b.classList&&b.classList.toggle&&b.getAttribute)
+      b.classList.toggle('active',b.getAttribute('data-pl')===pl);
+  });
+  const body=document.getElementById('pack-body');
+  if(body&&PACKSTORE)body.innerHTML=packBody(PACKSTORE.p,PACKSTORE.v);
 }
 function engineCard(c){
   const steps=c.steps.map(i=>`<li>${esc(i.text)}</li>`).join('');
@@ -581,48 +635,61 @@ function piiLine(label,value,conflict,mark){
   if(!value)return `<li>${esc(label)}: -</li>`;
   if(conflict){
     const readings=conflict.map(([w,v])=>`${esc(v)} (${esc(w)})`).join(' / ');
-    return `<li>${esc(label)}: ${readings} — ${esc(t('differs'))}${esc(mark)}</li>`;
+    return `<li>${esc(label)}: ${readings} — ${ptx('differs',t('differs'))}${esc(mark)}</li>`;
   }
   return `<li>${esc(label)}: ${esc(value)} — ${esc(mark)}</li>`;
 }
-function packPanel(p){
+function packPanel(p,pvi){
+  PACKSTORE={p:p,v:pvi||null};
+  const tog=pvi?`<div class="packlang-row"><span class="langswitch" id="packswitch" role="group" aria-label="Pack language">`
+    +`<button data-pl="en"${PACKLANG==='vi'?'':' class="active"'} onclick="setPackLang('en')">EN</button>`
+    +`<button data-pl="vi"${PACKLANG==='vi'?' class="active"':''} onclick="setPackLang('vi')">Tiếng Việt</button></span></div>`:'';
+  return `<h3>${esc(t('h_pack'))}</h3><p>${badge('not adjudicated')}</p>`
+    +`<div class="panel">${tog}<div id="pack-body">${packBody(p,pvi)}</div></div>`;
+}
+function packBody(p,pvi){
   const v=p.visit;
-  const stay=v.inpatient?`${esc(t('stay_in'))}, ${esc(v.period_from)} ${esc(t('stay_to'))} ${esc(v.period_to)}`:esc(t('stay_out'));
+  const stay=v.inpatient?`${ptx('stay_in',t('stay_in'))}, ${esc(v.period_from)} ${ptx('stay_to',t('stay_to'))} ${esc(v.period_to)}`:ptx('stay_out',t('stay_out'));
   const codes=p.codes||{};
   const cm=codes.cm||{};
   const questions=(codes.questions||[]).map(
-    q=>`<li class="noprov">${esc(t('narrow'))}${esc(q)}</li>`
+    q=>`<li class="noprov">${ptx('needed',t('narrow'))}${esc(q)}</li>`
   ).join('');
   const warn=codes.pitfall
-    ?`<li class="warn noprov">${esc(t('warn_w'))}${esc(codes.pitfall.warning)}</li>`:'';
+    ?`<li class="warn noprov">${ptx('warning',t('warn_w'))}${esc(codes.pitfall.warning)}</li>`:'';
   const estimate=p.diagnosis.final===false
-    ?`<li class="noprov">${esc(t('est_note'))}</li>`:'';
-  const rows=p.items.map(
-    i=>`<tr><td class="noprov">${esc(i.label_en)}<br/><span lang="ko">${esc(i.label_ko)}</span></td>`
-      +`<td class="num">${pv(i.amount)}</td></tr>`
-  ).join('');
+    ?`<li class="noprov">${ptx('estimate',t('est_note'))}</li>`:'';
+  const rows=p.items.map((it,n)=>{
+    const lab=(PACKLANG==='vi'&&pvi&&pvi.items&&pvi.items[n])?pvi.items[n].label:it.label_en;
+    return `<tr><td class="noprov">${esc(lab)}<br/><span lang="ko">${esc(it.label_ko)}</span></td>`
+      +`<td class="num">${pv(it.amount)}</td></tr>`;
+  }).join('');
   const list=(items)=>items.map(i=>`<li>${esc(i)}</li>`).join('');
-  return `<h3>${esc(t('h_pack'))}</h3><p>${badge('not adjudicated')}</p>
-  <div class="panel"><h4>${esc(t('h_cover'))}</h4><p><strong>${esc(p.policy_line)}</strong></p>
-  <h4>${esc(t('h_patient'))}</h4><ul class="tight noprov">`
-  +piiLine(t('p_name'),p.patient.name,(p.pii_conflicts||{}).name,p.pii_mark)
-  +piiLine(t('p_dob'),p.patient.date_of_birth,(p.pii_conflicts||{}).date_of_birth,p.pii_mark)
-  +piiLine(t('p_pass'),p.patient.passport,(p.pii_conflicts||{}).passport,p.pii_mark)
-  +piiLine(t('p_pid'),p.patient.patient_id,(p.pii_conflicts||{}).patient_id,p.pii_mark)
-  +`<li>${esc(t('p_hosp'))}: ${esc(v.hospital)}</li><li>${esc(t('p_stay'))}: ${stay}</li></ul>
-  <h4>${esc(t('h_diag'))}</h4><ul class="tight">
-  <li class="noprov">${esc(t('cert_w'))} ${esc(p.diagnosis.label||'-')}</li>
-  <li>${esc(t('kcd_w'))} ${pv(codes.kcd)}</li>
-  <li>${esc(t('who_w'))} ${pv(codes.who)}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
-  <li>${esc(t('cm_w'))} ${pv(cm.chosen)}</li>${questions}${warn}
-  <li class="noprov">${esc(codes.disclaimer||'')}</li>${estimate}</ul>
-  <h4>${esc(t('h_bill'))}</h4><table class="bill">
+  const checklist=ptxt('checklist')||p.checklist;
+  const mark=ptxt('pii_mark')||p.pii_mark;
+  const verified=p.checks_passed
+    ?((PACKLANG==='vi'&&pvi)?'pass':t('pass_w'))
+    :(PACKLANG==='vi'&&pvi)?'FAIL':t('fail_w');
+  return `<h4>${esc(t('h_cover'))}</h4><p><strong>${ptx('policy_line',p.policy_line)}</strong></p>
+  <h4>${ptx('h_patient',t('h_patient'))}</h4><ul class="tight noprov">`
+  +piiLine(ptxt('name')||t('p_name'),p.patient.name,(p.pii_conflicts||{}).name,mark)
+  +piiLine(ptxt('dob')||t('p_dob'),p.patient.date_of_birth,(p.pii_conflicts||{}).date_of_birth,mark)
+  +piiLine(ptxt('passport')||t('p_pass'),p.patient.passport,(p.pii_conflicts||{}).passport,mark)
+  +piiLine(ptxt('pid')||t('p_pid'),p.patient.patient_id,(p.pii_conflicts||{}).patient_id,mark)
+  +`<li>${ptx('hospital',t('p_hosp'))}: ${esc(v.hospital)}</li><li>${ptx('stay',t('p_stay'))}: ${stay}</li></ul>
+  <h4>${ptx('h_codes',t('h_diag'))}</h4><ul class="tight">
+  <li class="noprov">${ptx('certificate',t('cert_w'))} ${esc(p.diagnosis.label||'-')}</li>
+  <li>${ptx('kcd',t('kcd_w'))} ${pv(codes.kcd)}</li>
+  <li>${ptx('who',t('who_w'))} ${pv(codes.who)}${codes.attribute?` (${esc(codes.attribute)})`:''}</li>
+  <li>${ptx('cm',t('cm_w'))} ${pv(cm.chosen)}</li>${questions}${warn}
+  <li class="noprov">${ptx('disclaimer',codes.disclaimer||'')}</li>${estimate}</ul>
+  <h4>${ptx('h_bill',t('h_bill'))}</h4><table class="bill">
   <tr><th>${esc(t('th_item'))}</th><th class="num">${esc(t('th_amount'))}</th></tr>${rows}
-  <tr><td><strong>${esc(t('total_cap'))}</strong></td><td class="num"><strong>${pv(p.total_krw)}</strong></td></tr></table>
-  <ul class="tight"><li>${esc(t('receipt_ok'))}${p.checks_passed?esc(t('pass_w')):esc(t('fail_w'))}</li>
-  <li>${esc(p.translation_note)}</li></ul>
-  <h4>${esc(t('h_checklist'))}</h4><ul class="tight">${list(p.checklist)}</ul>
-  <h4>${esc(t('h_deadlines'))}</h4><ul class="tight"><li>${esc(p.deadline)}</li></ul></div>`;
+  <tr><td><strong>${ptx('total',t('total_cap'))}</strong></td><td class="num"><strong>${pv(p.total_krw)}</strong></td></tr></table>
+  <ul class="tight"><li>${ptx('verified',t('receipt_ok'))}${esc(verified)}</li>
+  <li>${ptx('translation_note',p.translation_note)}</li></ul>
+  <h4>${ptx('h_checklist',t('h_checklist'))}</h4><ul class="tight">${list(checklist)}</ul>
+  <h4>${ptx('h_deadlines',t('h_deadlines'))}</h4><ul class="tight"><li>${ptx('deadline',p.deadline)}</li></ul>`;
 }
 function images(s){
   return (s.images||[]).map(

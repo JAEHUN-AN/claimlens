@@ -577,3 +577,34 @@ null-safe for the Node stub.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: AX and product tracks P0+P1
+
+`docs/track-ax-p0p1.md` (AX-1..AX-4) and `docs/track-product-p0p1.md`
+(P-1..P-3), implemented from the sibling session's specs.
+
+### Muse Code (coding agent)
+
+- AX-1: flow view preselects A on every render (steps shown, Play
+  enabled, `.fpick.active` ring); no autoplay, reduced-motion intact.
+- AX-2: `tip_numbers` hint line under the flow note (en/ko/vi).
+- AX-3: drop-zone copy replaced with the expectation-setting text;
+  drop behaviour and `live_msg` unchanged.
+- AX-4: `@media print` (chrome hidden, light vars forced,
+  break-inside avoids, smaller doc images). Manual check by owner.
+- P-1: `intake(..., lang)`, `confirmations_for(facts, lang)`,
+  `heard_as(field, value, lang)`; ko clip asks in Korean from `facts`
+  values, en unchanged, other langs raise (no vi clip).
+- P-2: flow view embeds a 5-row photo eval table plus open-weights
+  and footnote lines from `eval_all()`; the open line is generated
+  from the rows' `open_*` fields per owner answer
+  ("differ on C total, S2 checks, S3 checks"); headers switch en/ko/vi.
+- P-3: S3 pack panel gains an EN | Tiếng Việt toggle reusing the
+  `.langswitch` style; vi swaps recorded labels/sentences while
+  amounts, codes, dates, and provenance ids stay identical.
+- Tests: 132 passed in the sandbox plus 2 browser tests run by the
+  owner in a normal terminal. `ruff check` clean. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).
