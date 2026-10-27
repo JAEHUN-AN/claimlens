@@ -21,8 +21,10 @@ certificates.
 without commas, and category, exactly one of: consultation, emergency_fee, imaging, lab, \
 procedure, surgery, medication, vaccination, device_purchase, health_checkup, room, admin_fee, \
 other. Vaccines and immunoglobulin are vaccination; proof-issuing fees are admin_fee.
-- diagnoses: code exactly as printed ("" when not printed), system "ICD-10", "ICD-10-CM" or \
-"unknown", label as printed, external_cause for the printed external cause or "".
+- diagnoses: code exactly as printed ("" when not printed), system "ICD-10", "ICD-10-CM", \
+"KCD" or "unknown", label as printed, external_cause for the printed external cause or "". \
+final is true when the final-diagnosis box is checked, false when the clinical-estimate box \
+is checked, null for non-Korean certificates or when no box is shown.
 - pii: personal data printed on the document as {kind, value} pairs; kind is one of name, \
 date_of_birth, passport, patient_id, address, phone.
 - kr_bill: for Korean receipts in the 별지 제6호서식 form only; otherwise null. Copy the \
@@ -30,4 +32,8 @@ circled cells as integers without commas: 1 (본인부담금 합계 row), 2 (공
 3, 4, 5 (상한액 초과금), 6 (진료비 총액), 7 (공단부담 총액), 8 (환자부담 총액), 9 (이미 납부한 \
 금액), 10 (납부할 금액). Use 0 when the cell prints 0, null only when blank or unreadable. \
 institution_type is the checked box, exactly one of 의원급·보건기관, 병원급, 종합병원, \
-상급종합병원. patient_type is the 환자구분 text (e.g. 건강보험)."""
+상급종합병원. patient_type is the 환자구분 text (e.g. 건강보험). visit is the checked box, \
+exactly 외래 or 입원. period_from and period_to are the printed treatment period as \
+YYYY-MM-DD, or null. charge_rows holds one entry per printed charge row in order, excluding the 합계 total \
+row: label copied exactly, col_1 to col_4 as integers without commas (0 when the cell \
+prints 0 or is blank, null only when unreadable)."""

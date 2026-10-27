@@ -1,10 +1,22 @@
-"""Korean bill reading schema: cells 1-10, institution checkbox, patient type (SPEC 3.4)."""
+"""Korean bill reading schema: cells 1-10, rows, visit, period (SPEC 3.4)."""
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 KrInstitution = Literal["의원급·보건기관", "병원급", "종합병원", "상급종합병원"]
+
+KrVisit = Literal["외래", "입원"]
+
+
+class KrChargeRow(BaseModel):
+    """One printed charge row with its four amount columns."""
+
+    label: str = Field(description="Printed row label, copied exactly.")
+    col_1: int | None = Field(default=None, description="Row cell in column 1 (본인부담금).")
+    col_2: int | None = Field(default=None, description="Row cell in column 2 (공단부담금).")
+    col_3: int | None = Field(default=None, description="Row cell in column 3 (전액본인부담).")
+    col_4: int | None = Field(default=None, description="Row cell in column 4 (비급여).")
 
 
 class KrBill(BaseModel):
@@ -24,3 +36,13 @@ class KrBill(BaseModel):
         default=None, description="Checked 요양기관 종류 box, exactly as labeled."
     )
     patient_type: str | None = Field(default=None, description="환자구분 text (e.g. 건강보험).")
+    visit: KrVisit | None = Field(default=None, description="Checked visit box: 외래 or 입원.")
+    period_from: str | None = Field(
+        default=None, description="Treatment period start as YYYY-MM-DD, or null."
+    )
+    period_to: str | None = Field(
+        default=None, description="Treatment period end as YYYY-MM-DD, or null."
+    )
+    charge_rows: list[KrChargeRow] = Field(
+        default_factory=list, description="One entry per printed charge row, in order."
+    )

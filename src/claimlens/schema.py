@@ -25,7 +25,7 @@ LineCategory = Literal[
     "other",
 ]
 
-DiagSystem = Literal["ICD-10", "ICD-10-CM", "unknown"]
+DiagSystem = Literal["ICD-10", "ICD-10-CM", "KCD", "unknown"]
 
 PiiKind = Literal["name", "date_of_birth", "passport", "patient_id", "address", "phone"]
 
@@ -42,6 +42,10 @@ class Diagnosis(BaseModel):
     label: str = Field(description="Printed diagnosis label.")
     external_cause: str = Field(
         default="", description="Printed external-cause note, or '' when absent."
+    )
+    final: bool | None = Field(
+        default=None,
+        description="True when final-diagnosis box is checked, False for clinical-estimate, null otherwise.",
     )
 
 
