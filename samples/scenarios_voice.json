@@ -10,7 +10,7 @@
       },
       "transcript": {
         "en": "Hello. I work at a factory in Ansan. On October twentieth, during my night shift, I slipped on the stairs carrying boxes and hurt my left wrist. I went to the hospital the same night. My visa is E nine. Can my insurance pay for this?",
-        "ko": "안녕하세요. 저는 안산 공장에서 일해요. 10월 20일 야간 근무 중에 상자를 들고 계단에서 미끄러져서 왼쪽 손목을 다쳤어요. 그날 밤 병원에 갔어요. 비자는 E-9이에요. 보험으로 처리돼요?"
+        "ko": "안녕하세요. 저는 안산 공장에서 일해요. 시월 이십일, 야간 근무 중에, 상자를 들고 계단에서 미끄러져서, 왼쪽 손목을 다쳤어요. 그날 밤에 병원에 갔어요. 비자는 이 구, E 나인이에요. 보험으로 처리돼요?"
       },
       "expected": {
         "facts": {
@@ -23,6 +23,9 @@
         },
         "nhi_status": "work_injury",
         "next_step": "industrial accident compensation insurance first"
+      },
+      "notes": {
+        "ko": "Re-synthesized 2026-10-27 at 24 kHz mono with spelled-out date. Korean ASR still varies run to run on the date (20 vs 21) and the visa (E-9); the outcome (work_injury) does not depend on either, and both must be confirmed with the user rather than trusted from the transcript."
       }
     }
   ]
