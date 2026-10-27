@@ -57,6 +57,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How |
 |---|---|---|
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) |
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | `POST /v1/responses`, two images, strict JSON schema |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Text-only, strict schema; amounts and clause IDs copied by code |
 | Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Strict schema; amounts copied by code |
@@ -64,8 +65,8 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Mask seals and signatures | `sam-3.1` (hosted) | One noun phrase per request, box tags painted on a copy |
 
 Every number shown to a user comes from a document reading, a deterministic check,
-or the engine — never from model arithmetic. See `docs/meta-tooling-log.md` for the
-dated record of what Meta tooling did.
+or the engine — never from model arithmetic. The tooling log linked above is the
+main evidence for "Use of Meta AI Tooling".
 
 ## Eval
 
@@ -110,6 +111,9 @@ max(20,000, 9,000, 22,500) = 22,500 — matches the engine.
 - Code conversion covers the SPEC §5.5 examples; ICD-10-CM candidate rules ship
   for S72.1 only, and I84.x maps to bare K64 (subdivisions must be re-coded
   from the certificate).
+- SAM finds the seal on the S2 photo variant but not on the clean render
+  (four attempts, genuinely empty responses), so the demo masks the photo
+  variant.
 - The engine data root and Neo4j live outside this repo; only cached engine
   outputs ship here.
 
