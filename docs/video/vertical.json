@@ -1,0 +1,86 @@
+{
+  "demo_page": "docs/demo.html",
+  "viewport": {"height": 640, "width": 360, "device_scale_factor": 2},
+  "segments": [
+    {
+      "actions": [{"op": "hold", "seconds": 2}],
+      "caption": "Hospital bills don't translate themselves.",
+      "duration": 3,
+      "id": "vhook",
+      "page": "card:vhook",
+      "title": "hook card"
+    },
+    {
+      "actions": [
+        {"op": "click", "selector": "button.fpick[data-ex=\"S2_seoul_worker_bronchitis\"]"},
+        {"op": "click", "selector": "#flow-play"},
+        {"op": "zoom", "selector": "#flow-steps", "scale": 1.3},
+        {"op": "wait_for", "selector": "#flow-view .flow-result"},
+        {"op": "hold", "seconds": 2},
+        {"op": "unzoom"}
+      ],
+      "caption": "Watch it read, check and decide.",
+      "duration": 10,
+      "id": "vplay",
+      "page": "demo",
+      "title": "S2 play"
+    },
+    {
+      "actions": [
+        {"op": "click", "selector": "#scenes button:has-text(\"Scene S2\")"},
+        {"op": "click", "selector": "section#S2_seoul_worker_bronchitis .headline [data-prov=\"s2-amount\"]"},
+        {"op": "zoom", "selector": "#prov-panel", "scale": 1.3},
+        {"op": "hold", "seconds": 2},
+        {"op": "unzoom"}
+      ],
+      "caption": "Every number shows its source.",
+      "duration": 8,
+      "id": "vprov",
+      "page": "demo",
+      "title": "provenance panel"
+    },
+    {
+      "actions": [
+        {"op": "click", "selector": "#scenes button:has-text(\"Scene Agent\")"},
+        {"op": "scroll_to", "selector": "section#agent_s2_hidden_copay .tl-q"},
+        {"op": "zoom", "selector": "section#agent_s2_hidden_copay .tl-q", "scale": 1.5},
+        {"op": "hold", "seconds": 2},
+        {"op": "unzoom"}
+      ],
+      "caption": "It asks instead of guessing.",
+      "duration": 8,
+      "id": "vagent",
+      "page": "demo",
+      "title": "agent asks"
+    },
+    {
+      "actions": [
+        {"op": "click", "selector": "#scenes button:has-text(\"Scene S3\")"},
+        {"op": "scroll_to", "selector": "section#S3_us_tourist_hip_fracture li.warn"},
+        {"op": "zoom", "selector": "section#S3_us_tourist_hip_fracture li.warn", "scale": 1.5},
+        {"op": "unzoom"}
+      ],
+      "caption": "No policy? No decision.",
+      "duration": 6,
+      "id": "vwarn",
+      "page": "demo",
+      "title": "S3 warning"
+    },
+    {
+      "actions": [{"op": "hold", "seconds": 3}],
+      "caption": "Built with Meta Muse tools.",
+      "duration": 5,
+      "id": "vmeta",
+      "page": "card:vmeta",
+      "title": "built-with card"
+    },
+    {
+      "actions": [{"op": "hold", "seconds": 3}],
+      "caption": "Try it: jaehun-an.github.io/claimlens",
+      "duration": 5,
+      "id": "vlink",
+      "page": "card:vlink",
+      "title": "link card"
+    }
+  ]
+}

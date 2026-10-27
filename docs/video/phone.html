@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>On your phone</title>
+<style>
+:root{--paper:#F0F2F5;--ink:#050505;--dim:#65676B;--accent:#0064E0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.stage{height:100vh;display:flex;align-items:center;justify-content:center;
+gap:4rem;padding:1rem 2rem 6rem}
+.copy{max-width:22rem}
+.copy p.k{letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+font-size:.85rem;margin:0 0 .6rem}
+.copy h1{font-size:2.2rem;margin:0 0 .6rem;letter-spacing:-.02em}
+.copy p{color:var(--dim);margin:0}
+.phone{width:312px;height:676px;background:#0a0a0c;border-radius:44px;
+padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);flex:none}
+.screen{width:100%;height:100%;border-radius:34px;overflow:hidden;background:#fff}
+.screen iframe{width:390px;height:844px;border:0;transform:scale(.734);
+transform-origin:top left}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="copy">
+<p class="k">Chapter 6</p>
+<h1>On your phone</h1>
+<p>Same demo, same proof — at phone width.</p>
+</div>
+<div class="phone"><div class="screen">
+<iframe id="vp-frame" title="ClaimLens demo on a phone" src="/docs/demo.html"></iframe>
+</div></div>
+</div>
+</body>
+</html>

@@ -704,3 +704,50 @@ the start of a run.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: demo video v2 + vertical cut
+
+Round 4 items 32 and 33. The v1 recorder was split into shared
+modules (`scripts/video_lib.py` validation/planning, `video_run.py`
+browser runner, `video_shots.py` doc shots, `video_sound.py` ffmpeg
+mux) with the caption/cursor overlay extracted to
+`docs/video/overlay.js` and the camera/spotlight/micro-motion FX to
+`docs/video/overlay_fx.js`; v1 keeps working unchanged on top.
+
+Item 32: `scripts/record_video_v2.py` +
+`docs/video/storyboard-v2.json` (22 segments, exactly 180 s) add a
+cold-open card, six ~1 s chapter cards, CSS-transform camera zoom
+with a spotlight and eased 400-700 ms moves, flow-step pop and
+provenance pulse micro-motion, a 15 s phone-frame segment (demo in
+an iframe at 390x844), a six-tile Meta tools card, and ffmpeg sound
+(the en voice clip's first 6 s at the voice segment, optional
+`--music` bed at -18 dB ducked under the voice). Output:
+`claimlens_demo_v2.mp4` (H.264 + AAC) plus the silent .webm,
+`timeline_v2.txt`, and 22 midpoint PNGs. v1 captions kept verbatim
+except the cold/chapter/tool-segment short lines the new structure
+needs; the spec's "Scene B" does not exist, so the owner approved
+showing Scene Voice's two real confirmations instead.
+
+Item 33: `scripts/record_vertical.py` + `docs/video/vertical.json`
+(7 segments, exactly 45 s) record at 360x640 CSS with mobile
+emulation to a sharp 720x1280, 34 px captions capped at 44 chars
+for two lines: hook card, S2 Play, 22,500 provenance tap, agent
+ask, S3 warning, built-with and link cards. Output:
+`claimlens_vertical.mp4` (+ silent .webm, timeline, PNGs), optional
+`--music`. Each product cleans only its own `out/video/` files.
+
+### Muse Code (coding agent)
+
+- Dry runs validate cards (offline, no remote refs, images exist),
+  selectors incl. iframe frames, nav uniqueness, caption caps, and
+  exact totals; negative tests cover bad card ids, long captions,
+  and ambiguous nav. Mux tests (voice+music, music-only, silent)
+  are committed but skip where ffmpeg cannot run.
+- Tests: 138 passed, 3 skipped (ffmpeg blocked in the sandbox),
+  browser test deselected in the sandbox (`ruff check` clean),
+  plus the owner's two recording runs producing both .mp4 files.
+  No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

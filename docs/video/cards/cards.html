@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ClaimLens video cards</title>
+<style>
+:root{--paper:#F0F2F5;--card:#fff;--ink:#050505;--dim:#65676B;--accent:#0064E0}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.card{display:none;min-height:100vh;flex-direction:column;align-items:center;
+justify-content:center;text-align:center;padding:4vmin;gap:3vmin}
+.card.on{display:flex}
+.kicker{font-size:clamp(14px,2.4vmin,22px);letter-spacing:.22em;color:var(--dim);
+text-transform:uppercase;margin:0}
+h1{font-size:clamp(26px,6vmin,64px);margin:0;letter-spacing:-.02em;max-width:20em}
+h1 .n{color:var(--accent)}
+.sub{font-size:clamp(14px,2.8vmin,26px);color:var(--dim);margin:0;max-width:34em}
+.brand{display:flex;align-items:center;gap:.5em;font-weight:700;
+font-size:clamp(18px,3.4vmin,32px)}
+.brand svg{width:1.4em;height:1.4em;color:var(--accent)}
+.stack{display:flex;gap:2vmin}
+.stack img{width:clamp(90px,22vmin,230px);border-radius:8px;background:#fff;
+box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0}
+.on .stack img{animation:slide .7s ease both}
+.on .stack img:nth-child(1){animation-delay:.1s;transform:rotate(-4deg)}
+.on .stack img:nth-child(2){animation-delay:.5s}
+.on .stack img:nth-child(3){animation-delay:.9s;transform:rotate(4deg)}
+@keyframes slide{from{opacity:0;transform:translateY(6vmin)}
+to{opacity:1;transform:translateY(0) rotate(var(--tilt,0deg))}}
+.on .stack img:nth-child(1){--tilt:-4deg}
+.on .stack img:nth-child(3){--tilt:4deg}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2vmin;
+max-width:1000px;width:100%}
+.tile{background:var(--card);border-radius:14px;padding:2vmin;
+box-shadow:0 1px 2px rgba(0,0,0,.12);text-align:left}
+.tile b{display:block;font-size:clamp(13px,2.5vmin,22px)}
+.tile span{font-size:clamp(11px,2vmin,17px);color:var(--dim)}
+.link{font-size:clamp(18px,4vmin,40px);font-weight:700;color:var(--accent);margin:0}
+@media (max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<section class="card" id="cold">
+<p class="kicker">ClaimLens</p>
+<div class="stack">
+<img src="/samples/A_niseko_wrist/receipt_photo.jpg" alt="Receipt A"/>
+<img src="/samples/S2_seoul_worker_bronchitis/receipt_photo.jpg" alt="Receipt S2"/>
+<img src="/samples/S3_us_tourist_hip_fracture/medical_certificate_photo.jpg" alt="Certificate S3"/>
+</div>
+<h1>Three people. Three hospitals. One problem.</h1>
+<p class="brand"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 2.5h5.5L13 6v6.5"/><path d="M9.5 2.5V6H13"/><circle cx="11.5" cy="12.5" r="4"/><path d="M14.5 15.5l3 3"/></svg>ClaimLens</p>
+<p class="sub">Medical paperwork that crosses borders — in both directions</p>
+</section>
+<section class="card" id="ch1"><p class="kicker">Chapter</p><h1><span class="n">1</span> · Read &amp; verify</h1></section>
+<section class="card" id="ch2"><p class="kicker">Chapter</p><h1><span class="n">2</span> · Show the source</h1></section>
+<section class="card" id="ch3"><p class="kicker">Chapter</p><h1><span class="n">3</span> · Ask, don't guess</h1></section>
+<section class="card" id="ch4"><p class="kicker">Chapter</p><h1><span class="n">4</span> · No policy, no decision</h1></section>
+<section class="card" id="ch5"><p class="kicker">Chapter</p><h1><span class="n">5</span> · Heard, then confirmed</h1></section>
+<section class="card" id="ch6"><p class="kicker">Chapter</p><h1><span class="n">6</span> · On your phone</h1></section>
+<section class="card" id="meta">
+<p class="kicker">Built with Meta tools</p>
+<div class="tiles">
+<div class="tile"><b>Muse Code</b><span>wrote the code</span></div>
+<div class="tile"><b>Muse Spark</b><span>reads, runs the agent</span></div>
+<div class="tile"><b>SAM 3.1</b><span>masks seals/signatures</span></div>
+<div class="tile"><b>Voice Transcribe</b><span>spoken intake</span></div>
+<div class="tile"><b>Spark Open on Baseten</b><span>side-by-side eval</span></div>
+<div class="tile"><b>MCP</b><span>other agents can use it</span></div>
+</div>
+</section>
+<section class="card" id="vhook"><p class="kicker">ClaimLens</p><h1>Hospital bills don't translate themselves.</h1></section>
+<section class="card" id="vmeta"><p class="kicker">Built with</p><h1>Meta Muse Code · Spark · SAM · Voice</h1></section>
+<section class="card" id="vlink"><p class="kicker">Try it</p><p class="link">jaehun-an.github.io/claimlens</p></section>
+<script>
+function show(){
+  const id=(location.hash||"#cold").slice(1);
+  document.querySelectorAll(".card").forEach(el=>{
+    const on=el.id===id;
+    el.classList.toggle("on",on);
+    if(on){el.style.animation="none";void el.offsetWidth;el.style.animation="";}
+  });
+}
+addEventListener("hashchange",show);show();
+</script>
+</body>
+</html>
