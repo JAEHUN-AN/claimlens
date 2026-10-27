@@ -680,3 +680,27 @@ URLs stripped, so `out/` stays https-free and is never committed.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: video fixes from first recording
+
+Round 3 item 31b (owner reviewed the midpoint PNGs). (1) Midpoint
+shots on action-less segments fired at segment start, before the
+caption fade — the clock now waits for the true midpoint, and the
+recording fails fast if no caption is visible there. Every navigation
+re-injects the overlay, re-applies the caption, and restores the
+cursor to its last spot (center at first). (2) Shot pages no longer
+repeat the markdown title, and the README table cell drops "(EN +
+VI)". (3) A MutationObserver lifts the provenance panel above the
+caption bar whenever it opens. (4) seg07/seg11 captions replaced with
+the shorter verbatim lines; dry run caps every caption at 190 chars
+for two lines at 720p. Stale `out/video/` artifacts are cleared at
+the start of a run.
+
+### Muse Code (coding agent)
+
+- Tests: 134 passed in the sandbox (`ruff check` clean) plus the
+  owner's re-recording run. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

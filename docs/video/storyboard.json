@@ -159,7 +159,7 @@
           "seconds": 2
         }
       ],
-      "caption": "A US tourist has no Korean policy — so we do not decide. A failed reading is never used: one narrow re-read recovers it. Then the claim pack for their insurer, with a warning where a prefix match would name a different fracture.",
+      "caption": "No Korean policy, so we do not decide. A failed reading is re-read, never used — and the claim pack warns where a prefix match names a different fracture.",
       "duration": 25,
       "id": "seg07",
       "page": "demo",
@@ -282,7 +282,7 @@
           "seconds": 2
         }
       ],
-      "caption": "Muse Code wrote the code. Muse Spark reads and runs the agent, SAM 3.1 masks seals and signatures, Voice Transcribe takes the call, Spark Open on Baseten is measured side by side — and an MCP server lets other agents use it.",
+      "caption": "Muse Code wrote the code. Spark reads and runs the agent, SAM masks seals, Voice Transcribe takes the call, Spark Open is measured side by side, and MCP opens it to other agents.",
       "duration": 20,
       "id": "seg11",
       "page": "masking",

@@ -55,7 +55,7 @@ copy `.env.example` to `.env`. `CLAIMLENS_PROVIDER=replay` forces cache-only mod
 | Document reading schema + strict-schema prompts | [clausegraph](https://github.com/JAEHUN-AN/clausegraph) — the author's MIT-licensed policy knowledge graph and adjudication engine, pinned to tag [`claimlens-base-20261026`](https://github.com/JAEHUN-AN/clausegraph/releases/tag/claimlens-base-20261026), created before the hackathon started |
 | Verify-and-re-read loop, receipt arithmetic checks | |
 | Eligibility rules, KCD/WHO/CM code conversion | |
-| English rationale cards, Claim Pack (EN + VI), SAM masking | |
+| English rationale cards, Claim Pack, SAM masking | |
 | Clarifying agent loop, voice intake, spoken-fact confirmation | |
 | `claimlens eval`, offline replay demo, Spark Open step | |
 

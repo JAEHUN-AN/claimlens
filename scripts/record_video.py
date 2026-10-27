@@ -24,6 +24,7 @@ from pathlib import Path
 SHOTS = ("readme", "agent-eval", "masking", "eval", "tooling")
 OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto")
 LIMIT_S = 180
+MAX_CAPTION_CHARS = 190
 
 OVERLAY_JS = """(()=>{
 const init=()=>{
@@ -55,7 +56,15 @@ dot.style.transform=`translate(${dx}px,${dy}px)`;
 if(k<1)raf=requestAnimationFrame(step);else res();};
 raf=requestAnimationFrame(step);});
 window.__pulse=()=>{dot.classList.remove('pulse');
-void dot.offsetWidth;dot.classList.add('pulse');};};
+void dot.offsetWidth;dot.classList.add('pulse');};
+window.__place=(x,y)=>{dx=x;dy=y;
+dot.style.transform=`translate(${dx}px,${dy}px)`;};
+const lift=()=>{const p=document.getElementById('prov-panel');
+if(!p||p.style.display==='none')return;
+const h=cap.getBoundingClientRect().height||90;
+p.style.bottom=(h+16)+'px';};
+new MutationObserver(lift).observe(document.body,
+{attributes:true,subtree:true,attributeFilter:['style']});};
 if(document.body)init();
 else document.addEventListener('DOMContentLoaded',init,{once:true});})();
 """
@@ -125,6 +134,17 @@ def _blocks(lines: list[str]) -> str:
     return "\n".join(out)
 
 
+def _drop_title(lines: list[str]) -> list[str]:
+    out = list(lines)
+    for i, line in enumerate(out):
+        if not line.strip():
+            continue
+        if line.startswith("# "):
+            del out[i]
+        break
+    return out
+
+
 def _page(title: str, note: str, body: str) -> str:
     return (
         '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>'
@@ -146,11 +166,11 @@ def build_shots(root: Path, shots_dir: Path) -> dict[str, Path]:
         len(readme),
     )
     paths["readme"] = _write(
-        shots_dir, "readme", "Built vs pre-existing", "Source: README.md", _blocks(readme[start:stop])
+        shots_dir, "readme", "Built vs pre-existing", "Source: README.md", _blocks(readme[start + 1 : stop])
     )
     agent = (root / "docs" / "agent-eval.md").read_text(encoding="utf-8").split("\n")
     paths["agent-eval"] = _write(
-        shots_dir, "agent-eval", "Agent scorecard", "Source: docs/agent-eval.md", _blocks(agent)
+        shots_dir, "agent-eval", "Agent scorecard", "Source: docs/agent-eval.md", _blocks(_drop_title(agent))
     )
     paths["eval"] = _write(
         shots_dir, "eval", "Reading accuracy, photo rows", "Hosted vs open, values verbatim. Full table: docs/eval.md",
@@ -168,7 +188,7 @@ def build_shots(root: Path, shots_dir: Path) -> dict[str, Path]:
     paths["masking"] = _write(shots_dir, "masking", "Masking before / after", "Seals and signatures masked on a copy", body + "</div>")
     log = (root / "docs" / "meta-tooling-log.md").read_text(encoding="utf-8").split("\n")
     paths["tooling"] = _write(
-        shots_dir, "tooling", "Tooling log", "Source: docs/meta-tooling-log.md", _blocks(log)
+        shots_dir, "tooling", "Tooling log", "Source: docs/meta-tooling-log.md", _blocks(_drop_title(log))
     )
     return paths
 
@@ -242,6 +262,9 @@ def dry_run(root: Path, sb_path: Path) -> int:
     except ValueError:
         label = sb_path.name
     errors: list[str] = []
+    for hook in ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot"):
+        if hook not in OVERLAY_JS:
+            errors.append(f"overlay hook missing: {hook}")
     if "https://" in raw:
         errors.append("storyboard contains https://")
     sb = json.loads(raw)
@@ -264,6 +287,8 @@ def dry_run(root: Path, sb_path: Path) -> int:
         for seg in segments:
             if not seg.get("caption"):
                 errors.append(f"{seg.get('id')}: empty caption")
+            elif len(seg["caption"]) > MAX_CAPTION_CHARS:
+                errors.append(f"{seg.get('id')}: caption over {MAX_CAPTION_CHARS} chars")
             if seg.get("duration", 0) <= 0:
                 errors.append(f"{seg.get('id')}: bad duration")
             if seg.get("page") not in texts:
@@ -321,8 +346,9 @@ def _serve(root: Path):
 
 
 class _Clock:
-    def __init__(self, page, duration: float, mid_path: Path) -> None:
+    def __init__(self, page, seg_id: str, duration: float, mid_path: Path) -> None:
         self.page = page
+        self.seg_id = seg_id
         self.start = time.monotonic()
         self.mid = self.start + duration / 2
         self.end = self.start + duration
@@ -342,10 +368,17 @@ class _Clock:
 
     def finish(self) -> None:
         if not self.shot:
+            time.sleep(max(0.0, self.mid - time.monotonic()))
             self._shoot()
         time.sleep(max(0.0, self.end - time.monotonic()))
 
     def _shoot(self) -> None:
+        vis = self.page.evaluate(
+            "()=>{const c=document.getElementById('vcap');"
+            "return !!c&&c.textContent.length>0&&getComputedStyle(c).opacity==='1';}"
+        )
+        if not vis:
+            raise RuntimeError(f"{self.seg_id}: no visible caption at midpoint")
         self.page.screenshot(path=str(self.mid_path))
         self.shot = True
 
@@ -362,31 +395,51 @@ def _center(page, loc) -> tuple[float, float]:
     return (box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
 
 
-def _action(page, act: dict, clock: _Clock, urls: dict[str, str], caption: str) -> str | None:
+def _goto(page, url: str, caption: str, dot) -> None:
+    page.goto(url)
+    page.wait_for_load_state("load")
+    page.evaluate(OVERLAY_JS)
+    page.evaluate("(t)=>window.__cap(t)", caption)
+    page.evaluate("([x,y])=>window.__place(x,y)", list(dot))
+
+
+def _action(page, act: dict, clock: _Clock, urls: dict[str, str], caption: str, dot):
     op = act["op"]
     if op == "hold":
         clock.sleep(act["seconds"])
-        return None
+        return None, None
     if op == "goto":
-        page.goto(urls[act["page"]])
-        page.wait_for_load_state("load")
-        page.evaluate("(t)=>window.__cap(t)", caption)
-        return act["page"]
+        _goto(page, urls[act["page"]], caption, dot)
+        return act["page"], None
     if op == "wait_for":
         page.wait_for_selector(act["selector"], state="visible", timeout=20000)
-        return None
+        return None, None
     loc = _locate(page, act)
     loc.wait_for(state="visible", timeout=10000)
     if op == "scroll_to":
         loc.evaluate("el=>el.scrollIntoView({behavior:'smooth',block:'center'})")
         clock.sleep(0.9)
-        return None
+        return None, None
     x, y = _center(page, loc)
     page.evaluate("([x,y])=>window.__dot(x,y,600)", [x, y])
     if op == "click":
         page.evaluate("()=>window.__pulse()")
         loc.click(timeout=10000)
-    return None
+    return None, (x, y)
+
+
+def _clean_out(out_dir: Path) -> None:
+    if not out_dir.exists():
+        return
+    for pattern in ("*.webm", "timeline.txt", "seg*_mid.png"):
+        for stale in out_dir.glob(pattern):
+            if stale.is_file():
+                stale.unlink()
+    shots = out_dir / "shots"
+    if shots.exists():
+        for stale in shots.glob("shot_*.html"):
+            if stale.is_file():
+                stale.unlink()
 
 
 def record(root: Path, sb_path: Path, out_dir: Path) -> int:
@@ -404,6 +457,7 @@ def record(root: Path, sb_path: Path, out_dir: Path) -> int:
         print("out dir must live inside the repo (it is served over http)")
         return 1
     out_dir.mkdir(parents=True, exist_ok=True)
+    _clean_out(out_dir)
     build_shots(root, out_dir / "shots")
     base_urls = {"demo": "docs/demo.html"}
     base_urls.update({name: f"{rel.as_posix()}/shots/shot_{name}.html" for name in SHOTS})
@@ -422,15 +476,18 @@ def record(root: Path, sb_path: Path, out_dir: Path) -> int:
             page = context.new_page()
             page.add_init_script(OVERLAY_JS)
             current: str | None = None
+            dot = [640.0, 360.0]
             for seg in sb["segments"]:
                 if seg["page"] != current:
-                    page.goto(urls[seg["page"]])
-                    page.wait_for_load_state("load")
+                    _goto(page, urls[seg["page"]], seg["caption"], dot)
                     current = seg["page"]
-                page.evaluate("(t)=>window.__cap(t)", seg["caption"])
-                clock = _Clock(page, seg["duration"], out_dir / f"{seg['id']}_mid.png")
+                else:
+                    page.evaluate("(t)=>window.__cap(t)", seg["caption"])
+                clock = _Clock(page, seg["id"], seg["duration"], out_dir / f"{seg['id']}_mid.png")
                 for act in seg["actions"]:
-                    moved = _action(page, act, clock, urls, seg["caption"])
+                    moved, point = _action(page, act, clock, urls, seg["caption"], dot)
+                    if point:
+                        dot = [point[0], point[1]]
                     if moved:
                         current = moved
                 clock.finish()
