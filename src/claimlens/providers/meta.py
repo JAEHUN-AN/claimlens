@@ -12,7 +12,7 @@ from typing import Any
 
 from openai import OpenAI
 from PIL import Image
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from claimlens import cache as replay_cache
 from claimlens.schema import ReadingResult
@@ -96,7 +96,11 @@ class MetaProvider:
         )
 
     def read_documents(
-        self, images: list[Path], instructions: str, schema: dict[str, Any]
+        self,
+        images: list[Path],
+        instructions: str,
+        schema: dict[str, Any],
+        result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]:
         blobs = [prepare_image(p) for p in images]
         response = self._request(blobs, instructions, schema)
@@ -128,7 +132,8 @@ class MetaProvider:
             )
         )
         data = unescape_json(json.loads(response.output_text))
-        return TypeAdapter(ReadingResult).validate_python(data).model_dump(mode="json")
+        model = result_model or ReadingResult
+        return TypeAdapter(model).validate_python(data).model_dump(mode="json")
 
     def write(self, instructions: str, schema: dict[str, Any]) -> dict[str, Any]:
         response = self._request([], instructions, schema)
