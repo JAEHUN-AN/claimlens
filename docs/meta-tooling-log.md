@@ -96,3 +96,41 @@ tools during the hackathon. All documents read are synthetic samples.
   omitted the redundant list; 12 charge rows and all cells pass) and S3 photo
   PII is 3/4 (passport off by one zero; clean is 4/4). Both were kept, not
   re-recorded.
+
+## 2026-10-27 — Backlog session: eval file and engine connection
+
+Backlog items 1, 2 and 4 already met their done-when on Day 2; this session
+closed item 3 and item 5. Boxes stay unchecked for the owner to tick on push.
+
+### Muse Code (coding agent)
+
+- Item 3 remainder: `claimlens eval --output` writes the Markdown table with a
+  header; `docs/eval.md` generated from replay (5 samples x 2 variants).
+- Item 5, engine connection: `clausegraph[graph]` pinned to tag
+  `claimlens-base-20261026` (commit a7f6b9a...; archive URL, same commit —
+  sandbox git TLS is broken, equivalent git+ URL noted in pyproject).
+- New `src/claimlens/engine.py` (SPEC 3.3): categorical Korean narrative from
+  the 13 closed categories, demo-FX conversion to KRW (fails on unknown
+  currency), institution through `parse_institution`, copay 1/(1+2) through
+  `parse_copay_rate`, eligibility gate first (S3 not sent), data-root chdir
+  only for the call, driver open/close per call, outputs cached under
+  `cache/engine/` with input verification on replay load.
+- New `claimlens adjudicate <sample-id> [--variant]` printing the envelope.
+- Tests: 43 passed. Replay pins A PAID 2216050, S2 PARTIAL 22500,
+  B HUMAN_REVIEW (guardrail uncertain_exclusion), C DENIED, S3 not sent.
+
+### Live runs (owner, normal terminal) and sandbox blockers
+
+- Spark calls this session: 0 ($0). Engine readings come from the pinned
+  replay cache, so adjudication costs no model calls.
+- The 5 live adjudications were run by the owner from a normal terminal; all
+  matched the backlog targets. The sandbox cannot open loopback sockets, so
+  Neo4j at localhost:7688 was unreachable from here (WinError 10013).
+- `uv add` via git+https failed the same way (git.exe TLS); the tag was
+  resolved to a7f6b9a over the API and installed from the commit archive.
+- The sandbox user cannot delete owner-created `.venv` files, so `uv sync`
+  fails removing the editable `.pth`; deps were locked with `uv lock` and
+  installed with `uv pip install` (new files only, versions match the lock).
+  All sandbox runs used `uv run --no-sync`. Normal terminals are unaffected.
+- Owner fix kept: `[tool.hatch.metadata] allow-direct-references = true`,
+  needed for the direct-URL dependency at build time.
