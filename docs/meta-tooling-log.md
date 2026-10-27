@@ -166,3 +166,35 @@ the row sums (those already fail on empty rows).
   1,846 input / 1,217 output tokens, about $0.008. It returned all 12 rows
   summing to 15,000,000, so the reading verified with `corrected:
   ["line_items"]` instead of ending in manual review. Session total $0.008.
+
+## 2026-10-27 — Backlog session: I84 fix, rationale, Claim Pack
+
+Items 0b, 6, and 8.
+
+### Muse Code (coding agent)
+
+- Item 0b: I84.x now maps to bare K64 with "subdivision must be re-coded
+  from the certificate" (subdivisions do not correspond across the move).
+  Audit: truncation is the WHO-endorsed rule and K35 only warns, so no
+  other chapter-move rule needed the same treatment.
+- Item 6: new `src/claimlens/rationale.py` plus `claimlens rationale`.
+  The model rephrases engine text under a strict schema (summary, per-step
+  lines, cited clause IDs); code copies amounts, step names, and clause IDs
+  and rejects any number or ID the engine did not emit. The text-only
+  provider path now records cache and usage like the reading path, so both
+  drafts replay offline. A and S2 cards render from replay.
+- Item 8: new `src/claimlens/claimpack.py` plus `claimlens claimpack
+  --format md|html`. Only `not_member_or_unknown` cases are accepted. One
+  strict-schema call translates the 12 row labels; amounts, codes, and dates
+  come from the reading by code. The pack carries the policy line, codes
+  with the CM pitfall warning, the itemized bill with check status, the
+  checklist, deadlines, and the translation disclaimer. Fixed while here:
+  the HTML renderer silently returned only its first chunk (an unparenthesized
+  multi-line return); a test now pins the closing tag.
+- Tests: 76 passed (`ruff check` clean before each commit). No push.
+
+### Muse Spark (model API)
+
+- Live calls: 3 text-only writes, 1,184 input / 3,668 output tokens total
+  (A rationale 523/1,648; S2 rationale 540/1,174; S3 labels 121/846).
+  Session total about $0.02-0.03.
