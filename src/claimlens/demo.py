@@ -69,9 +69,14 @@ TERM_LABELS = (
 
 
 def _rel(from_dir: Path, target: Path) -> str:
-    start = os.path.normpath(os.path.abspath(from_dir))
-    end = os.path.normpath(os.path.abspath(target))
+    start = _normpath(os.path.abspath(from_dir))
+    end = _normpath(os.path.abspath(target))
     return os.path.relpath(end, start).replace(os.sep, "/")
+
+
+def _normpath(path: str) -> str:
+    # Strip the extended-length prefix; it names the same location.
+    return os.path.normpath(path).removeprefix("\\\\?\\")
 
 
 def _fmt_total(total: float | None) -> str:

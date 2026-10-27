@@ -502,3 +502,26 @@ Round 3 item 27.
 ### Model APIs
 
 - Live calls: Spark 1 (Vietnamese pack re-translation, about $0.01).
+
+## 2026-10-27 — Backlog session: Meta-inspired visual style
+
+Round 3 item 28. The owner restyled `demo_template.py` first (light
+palette, sticky topbar, pill chips, tab highlight); the agent completed
+the item on top: tab title "ClaimLens", removed the duplicate brand
+line in the flow hero (topbar keeps the single product name above the
+tabs, tagline and strip stay), and calm button/step transitions. No
+Meta logo, infinity symbol, wordmark, or font; palette and cards are
+inspired-by only.
+
+### Muse Code (coding agent)
+
+- `demo.py` `_rel` now strips the Windows extended-length (`\\?\`)
+  prefix before `relpath`, so exports work when the shell reports
+  extended paths (same location, previously a hard failure).
+- Smoke harness asserts the tab title, topbar, hero-above-tabs order,
+  and no duplicate brand.
+- Tests: 122 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: none (replay only).
