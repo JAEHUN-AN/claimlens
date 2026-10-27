@@ -238,7 +238,7 @@
       "actions": [
         {
           "op": "click",
-          "selector": "#scenes button:has-text(\"Scene A\")"
+          "selector": "#scenes button:has-text(\"Scene A —\")"
         },
         {
           "op": "move",

@@ -1,5 +1,6 @@
 """Storyboard dry run for the demo video (no browser needed)."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -18,3 +19,24 @@ def test_storyboard_dry_run():
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "DRY RUN: OK" in proc.stdout
     assert "total 180s / 180s" in proc.stdout
+
+
+def test_storyboard_dry_run_catches_ambiguous_nav(tmp_path):
+    root = Path(__file__).resolve().parent.parent
+    storyboard = json.loads((root / "docs" / "video" / "storyboard.json").read_text(encoding="utf-8"))
+    for seg in storyboard["segments"]:
+        for act in seg.get("actions", []):
+            if act.get("selector", "").endswith('Scene A —")'):
+                act["selector"] = '#scenes button:has-text("Scene A")'
+    bad = tmp_path / "bad_storyboard.json"
+    bad.write_text(json.dumps(storyboard), encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "scripts/record_video.py", "--dry-run", "--storyboard", str(bad)],
+        check=False,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert proc.returncode == 1
+    assert "matches 2 nav buttons" in proc.stdout

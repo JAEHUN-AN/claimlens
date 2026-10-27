@@ -219,6 +219,12 @@ def _tokens(selector: str) -> list[str]:
     return toks
 
 
+def _nav_texts(demo_text: str) -> list[str]:
+    match = re.search(r'<script id="demo-data"[^>]*>(.*?)</script>', demo_text, re.DOTALL)
+    payload = json.loads(match.group(1))
+    return ["Guided flow"] + [s["title"] for s in payload["scenes"]]
+
+
 def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -231,6 +237,10 @@ def _fmt(seconds: float) -> str:
 def dry_run(root: Path, sb_path: Path) -> int:
     """Validate the storyboard without a browser. Returns an exit code."""
     raw = sb_path.read_text(encoding="utf-8")
+    try:
+        label = sb_path.relative_to(root)
+    except ValueError:
+        label = sb_path.name
     errors: list[str] = []
     if "https://" in raw:
         errors.append("storyboard contains https://")
@@ -240,6 +250,7 @@ def dry_run(root: Path, sb_path: Path) -> int:
     if total > LIMIT_S:
         errors.append(f"durations sum to {total}s, over the {LIMIT_S}s limit")
     demo_text = (root / "docs" / "demo.html").read_text(encoding="utf-8")
+    nav = _nav_texts(demo_text)
     with tempfile.TemporaryDirectory() as tmp:
         shots = build_shots(root, Path(tmp))
         texts = {"demo": demo_text}
@@ -247,7 +258,7 @@ def dry_run(root: Path, sb_path: Path) -> int:
         for name in shots:
             if "https://" in texts[name]:
                 errors.append(f"shot page {name} contains https://")
-        print(f"DRY RUN {sb_path.relative_to(root)}")
+        print(f"DRY RUN {label}")
         current: str | None = None
         elapsed = 0
         for seg in segments:
@@ -273,9 +284,17 @@ def dry_run(root: Path, sb_path: Path) -> int:
                     if act.get("seconds", 0) <= 0:
                         errors.append(f"{seg['id']}: bad hold")
                     continue
-                for tok in _tokens(act.get("selector", "")):
+                sel = act.get("selector", "")
+                for tok in _tokens(sel):
                     if tok not in texts[current]:
                         errors.append(f"{seg['id']}: {tok!r} missing on {current}")
+                if current == "demo" and "#scenes button" in sel:
+                    for nav_text in re.findall(r':has-text\("([^"]*)"\)', sel):
+                        hits = [b for b in nav if nav_text.lower() in b.lower()]
+                        if len(hits) != 1:
+                            errors.append(
+                                f"{seg['id']}: {nav_text!r} matches {len(hits)} nav buttons, want 1"
+                            )
             print(f"{seg['id']} {_fmt(elapsed)} +{seg['duration']}s {seg['page']} {seg.get('title', '')}")
             elapsed += seg["duration"]
         print(f"total {total}s / {LIMIT_S}s, shots: {len(shots)} built")
