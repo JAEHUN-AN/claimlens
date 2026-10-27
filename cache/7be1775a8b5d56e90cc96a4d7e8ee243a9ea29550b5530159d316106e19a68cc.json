@@ -1,0 +1,11 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [],
+  "text": "Claim S2_seoul_worker_bronze? S2_seoul_worker_bronchitis processed.\n\n- Receipt: KRW total 45000, kr_bill true, institution 종합병원, outpatient, service 2026-08-10, diagnosis J20.9.\n- Copay cells cell_1=45000, cell_2=45000 provided by user after hidden.\n- Conversion: KCD J20.9 (KCD-9) -> WHO J20.9, no CM narrowing rule.\n- Eligibility: nhi_member (row1_workplace, NHI Act Art 109(2)).\n- Adjudication: PARTIAL, amount 22500 KRW.\n",
+  "usage": {
+    "input_tokens": 2291,
+    "output_tokens": 202,
+    "total_tokens": 2493,
+    "cost_usd": 0.003722
+  }
+}

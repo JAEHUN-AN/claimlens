@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "run_checks",
+      "arguments": "{}",
+      "call_id": "call_35eede60-970f-4af7-a664-5dd80a7aa049"
+    }
+  ],
+  "text": "Your bronchitis claim is in — I'll verify the bill and eligibility.",
+  "usage": {
+    "input_tokens": 1362,
+    "output_tokens": 168,
+    "total_tokens": 1530,
+    "cost_usd": 0.002417
+  }
+}

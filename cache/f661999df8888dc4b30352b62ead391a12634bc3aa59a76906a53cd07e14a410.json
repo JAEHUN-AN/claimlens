@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "run_checks",
+      "arguments": "{}",
+      "call_id": "call_703fd8ef-dd87-4bb7-871f-2994749155f2"
+    }
+  ],
+  "text": "Processing your Niseko wrist claim — starting verification.",
+  "usage": {
+    "input_tokens": 1266,
+    "output_tokens": 351,
+    "total_tokens": 1617,
+    "cost_usd": 0.003074
+  }
+}

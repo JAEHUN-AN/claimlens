@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "ask_user",
+      "arguments": "{\"question\":\"Receipt shows cell_1 and cell_2 as hidden. Please provide values as cell_1=NNNN and cell_2=NNNN.\",\"why_needed\":\"kr_bill true requires copay cells 1 and 2 to verify arithmetic checks; they are hidden and cannot be re-read.\"}",
+      "call_id": "call_0e279625-5fdd-4b3d-9210-6d9e403ca8d6"
+    }
+  ],
+  "text": "Your receipt needs two covered amounts — I'll request them to complete the check.",
+  "usage": {
+    "input_tokens": 1738,
+    "output_tokens": 486,
+    "total_tokens": 2224,
+    "cost_usd": 0.004238
+  }
+}

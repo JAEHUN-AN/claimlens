@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "decide_eligibility",
+      "arguments": "{}",
+      "call_id": "call_428f4f53-ae8d-4f42-96d8-7e3c6b142910"
+    }
+  ],
+  "text": "Your receipt checks passed — now I'll determine eligibility.",
+  "usage": {
+    "input_tokens": 1740,
+    "output_tokens": 145,
+    "total_tokens": 1885,
+    "cost_usd": 0.002791
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "convert_codes",
+      "arguments": "{}",
+      "call_id": "call_5be0f997-5bbe-4420-a399-708524b2a611"
+    }
+  ],
+  "text": "Checks passed — I'll convert the diagnosis and verify eligibility.",
+  "usage": {
+    "input_tokens": 1575,
+    "output_tokens": 129,
+    "total_tokens": 1704,
+    "cost_usd": 0.002517
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "adjudicate",
+      "arguments": "{}",
+      "call_id": "call_d1cffba0-b737-462d-9835-754a21ae1f2e"
+    }
+  ],
+  "text": "Your Japanese wrist-fracture bill is in review — I'll run the final checks to determine the claim outcome.",
+  "usage": {
+    "input_tokens": 1724,
+    "output_tokens": 722,
+    "total_tokens": 2446,
+    "cost_usd": 0.005224
+  }
+}

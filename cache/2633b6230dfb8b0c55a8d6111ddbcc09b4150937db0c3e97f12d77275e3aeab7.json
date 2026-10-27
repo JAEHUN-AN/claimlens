@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "run_checks",
+      "arguments": "{}",
+      "call_id": "call_a5a15395-4e74-4339-beaf-dd4bf37746a7"
+    }
+  ],
+  "text": "Your sample A claim is in — I'll verify the Japanese bill and work toward a decision.",
+  "usage": {
+    "input_tokens": 1266,
+    "output_tokens": 132,
+    "total_tokens": 1398,
+    "cost_usd": 0.002144
+  }
+}

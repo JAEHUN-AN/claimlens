@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "read_documents",
+      "arguments": "{}",
+      "call_id": "call_6c740551-7a89-4e31-bf1a-de98d90fc5db"
+    }
+  ],
+  "text": "Starting your tourist hip-fracture claim — reading the bill and certificate first.",
+  "usage": {
+    "input_tokens": 1154,
+    "output_tokens": 95,
+    "total_tokens": 1249,
+    "cost_usd": 0.001846
+  }
+}

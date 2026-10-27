@@ -55,7 +55,7 @@ const rows = billTable[1].match(/<tr>/g) || [];
 assert(rows.length === 14, `12 items + header + total, got ${rows.length}`);
 assert(stagesHtml.includes("15,000,000"), "pack total");
 assert(stagesHtml.includes("Agent timeline"), "agent timeline");
-assert(stagesHtml.includes("Step 4 — ask_user"), "ask_user step");
+assert(stagesHtml.includes("— ask_user"), "ask_user step");
 assert(stagesHtml.includes("cell_1=45000, cell_2=45000"), "copay answer");
 assert(stagesHtml.includes("Voice intake"), "voice scene");
 assert(stagesHtml.includes(">work_injury<"), "work_injury badge");

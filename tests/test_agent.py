@@ -25,6 +25,7 @@ def test_agent_replays_hidden_copay_dialogue():
         scripted_answer,
         live=False,
         hidden_cells={"cell_1", "cell_2"},
+        namespace="ask-hidden-copay",
     )
     assert result["outcome"] == {"decision": "PARTIAL", "amount_krw": 22500}
     replayed_tools = [e.get("tool", e["kind"]) for e in result["trace"]]
@@ -44,6 +45,7 @@ def test_agent_step_cap_stops():
         live=False,
         hidden_cells={"cell_1", "cell_2"},
         max_steps=1,
+        namespace="ask-hidden-copay",
     )
     assert result["trace"][-1]["kind"] == "stopped"
     assert result["outcome"] == {}

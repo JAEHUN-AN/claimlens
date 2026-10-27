@@ -1,0 +1,11 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [],
+  "text": "Claim S2_seoul_worker_bronchitis processed:\n\n- Receipt (KRW 45,000, 종합병원, outpatient 2026-08-10) read, all arithmetic checks passed.\n- Diagnosis J20.9 converted (KCD-9 -> WHO J20.9).\n- Eligibility: nhi_member (workplace subscriber, NHI Act Art. 109(2)).\n- Adjudication: PARTIAL, payable amount KRW 22,500.\n",
+  "usage": {
+    "input_tokens": 1923,
+    "output_tokens": 160,
+    "total_tokens": 2083,
+    "cost_usd": 0.003084
+  }
+}

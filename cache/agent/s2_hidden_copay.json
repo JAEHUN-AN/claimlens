@@ -13,6 +13,13 @@
         ],
         "currency": "KRW",
         "total": 45000.0,
+        "kr_bill": true,
+        "institution": "종합병원",
+        "inpatient": false,
+        "diagnoses": [
+          "J20.9"
+        ],
+        "service_date": "2026-08-10",
         "kr_cells": {
           "cell_1": "hidden",
           "cell_2": "hidden",
@@ -24,13 +31,7 @@
           "cell_8": 45000,
           "cell_9": 0,
           "cell_10": 45000
-        },
-        "institution": "종합병원",
-        "inpatient": false,
-        "diagnoses": [
-          "J20.9"
-        ],
-        "service_date": "2026-08-10"
+        }
       }
     },
     {
@@ -101,31 +102,9 @@
     },
     {
       "n": 4,
-      "kind": "question",
-      "tool": "ask_user",
-      "args": {
-        "question": "Please provide the hidden receipt values cell_1 and cell_2 (e.g., cell_1=NNNN cell_2=NNNN). What are the amounts for cell_1 and cell_2 on the receipt?",
-        "why_needed": "Receipt arithmetic checks failed (total_6, insurer_total_7, patient_total_8, rows_sum_1/2) because cell_1 and cell_2 are hidden. The adjudication engine needs these copay cells to verify totals and calculate the payable amount. Hidden cells cannot be recovered by re-reading."
-      },
-      "question": "Please provide the hidden receipt values cell_1 and cell_2 (e.g., cell_1=NNNN cell_2=NNNN). What are the amounts for cell_1 and cell_2 on the receipt?",
-      "why_needed": "Receipt arithmetic checks failed (total_6, insurer_total_7, patient_total_8, rows_sum_1/2) because cell_1 and cell_2 are hidden. The adjudication engine needs these copay cells to verify totals and calculate the payable amount. Hidden cells cannot be recovered by re-reading.",
-      "answer": "cell_1=45000, cell_2=45000",
-      "result": {
-        "answer": "cell_1=45000, cell_2=45000",
-        "recorded": {
-          "cell_1": 45000,
-          "cell_2": 45000
-        }
-      }
-    },
-    {
-      "n": 5,
       "kind": "tool",
       "tool": "convert_codes",
-      "args": {
-        "laterality": "not_applicable",
-        "open_closed": "not_applicable"
-      },
+      "args": {},
       "result": {
         "kcd": "J20.9",
         "edition": "KCD-9",
@@ -145,7 +124,81 @@
       }
     },
     {
+      "n": 5,
+      "kind": "question",
+      "tool": "ask_user",
+      "args": {
+        "question": "Please provide values for hidden receipt cells cell_1 and cell_2 (e.g., cell_1=NNNN, cell_2=NNNN)",
+        "why_needed": "Receipt is Korean bill with hidden copay cells cell_1 and cell_2 needed for arithmetic checks"
+      },
+      "question": "Please provide values for hidden receipt cells cell_1 and cell_2 (e.g., cell_1=NNNN, cell_2=NNNN)",
+      "why_needed": "Receipt is Korean bill with hidden copay cells cell_1 and cell_2 needed for arithmetic checks",
+      "answer": "cell_1=45000, cell_2=45000",
+      "result": {
+        "answer": "cell_1=45000, cell_2=45000",
+        "recorded": {
+          "cell_1": 45000,
+          "cell_2": 45000
+        }
+      }
+    },
+    {
       "n": 6,
+      "kind": "tool",
+      "tool": "run_checks",
+      "args": {},
+      "result": {
+        "all_passed": true,
+        "checks": [
+          {
+            "name": "total_6",
+            "passed": true
+          },
+          {
+            "name": "insurer_total_7",
+            "passed": true
+          },
+          {
+            "name": "patient_total_8",
+            "passed": true
+          },
+          {
+            "name": "amount_due_10",
+            "passed": true
+          },
+          {
+            "name": "rows_sum_1",
+            "passed": true
+          },
+          {
+            "name": "rows_sum_2",
+            "passed": true
+          },
+          {
+            "name": "rows_sum_3",
+            "passed": true
+          },
+          {
+            "name": "rows_sum_4",
+            "passed": true
+          },
+          {
+            "name": "lines_present",
+            "passed": true
+          },
+          {
+            "name": "lines_count",
+            "passed": true
+          },
+          {
+            "name": "lines_sum",
+            "passed": true
+          }
+        ]
+      }
+    },
+    {
+      "n": 7,
       "kind": "tool",
       "tool": "adjudicate",
       "args": {},
@@ -155,9 +208,9 @@
       }
     },
     {
-      "n": 7,
+      "n": 8,
       "kind": "final",
-      "text": "Claim S2_seoul_worker_bronchitis decided.\n\n- Eligibility: nhi_member (Workplace subscriber from first working day, NHI Act Art 109(2))\n- Diagnosis: J20.9 -> WHO J20.9 (KCD-9, rule-based conversion)\n- Receipt total: 45000 KRW (cell_1=45000, cell_2=45000 provided by user to resolve failed checks)\n- Decision: PARTIAL, payable amount 22500 KRW per adjudication engine.\n\nNo further tools needed."
+      "text": "Claim S2_seoul_worker_bronchitis decided.\n\n- Receipt total 45000 KRW, kr_bill true, institution 종합병원, outpatient, service_date 2026-08-10, diagnosis J20.9\n- Eligibility: nhi_member - Workplace subscriber from first working day (NHI Act Art 109(2))\n- Conversion: KCD J20.9 -> WHO J20.9, no CM narrowing rule\n- Receipt checks: all_passed true after cell_1=45000, cell_2=45000 provided\n- Adjudication decision: PARTIAL, amount 22500 KRW"
     }
   ],
   "outcome": {
@@ -166,46 +219,52 @@
   },
   "usages": [
     {
-      "input_tokens": 1100,
-      "output_tokens": 122,
-      "total_tokens": 1222,
-      "cost_usd": 0.001894
+      "input_tokens": 1152,
+      "output_tokens": 84,
+      "total_tokens": 1236,
+      "cost_usd": 0.001797
     },
     {
-      "input_tokens": 1302,
-      "output_tokens": 188,
-      "total_tokens": 1490,
-      "cost_usd": 0.002426
+      "input_tokens": 1360,
+      "output_tokens": 243,
+      "total_tokens": 1603,
+      "cost_usd": 0.002733
     },
     {
-      "input_tokens": 1515,
-      "output_tokens": 287,
-      "total_tokens": 1802,
-      "cost_usd": 0.003113
+      "input_tokens": 1573,
+      "output_tokens": 799,
+      "total_tokens": 2372,
+      "cost_usd": 0.005362
     },
     {
-      "input_tokens": 1624,
-      "output_tokens": 455,
-      "total_tokens": 2079,
-      "cost_usd": 0.003964
+      "input_tokens": 1682,
+      "output_tokens": 359,
+      "total_tokens": 2041,
+      "cost_usd": 0.003628
     },
     {
-      "input_tokens": 1851,
-      "output_tokens": 499,
-      "total_tokens": 2350,
-      "cost_usd": 0.004435
+      "input_tokens": 1847,
+      "output_tokens": 516,
+      "total_tokens": 2363,
+      "cost_usd": 0.004502
     },
     {
-      "input_tokens": 2050,
-      "output_tokens": 126,
-      "total_tokens": 2176,
-      "cost_usd": 0.003098
+      "input_tokens": 2016,
+      "output_tokens": 224,
+      "total_tokens": 2240,
+      "cost_usd": 0.003472
     },
     {
-      "input_tokens": 2124,
-      "output_tokens": 162,
-      "total_tokens": 2286,
-      "cost_usd": 0.003344
+      "input_tokens": 2229,
+      "output_tokens": 89,
+      "total_tokens": 2318,
+      "cost_usd": 0.003165
+    },
+    {
+      "input_tokens": 2303,
+      "output_tokens": 252,
+      "total_tokens": 2555,
+      "cost_usd": 0.00395
     }
   ]
 }

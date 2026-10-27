@@ -1,0 +1,11 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [],
+  "text": "Claim A_niseko_wrist decided.\n\n- Receipt total: 235000 JPY, service_date 2026-08-12, diagnosis S62.0 per read_documents\n- Code conversion: KCD S62.0 -> WHO S62.0, no CM narrowing rule\n- Adjudication: PAID, amount 2216050 KRW\n\nDecision: PAID 2216050 KRW.",
+  "usage": {
+    "input_tokens": 1799,
+    "output_tokens": 294,
+    "total_tokens": 2093,
+    "cost_usd": 0.003498
+  }
+}

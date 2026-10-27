@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "adjudicate",
+      "arguments": "{}",
+      "call_id": "call_cc6fe714-6284-4db9-ad59-5dc073fa9f8e"
+    }
+  ],
+  "text": "Checks now pass — I'll adjudicate your claim.",
+  "usage": {
+    "input_tokens": 2229,
+    "output_tokens": 89,
+    "total_tokens": 2318,
+    "cost_usd": 0.003165
+  }
+}

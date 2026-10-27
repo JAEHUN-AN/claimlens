@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "decide_eligibility",
+      "arguments": "{}",
+      "call_id": "call_50f54ec9-8c1c-4dd9-b8d9-4949c1ff0b84"
+    }
+  ],
+  "text": "Fracture details captured — now checking coverage for this visitor claim.",
+  "usage": {
+    "input_tokens": 2299,
+    "output_tokens": 188,
+    "total_tokens": 2487,
+    "cost_usd": 0.003673
+  }
+}

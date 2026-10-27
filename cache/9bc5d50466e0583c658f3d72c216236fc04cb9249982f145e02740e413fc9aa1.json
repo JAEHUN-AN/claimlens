@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "build_claim_pack",
+      "arguments": "{}",
+      "call_id": "call_4650c747-bc07-491e-b3af-a4942d7a39b4"
+    }
+  ],
+  "text": "Fracture details confirmed and coverage checked — now I'll assemble your claim pack.",
+  "usage": {
+    "input_tokens": 2434,
+    "output_tokens": 159,
+    "total_tokens": 2593,
+    "cost_usd": 0.003718
+  }
+}

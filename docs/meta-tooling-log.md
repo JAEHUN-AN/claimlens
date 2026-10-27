@@ -447,3 +447,37 @@ Round 3 items 21 and 22.
 ### Model APIs
 
 - Live calls: 0 ($0). Everything from replay caches.
+
+## 2026-10-27 — Backlog session: desk design and agent scorecard
+
+Round 3 items 23 and 24.
+
+### Muse Code (coding agent)
+
+- Item 23: "document desk" design system — paper background with a
+  CSS-only texture, ink text, tabular monospace for amounts and codes,
+  highlighter "to confirm" marks, green/red check ticks, rubber-stamp
+  decision badges, shadowed document photos. Colors and type scale are
+  CSS custom properties; dark mode stays readable; 640px breakpoint
+  stacks the grids. The provenance panel now lists related values
+  (each clickable to scroll to it) and check formulas. The owner
+  checks 1280x720 and 375px widths.
+- Item 24: `claimlens agent-eval` runs 8 scripted cases (hidden copay,
+  complete S2/A/S3, hidden enrolment, hidden fracture side, voice
+  confirmation, contradictory answer) and saves `docs/agent-eval.md`,
+  linked from the README. Agent fixes along the way: ask only on
+  tool-reported missing (never to refine completed conversions),
+  convert-first ordering, traveller pack refusal at the tool, enrolled
+  and laterality answers parsed, contradictory cells rolled back with
+  a retry. All 8 replay green: asked-when-needed, no needless
+  questions, no invented numbers.
+- Cache lesson: scorecard cases sharing one history key overwrote each
+  other's turn caches (call_ids diverged, replays took wrong paths).
+  Model-turn keys now carry a case namespace. Two recordings were
+  thrown away learning this.
+- Tests: 122 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: Spark about 120 agent turns across 4 recordings
+  (3 discarded: prompt fixes, namespace lesson), about $0.40.

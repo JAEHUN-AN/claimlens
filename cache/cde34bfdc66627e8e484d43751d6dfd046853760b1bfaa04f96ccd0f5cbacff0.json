@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "convert_codes",
+      "arguments": "{}",
+      "call_id": "call_3aaa702e-f51f-442d-b5cf-bb3092fdb2fd"
+    }
+  ],
+  "text": "Verified the Korean bill — now checking the diagnosis codes.",
+  "usage": {
+    "input_tokens": 1576,
+    "output_tokens": 145,
+    "total_tokens": 1721,
+    "cost_usd": 0.002586
+  }
+}

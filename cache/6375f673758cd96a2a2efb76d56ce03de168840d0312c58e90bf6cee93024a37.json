@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "decide_eligibility",
+      "arguments": "{}",
+      "call_id": "call_9af36b11-af4a-4ac4-97b0-1b2da79669b6"
+    }
+  ],
+  "text": "Your Japanese wrist claim is in — I'll verify eligibility and coding next.",
+  "usage": {
+    "input_tokens": 1479,
+    "output_tokens": 377,
+    "total_tokens": 1856,
+    "cost_usd": 0.003451
+  }
+}

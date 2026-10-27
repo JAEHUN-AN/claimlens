@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "ask_user",
+      "arguments": "{\"question\":\"What is the policy enrolment date (YYYY-MM-DD)?\",\"why_needed\":\"The adjudication engine requires the policy enrolment date to decide eligibility; it reported this value as missing.\"}",
+      "call_id": "call_0471b062-a25f-4d81-a8f5-b27f3c78bb34"
+    }
+  ],
+  "text": "Your wrist-injury claim needs one missing detail — I'll request it to finalize eligibility.",
+  "usage": {
+    "input_tokens": 1817,
+    "output_tokens": 151,
+    "total_tokens": 1968,
+    "cost_usd": 0.002913
+  }
+}

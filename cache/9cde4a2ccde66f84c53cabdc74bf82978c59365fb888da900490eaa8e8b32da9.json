@@ -1,0 +1,11 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [],
+  "text": "Claim S2_seoul_worker_bronchitis decided.\n\n- Receipt total 45000 KRW, kr_bill true, institution 종합병원, outpatient, service_date 2026-08-10, diagnosis J20.9\n- Eligibility: nhi_member - Workplace subscriber from first working day (NHI Act Art 109(2))\n- Conversion: KCD J20.9 -> WHO J20.9, no CM narrowing rule\n- Receipt checks: all_passed true after cell_1=45000, cell_2=45000 provided\n- Adjudication decision: PARTIAL, amount 22500 KRW",
+  "usage": {
+    "input_tokens": 2303,
+    "output_tokens": 252,
+    "total_tokens": 2555,
+    "cost_usd": 0.00395
+  }
+}

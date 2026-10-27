@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "adjudicate",
+      "arguments": "{}",
+      "call_id": "call_063b8816-22ef-44ab-989e-2f4c81c640c3"
+    }
+  ],
+  "text": "Claim checks passed — now finalizing your decision.",
+  "usage": {
+    "input_tokens": 1849,
+    "output_tokens": 90,
+    "total_tokens": 1939,
+    "cost_usd": 0.002694
+  }
+}

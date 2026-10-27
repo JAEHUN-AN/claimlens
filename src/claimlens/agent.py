@@ -26,11 +26,14 @@ SYSTEM = """You process one insurance claim with tools, one tool call per step.
 Rules:
 - Read each tool result before choosing the next tool.
 - Never invent numbers, codes, or dates. Every number must come from a tool result.
-- If a tool reports a missing value the engine or code conversion needs (copay
-  cells, copay rate, sum insured, fracture side, enrolment date), call ask_user
-  with a plain question and why_needed explaining how the value changes the
-  outcome. Do not guess it.
+- Ask only when a tool reports a value missing (a missing list, or an error
+  telling you to ask): copay cells, copay rate, fracture side, enrolment date.
+  A questions list that defaults already resolved is not missing — never ask
+  to refine a conversion the tools already completed. Do not guess.
+- Call convert_codes with no arguments first; only ask about side or
+  open/closed when its result lists them missing.
 - Cells shown as "hidden" cannot be recovered by re-reading; ask the user.
+- Only Korean bills (kr_bill true) have copay cells; other receipts never do.
 - When the claim is decided or the pack is built, stop calling tools and write
   a short final summary with the decision and amount.
 """
@@ -115,6 +118,9 @@ class AgentState:
     variant: str
     reading: dict[str, Any] | None = None
     hidden_cells: set[str] = field(default_factory=set)
+    hidden_policy: set[str] = field(default_factory=set)
+    hide_side: bool = False
+    answers: dict[str, Any] = field(default_factory=dict)
     eligibility: dict[str, Any] | None = None
     codes: dict[str, Any] | None = None
     envelope: dict[str, Any] | None = None
@@ -129,6 +135,18 @@ def parse_user_amounts(text: str) -> dict[str, int]:
     return found
 
 
+def parse_user_date(text: str) -> str | None:
+    """First YYYY-MM-DD date in an answer, if any."""
+    match = re.search(r"\d{4}-\d{2}-\d{2}", text)
+    return match.group(0) if match else None
+
+
+def parse_user_side(text: str) -> str | None:
+    """Fracture side in an answer: right or left."""
+    match = re.search(r"\b(right|left)\b", text.lower())
+    return match.group(1) if match else None
+
+
 def _bill(state: AgentState) -> dict[str, Any]:
     return (state.reading or {}).get("documents", [{}])[0].get("kr_bill") or {}
 
@@ -141,6 +159,11 @@ def tool_read_documents(state: AgentState) -> dict[str, Any]:
     for key in state.hidden_cells:
         if key in bill:
             bill[key] = None
+    if state.hide_side:
+        for diag in reading["documents"][1].get("diagnoses", []):
+            label = diag.get("label") or ""
+            diag["label"] = re.sub(r"\b(right|left)\b", "", label, flags=re.IGNORECASE)
+            diag["label"] = re.sub(r"\s+", " ", diag["label"]).strip()
     state.reading = reading
     receipt = reading["documents"][0]
     cells = {
@@ -148,16 +171,19 @@ def tool_read_documents(state: AgentState) -> dict[str, Any]:
         for k, v in bill.items()
         if k.startswith("cell_")
     }
-    return {
+    summary: dict[str, Any] = {
         "documents": [d.get("doc_type") for d in reading["documents"]],
         "currency": receipt.get("currency"),
         "total": receipt.get("total_amount"),
-        "kr_cells": cells,
+        "kr_bill": bool(bill),
         "institution": bill.get("institution_type"),
         "inpatient": receipt.get("inpatient"),
         "diagnoses": [d.get("code") for d in reading["documents"][1].get("diagnoses", [])],
         "service_date": receipt.get("service_date"),
     }
+    if bill:
+        summary["kr_cells"] = cells
+    return summary
 
 
 def tool_run_checks(state: AgentState) -> dict[str, Any]:
@@ -221,7 +247,17 @@ def tool_convert_codes(state: AgentState, facts: dict[str, Any]) -> dict[str, An
     diags = state.reading["documents"][1].get("diagnoses", [])
     if not diags or not diags[0].get("code"):
         return {"error": "no diagnosis code on the certificate."}
-    result = convert_diagnosis(diags[0]["code"], receipt.get("service_date"), facts or {})
+    merged = dict(facts or {})
+    if state.answers.get("laterality"):
+        merged.setdefault("laterality", state.answers["laterality"])
+    if "laterality" not in merged:
+        side = parse_user_side(diags[0].get("label") or "")
+        if side:
+            merged["laterality"] = side
+    result = convert_diagnosis(diags[0]["code"], receipt.get("service_date"), merged)
+    if result.get("who") == "S72.1" and "laterality" not in merged:
+        result["cm"]["chosen"] = None
+        result["missing"] = ["fracture side (left or right)"]
     state.codes = result
     return result
 
@@ -243,6 +279,14 @@ def tool_adjudicate(state: AgentState) -> dict[str, Any]:
         inputs = build_inputs(state.sample_id, state.variant, state.reading)
     except (ValueError, KeyError) as exc:
         return {"error": str(exc), "missing": ["claim total"]}
+    if "enrolled_on" in state.hidden_policy:
+        inputs["enrolled_on"] = state.answers.get("enrolled_on")
+    if not inputs.get("enrolled_on"):
+        return {
+            "error": "cannot adjudicate without the policy enrolment date "
+            "(YYYY-MM-DD); ask the user.",
+            "missing": ["policy enrolment date (YYYY-MM-DD)"],
+        }
     try:
         output = load_result(state.sample_id, state.variant, inputs)
     except LookupError as exc:
@@ -253,9 +297,13 @@ def tool_adjudicate(state: AgentState) -> dict[str, Any]:
 
 def tool_build_claim_pack(state: AgentState, provider: Any) -> dict[str, Any]:
     from claimlens.claimpack import build_pack
+    from claimlens.engine import load_scenarios
 
     if state.reading is None:
         return {"error": "no reading yet; call read_documents first."}
+    _, inbound = load_scenarios()
+    if state.sample_id not in inbound:
+        return {"error": "traveller cases go through adjudication, not the pack."}
     try:
         pack = build_pack(state.sample_id, state.variant, provider)
     except ValueError as exc:
@@ -273,12 +321,37 @@ def tool_ask_user(
     state: AgentState, question: str, why_needed: str, answer_fn: Callable[[str, str], str]
 ) -> dict[str, Any]:
     answer = answer_fn(question, why_needed)
-    recorded = {}
-    for key, value in parse_user_amounts(answer).items():
-        if key in state.hidden_cells and state.reading is not None:
-            bill = state.reading["documents"][0].get("kr_bill") or {}
-            bill[key] = value
-            recorded[key] = value
+    recorded: dict[str, Any] = {}
+    if state.reading is not None:
+        bill = state.reading["documents"][0].get("kr_bill") or {}
+        for key, value in parse_user_amounts(answer).items():
+            if key in state.hidden_cells:
+                bill[key] = value
+                recorded[key] = value
+        if recorded and set(recorded) >= {
+            k for k in state.hidden_cells if k in bill
+        }:
+            receipt = state.reading["documents"][0]
+            second = [*check_kr_bill(bill), *check_kr_lines(receipt)]
+            if not all_passed(second):
+                for key in recorded:
+                    bill[key] = None
+                failing = [c.name for c in second if not c.passed]
+                return {
+                    "answer": answer,
+                    "recorded": {},
+                    "error": f"those values contradict the receipt (failing: "
+                    f"{', '.join(failing)}); nothing was recorded; ask again.",
+                    "contradiction": True,
+                }
+    given_date = parse_user_date(answer)
+    if given_date and "enrolled_on" in state.hidden_policy:
+        state.answers["enrolled_on"] = given_date
+        recorded["enrolled_on"] = given_date
+    given_side = parse_user_side(answer)
+    if given_side and (state.hide_side or "laterality" not in state.answers):
+        state.answers["laterality"] = given_side
+        recorded["laterality"] = given_side
     return {"answer": answer, "recorded": recorded}
 
 
@@ -314,14 +387,18 @@ def run_tool(
         return {"error": f"tool {name} failed: {exc}"}
 
 
-def _model_key(history: list[dict[str, Any]]) -> str:
+def _model_key(history: list[dict[str, Any]], namespace: str = "") -> str:
     instructions = json.dumps(history, ensure_ascii=False, sort_keys=True)
+    if namespace:
+        instructions = f"[{namespace}]\n{instructions}"
     return replay_cache.cache_key([], instructions, {"tools": TOOLS}, MODEL)
 
 
-def model_turn(history: list[dict[str, Any]], live: bool) -> dict[str, Any]:
+def model_turn(
+    history: list[dict[str, Any]], live: bool, namespace: str = ""
+) -> dict[str, Any]:
     """One model step: live call recorded, or the recording replayed."""
-    key = _model_key(history)
+    key = _model_key(history, namespace)
     if not live:
         return replay_cache.load(key)
     import dotenv
@@ -372,12 +449,21 @@ def run_agent(
     answer_fn: Callable[[str, str], str],
     live: bool,
     hidden_cells: set[str] | None = None,
+    hidden_policy: set[str] | None = None,
+    hide_side: bool = False,
     max_steps: int = MAX_STEPS,
+    namespace: str = "",
 ) -> dict[str, Any]:
     """Run the loop; returns the trace, outcome, and model usage."""
     from claimlens.providers.replay import ReplayProvider
 
-    state = AgentState(sample_id=sample_id, variant=variant, hidden_cells=set(hidden_cells or ()))
+    state = AgentState(
+        sample_id=sample_id,
+        variant=variant,
+        hidden_cells=set(hidden_cells or ()),
+        hidden_policy=set(hidden_policy or ()),
+        hide_side=hide_side,
+    )
     provider = ReplayProvider()
     history: list[dict[str, Any]] = [
         {
@@ -393,7 +479,7 @@ def run_agent(
     trace: list[dict[str, Any]] = []
     usages: list[dict[str, Any]] = []
     for step in range(1, max_steps + 1):
-        turn = model_turn(history, live)
+        turn = model_turn(history, live, namespace)
         usages.append(turn["usage"])
         if not turn["calls"]:
             trace.append({"n": step, "kind": "final", "text": turn["text"]})

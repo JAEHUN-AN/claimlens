@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "run_checks",
+      "arguments": "{}",
+      "call_id": "call_193cd5f5-767b-469a-824d-35da32cff334"
+    }
+  ],
+  "text": "Processing your S3 claim — I'll verify the receipt and build the decision.",
+  "usage": {
+    "input_tokens": 1363,
+    "output_tokens": 161,
+    "total_tokens": 1524,
+    "cost_usd": 0.002388
+  }
+}

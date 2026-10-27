@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "convert_codes",
+      "arguments": "{}",
+      "call_id": "call_05daa7d7-dc9a-4289-9820-4558907895e2"
+    }
+  ],
+  "text": "Your receipt needs copay details that are hidden — I'll first convert the diagnosis codes, then request those values.",
+  "usage": {
+    "input_tokens": 1682,
+    "output_tokens": 359,
+    "total_tokens": 2041,
+    "cost_usd": 0.003628
+  }
+}

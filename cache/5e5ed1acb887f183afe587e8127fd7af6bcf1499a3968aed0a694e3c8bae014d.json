@@ -1,0 +1,17 @@
+{
+  "model": "muse-spark-1.3",
+  "calls": [
+    {
+      "name": "adjudicate",
+      "arguments": "{}",
+      "call_id": "call_a0bfc78a-2922-4095-b0f1-38c831e5e978"
+    }
+  ],
+  "text": "Converting the diagnosis code, now I'll adjudicate your Niseko claim.",
+  "usage": {
+    "input_tokens": 1724,
+    "output_tokens": 278,
+    "total_tokens": 2002,
+    "cost_usd": 0.003337
+  }
+}
