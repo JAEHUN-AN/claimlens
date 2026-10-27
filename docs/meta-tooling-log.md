@@ -391,3 +391,29 @@ Round 2 items 17b and 16.
 - Live calls: ASR 1 (ko re-transcription), Spark 1 (ko facts),
   Baseten 10 (all open readings, $0 on granted credits; no rates
   configured so open cost shows `-`). Session total about $0.01.
+
+## 2026-10-27 — Backlog session: pack language and final polish
+
+Round 2 items 18 and 20 (19 waits on owner phone-photo files).
+
+### Muse Code (coding agent)
+
+- Item 18: new `src/claimlens/packlang.py` — one strict-schema call
+  translates the 12 row labels plus 33 pack sentences into Vietnamese;
+  amounts, codes, and dates stay copied by code. `build_pack(...,
+  lang="vi")` and `claimlens claimpack --lang vi` render Markdown and
+  HTML (`<html lang="vi">`); English output is unchanged (existing tests
+  pin the wording).
+  S3 pack recorded in English + Vietnamese from replay.
+- Item 20: README refresh — five scenes, agent loop and Voice Transcribe
+  rows in the model table, agent/voice/pack-language rows in the
+  built-vs-pre-existing table, Vietnamese pack command. Demo polish:
+  every scene opens with a result headline (badge + amount above the
+  fold), document images capped to fit 720p, timeline type up to
+  0.95rem with roomier lines, one shared h4 scale. `docs/demo.html`
+  regenerated; the owner checks it in a real browser.
+- Tests: 116 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: Spark 1 (Vietnamese pack translation, about $0.01).

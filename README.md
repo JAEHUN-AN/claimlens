@@ -5,7 +5,7 @@ Medical paperwork that crosses borders — in both directions.
 ClaimLens reads hospital bills and medical certificates for people whose care crosses a border
 (Koreans treated abroad, foreigners treated in Korea). When a Korean policy applies, it prepares a
 claim decision with the cited policy clauses. When no policy applies, it does not decide — it builds
-an English claim pack the person can take to their own insurer.
+a claim pack the person can take to their own insurer (English, Vietnamese on request).
 
 Built for the **Meta Global AI Developer Hackathon** (Indie track, Oct 27 – Nov 4, 2026).
 All documents used in this repository are **synthetic**. ClaimLens processes insurance paperwork;
@@ -22,8 +22,9 @@ uv sync
 uv run claimlens demo --output out/demo.html   # or open the committed docs/demo.html
 ```
 
-Then open the HTML file in a browser: three scenes (A_niseko_wrist, S2, S3) with
-readings, check marks, eligibility, the engine card or the Claim Pack.
+Then open the HTML file in a browser: five scenes (A, S2, S3, Agent, Voice) with
+readings, check marks, eligibility, the engine card or the Claim Pack, the agent
+timeline, and the spoken-intake scene.
 `docs/demo.html` in this repo is the same export, committed.
 
 Other offline commands:
@@ -34,6 +35,7 @@ uv run claimlens read samples/S2_seoul_worker_bronchitis         # one reading p
 uv run claimlens adjudicate A_niseko_wrist                       # engine decision envelope (replay)
 uv run claimlens rationale A_niseko_wrist                        # English rationale card (replay)
 uv run claimlens claimpack S3_us_tourist_hip_fracture --format html --output out/pack.html  # Claim Pack (replay)
+uv run claimlens claimpack S3_us_tourist_hip_fracture --lang vi --output out/pack_vi.md  # Vietnamese pack
 uv run pytest -q                                                  # full suite, replay only
 ```
 
@@ -47,7 +49,8 @@ copy `.env.example` to `.env`. `CLAIMLENS_PROVIDER=replay` forces cache-only mod
 | Document reading schema + strict-schema prompts | [clausegraph](https://github.com/JAEHUN-AN/clausegraph) — the author's MIT-licensed policy knowledge graph and adjudication engine, pinned to tag [`claimlens-base-20261026`](https://github.com/JAEHUN-AN/clausegraph/releases/tag/claimlens-base-20261026), created before the hackathon started |
 | Verify-and-re-read loop, receipt arithmetic checks | |
 | Eligibility rules, KCD/WHO/CM code conversion | |
-| English rationale cards, Claim Pack, SAM masking | |
+| English rationale cards, Claim Pack (EN + VI), SAM masking | |
+| Clarifying agent loop, voice intake, spoken-fact confirmation | |
 | `claimlens eval`, offline replay demo, Spark Open step | |
 
 Using a pre-existing open-source dependency was confirmed as acceptable in the hackathon Discord
@@ -61,6 +64,10 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | `POST /v1/responses`, two images, strict JSON schema |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Text-only, strict schema; amounts and clause IDs copied by code |
 | Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Strict schema; amounts copied by code |
+| Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | One strict-schema call for labels + sentences; amounts, codes, dates copied by code |
+| Clarifying agent loop | `muse-spark-1.3` (hosted) | `POST /v1/responses` with 8 tool calls, `ask_user` for missing values, step cap 12 |
+| Transcribe spoken intake | `muse-voice-transcribe-1.0` (hosted) | `POST /v1/asr/transcribe`, WAV; dates/codes marked to confirm, never certain |
+| Extract facts from transcript | `muse-spark-1.3` (hosted) | Strict schema with per-fact quotes of the supporting words |
 | Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_labels` tool call |
 | Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_reading` tool call, images as data URLs |
 | Mask seals and signatures | `sam-3.1` (hosted) | One noun phrase per request, box tags painted on a copy |

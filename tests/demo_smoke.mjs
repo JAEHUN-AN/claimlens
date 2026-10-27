@@ -59,4 +59,7 @@ assert(stagesHtml.includes("hurt my left wrist"), "en transcript");
 assert(stagesHtml.includes("to confirm"), "confirmation marks");
 assert(stagesHtml.includes("I heard 20 October"), "confirmation question");
 assert(!stagesHtml.includes("WHO J20.9 + None"), "no None in timeline");
+const headlines = stagesHtml.match(/<p class="headline">/g) || [];
+assert(headlines.length === 5, `5 headlines, got ${headlines.length}`);
+assert(stagesHtml.includes("Claim Pack · 15,000,000 KRW"), "pack headline");
 console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice)");
