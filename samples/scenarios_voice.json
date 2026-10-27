@@ -1,0 +1,29 @@
+{
+  "scenarios": [
+    {
+      "id": "W_factory_fall",
+      "kind": "voice_intake",
+      "title": "Foreign factory worker in Ansan - wrist injury on a night shift (spoken intake)",
+      "audio": {
+        "en": "audio/W_factory_fall_en.wav",
+        "ko": "audio/W_factory_fall_ko.wav"
+      },
+      "transcript": {
+        "en": "Hello. I work at a factory in Ansan. On October twentieth, during my night shift, I slipped on the stairs carrying boxes and hurt my left wrist. I went to the hospital the same night. My visa is E nine. Can my insurance pay for this?",
+        "ko": "안녕하세요. 저는 안산 공장에서 일해요. 10월 20일 야간 근무 중에 상자를 들고 계단에서 미끄러져서 왼쪽 손목을 다쳤어요. 그날 밤 병원에 갔어요. 비자는 E-9이에요. 보험으로 처리돼요?"
+      },
+      "expected": {
+        "facts": {
+          "visa": "E-9",
+          "korean_employer": true,
+          "work_related": true,
+          "incident_date": "2026-10-20",
+          "body_part": "left wrist",
+          "mechanism": "slipped on stairs while carrying boxes"
+        },
+        "nhi_status": "work_injury",
+        "next_step": "industrial accident compensation insurance first"
+      }
+    }
+  ]
+}
