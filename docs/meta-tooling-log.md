@@ -238,3 +238,30 @@ Items 0c and 9.
   "signature" succeeded first try. The stream reports no usage block, so
   only the call count is recorded; cost is within the $1 session budget
   on Spark-equivalent rates.
+
+## 2026-10-27 — Backlog session: replay demo and Spark Open step
+
+Items 10 and 11.
+
+### Muse Code (coding agent)
+
+- Item 10: new `claimlens demo` exporting self-contained `docs/demo.html`
+  from replay caches only (no key, no Neo4j, no external requests — the
+  test asserts no `https://` in the bytes). Three scene tabs with reading
+  check marks, eligibility, the engine card labelled "pre-existing
+  open-source engine, pinned" or the Claim Pack in an iframe, plus sample
+  and masked images by relative path. The embedded script passed a Node
+  DOM-harness smoke (init, three scenes rendered, tab toggle).
+- Item 11: new Baseten provider on exactly
+  `meta-models/muse-spark-open-1026` via Chat Completions with a forced
+  `submit_labels` tool call (no JSON mode). The S3 row-label step runs on
+  both models from replay caches; `claimlens eval` appends a one-row
+  comparison section to `docs/eval.md`: 8/12 identical, the four diffs all
+  legitimate phrasing variants (room fee/fee, Treatment/Procedure, Lab
+  test/Examination, charge/cost).
+- Tests: 92 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: 1 Baseten tool-calling request (797 input / 240 completion
+  tokens, reasoning empty on this response) on granted credits. Spark: 0.
