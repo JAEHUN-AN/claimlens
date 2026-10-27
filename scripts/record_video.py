@@ -371,6 +371,7 @@ def _action(page, act: dict, clock: _Clock, urls: dict[str, str], caption: str) 
 
 
 def record(root: Path, sb_path: Path, out_dir: Path) -> int:
+    from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import sync_playwright
 
     sb = _load(sb_path)
@@ -421,6 +422,13 @@ def record(root: Path, sb_path: Path, out_dir: Path) -> int:
             context.close()
             video_src = Path(page.video.path())
             browser.close()
+    except PlaywrightError as exc:
+        if "ffmpeg" not in str(exc).lower():
+            raise
+        print("Video recording needs Playwright's ffmpeg binary (one-time download).")
+        print("Run this once, then re-run the recording:")
+        print("  uv run playwright install ffmpeg")
+        return 1
     finally:
         server.shutdown()
         server.server_close()
