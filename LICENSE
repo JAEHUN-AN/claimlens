@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-이 라이선스는 **이 리포의 코드에만** 적용된다.
-
-`clausegraph`가 수집하는 데이터는 리포에 포함되지 않으며(`data/`는 git 제외),
-각 기관의 이용조건을 따른다. 자세한 내용은 docs/data-sources.md를 본다.
-
-- 보험 표준약관 — 국가법령정보 공동활용. 비상업적 이용, 출처표시
-- 금융감독원 분쟁조정사례 — 출처표시
-- 건강보험심사평가원 상병마스터 — 공공저작물 제1유형(출처표시)
-
-임베딩·언어 모델은 각 모델의 라이선스를 따른다(bge-m3, Qwen3-4B Apache-2.0).
