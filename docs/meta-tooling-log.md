@@ -265,3 +265,28 @@ Items 10 and 11.
 
 - Live calls: 1 Baseten tool-calling request (797 input / 240 completion
   tokens, reasoning empty on this response) on granted credits. Spark: 0.
+
+## 2026-10-27 — Backlog session: demo browser fix and README final
+
+Items 0d and 12.
+
+### Muse Code (coding agent)
+
+- Item 0d: `demo_template.py` emitted the payload through `html.escape`,
+  so real browsers threw on `JSON.parse` and rendered nothing (script text
+  is not entity-decoded). It now emits raw `json.dumps` with only `</`
+  neutralized; the test parses the script text as is, with no unescaping.
+  `docs/demo.html` regenerated. The owner re-checks in a real browser.
+- Item 12: README final — what it does, 60-second offline run, the
+  built-vs-pre-existing table, which Meta model does which step, the eval
+  table, limitations. Every command in it was verified under
+  `CLAIMLENS_PROVIDER=replay` with no keys.
+- Fixed while verifying: `claimpack --format html` crashed on cp949
+  consoles (em-dash in the pack). All CLI text output now goes through
+  `_emit`, which falls back to a stderr note when the console cannot
+  encode the text; the `--output` file contract is unchanged.
+- Tests: 94 passed (`ruff check` clean before each commit). No push.
+
+### Model APIs
+
+- Live calls: 0 ($0). Everything verified from replay caches.

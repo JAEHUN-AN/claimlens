@@ -9,19 +9,109 @@ an English claim pack the person can take to their own insurer.
 
 Built for the **Meta Global AI Developer Hackathon** (Indie track, Oct 27 – Nov 4, 2026).
 All documents used in this repository are **synthetic**. ClaimLens processes insurance paperwork;
-it does not give medical advice.
+it does not give medical advice and never guesses a diagnosis.
 
-## What was built during the hackathon
+## Run it offline in 60 seconds
 
-Everything in this repository was written during the hackathon, starting from the first commit
-on 2026-10-27 (KST). The table below is kept up to date as work lands.
+All model and engine responses are committed under `cache/`, so everything below
+works with no API key and no database:
+
+```sh
+git clone https://github.com/JAEHUN-AN/claimlens.git && cd claimlens
+uv sync
+uv run claimlens demo --output out/demo.html   # or open the committed docs/demo.html
+```
+
+Then open the HTML file in a browser: three scenes (A_niseko_wrist, S2, S3) with
+readings, check marks, eligibility, the engine card or the Claim Pack.
+`docs/demo.html` in this repo is the same export, committed.
+
+Other offline commands:
+
+```sh
+uv run claimlens eval --output out/eval.md                        # field-accuracy table, all samples
+uv run claimlens read samples/S2_seoul_worker_bronchitis         # one reading plus receipt checks
+uv run claimlens adjudicate A_niseko_wrist                       # engine decision envelope (replay)
+uv run claimlens rationale A_niseko_wrist                        # English rationale card (replay)
+uv run claimlens claimpack S3_us_tourist_hip_fracture --format html --output out/pack.html  # Claim Pack (replay)
+uv run pytest -q                                                  # full suite, replay only
+```
+
+Live calls need `META_API_KEY` (and `NEO4J_URI/USER/PASSWORD` for the engine);
+copy `.env.example` to `.env`. `CLAIMLENS_PROVIDER=replay` forces cache-only mode.
+
+## Built vs pre-existing
 
 | Built during the hackathon (this repo) | Pre-existing (dependency, not showcased) |
 |---|---|
-| _in progress_ | [clausegraph](https://github.com/JAEHUN-AN/clausegraph) — the author's MIT-licensed policy knowledge graph and adjudication engine, pinned to tag [`claimlens-base-20261026`](https://github.com/JAEHUN-AN/clausegraph/releases/tag/claimlens-base-20261026), created before the hackathon started |
+| Document reading schema + strict-schema prompts | [clausegraph](https://github.com/JAEHUN-AN/clausegraph) — the author's MIT-licensed policy knowledge graph and adjudication engine, pinned to tag [`claimlens-base-20261026`](https://github.com/JAEHUN-AN/clausegraph/releases/tag/claimlens-base-20261026), created before the hackathon started |
+| Verify-and-re-read loop, receipt arithmetic checks | |
+| Eligibility rules, KCD/WHO/CM code conversion | |
+| English rationale cards, Claim Pack, SAM masking | |
+| `claimlens eval`, offline replay demo, Spark Open step | |
 
 Using a pre-existing open-source dependency was confirmed as acceptable in the hackathon Discord
 (#questions, 2026-10-26).
+
+## Which Meta model does which step
+
+| Step | Model | How |
+|---|---|---|
+| Read receipts + certificates | `muse-spark-1.3` (hosted) | `POST /v1/responses`, two images, strict JSON schema |
+| Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Text-only, strict schema; amounts and clause IDs copied by code |
+| Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Strict schema; amounts copied by code |
+| Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_labels` tool call |
+| Mask seals and signatures | `sam-3.1` (hosted) | One noun phrase per request, box tags painted on a copy |
+
+Every number shown to a user comes from a document reading, a deterministic check,
+or the engine — never from model arithmetic. See `docs/meta-tooling-log.md` for the
+dated record of what Meta tooling did.
+
+## Eval
+
+Field accuracy per sample and variant, from `claimlens eval` (full table with
+tokens and cost in [docs/eval.md](docs/eval.md)):
+
+| sample | variant | total | lines | amounts | diags | kr_cells | checks | pii |
+|---|---|---|---|---|---|---|---|---|
+| A_niseko_wrist | photo | ok | 6/6 | ok | 1/1 | n/a | n/a | 4/4 |
+| A_niseko_wrist | clean | ok | 6/6 | ok | 1/1 | n/a | n/a | 4/4 |
+| B_chiangmai_dogbite | photo | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
+| B_chiangmai_dogbite | clean | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
+| C_newyork_panic | photo | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
+| C_newyork_panic | clean | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
+| S2_seoul_worker_bronchitis | photo | ok | 5/5 | ok | 1/1 | 10/10 | pass | 2/2 |
+| S2_seoul_worker_bronchitis | clean | ok | 5/5 | ok | 1/1 | 10/10 | pass | 2/2 |
+| S3_us_tourist_hip_fracture | photo | ok | 12/12 | ok | 1/1 | 10/10 | pass | 3/4 |
+| S3_us_tourist_hip_fracture | clean | ok | 0/12 | FAIL | 1/1 | 10/10 | FAIL | 4/4 |
+
+Pack translation on hosted Spark vs Spark Open (12 S3 row labels):
+
+| hosted model | open model | identical |
+|---|---|---|
+| muse-spark-1.3 | meta-models/muse-spark-open-1026 | 8/12 |
+
+The four diffs are legitimate phrasing variants (room fee/fee, Treatment/Procedure,
+Lab test/Examination, charge/cost).
+
+Engine decisions (pinned replay): A → PAID ₩2,216,050, S2 → PARTIAL ₩22,500,
+B → HUMAN_REVIEW, C → DENIED, S3 → not sent to the engine (not a member).
+The S2 card shows ClaimLens's own deductible terms next to the engine's:
+max(20,000, 9,000, 22,500) = 22,500 — matches the engine.
+
+## Limitations
+
+- The S3 clean base reading omits the redundant item list (0/12 lines, checks
+  FAIL); `claimlens read` recovers it through the verify loop (`corrected:
+  ["line_items"]`), but the raw base score above is kept honest.
+- S3 photo PII recall is 3/4: the passport reads `A0000000`, the document says
+  `A00000000`. Every pack PII line therefore carries a "check against your
+  passport/ID" mark, and conflicting values across documents print both.
+- Code conversion covers the SPEC §5.5 examples; ICD-10-CM candidate rules ship
+  for S72.1 only, and I84.x maps to bare K64 (subdivisions must be re-coded
+  from the certificate).
+- The engine data root and Neo4j live outside this repo; only cached engine
+  outputs ship here.
 
 ## License
 
