@@ -36,6 +36,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "A_niseko_wrist",
         "S2_seoul_worker_bronchitis",
         "S3_us_tourist_hip_fracture",
+        "agent_s2_hidden_copay",
     ]
     assert payload["scenes"][0]["card"]["decision"] == "PAID"
     assert payload["scenes"][0]["card"]["steps"]
@@ -49,6 +50,11 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert set(first_images[0]) == {"src", "caption"}
     assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]
     assert "masked copy" in payload["scenes"][2]["images"][1]["caption"]
+    timeline = payload["scenes"][3]["timeline"]
+    assert timeline["outcome"] == {"decision": "PARTIAL", "amount_krw": 22500}
+    kinds = [e["kind"] for e in timeline["entries"]]
+    assert kinds.count("question") == 1
+    assert kinds[-1] == "final"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")

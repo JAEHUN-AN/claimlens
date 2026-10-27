@@ -3,6 +3,7 @@
 No API key, no Neo4j: every number comes from a committed recording.
 """
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,13 @@ MASKED_AFTER = {
     "S2_seoul_worker_bronchitis": ("receipt", "S2_receipt_after.png"),
     "S3_us_tourist_hip_fracture": ("medical_certificate", "S3_cert_after.png"),
 }
+
+AGENT_SCENE = (
+    "agent_s2_hidden_copay",
+    "Scene Agent — S2 with hidden copay cells",
+    "s2_hidden_copay",
+    "S2_seoul_worker_bronchitis",
+)
 
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
@@ -119,9 +127,91 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     return payload
 
 
+def _tool_summary(tool: str, result: dict[str, Any]) -> str:
+    if result.get("error"):
+        return result["error"]
+    if tool == "read_documents":
+        hidden = [k for k, v in result.get("kr_cells", {}).items() if v == "hidden"]
+        docs = ", ".join(result.get("documents", []))
+        return f"{docs}; {result.get('currency')} total {result.get('total')}; hidden: {hidden}"
+    if tool == "run_checks":
+        checks = result.get("checks", [])
+        passed = sum(1 for c in checks if c["passed"])
+        failing = [c["name"] for c in checks if not c["passed"]]
+        text = f"{passed}/{len(checks)} pass"
+        return text if not failing else f"{text}; failing: {', '.join(failing)}"
+    if tool == "reread_cells":
+        return f"corrected: {result.get('corrected', [])}"
+    if tool == "decide_eligibility":
+        return f"{result.get('outcome')} ({result.get('rule')})"
+    if tool == "convert_codes":
+        cm = (result.get("cm") or {}).get("chosen", "-")
+        return f"WHO {result.get('who')} + {result.get('attribute')}; CM {cm}"
+    if tool == "adjudicate":
+        return f"{result.get('decision')} {result.get('amount_krw'):,} KRW"
+    return json.dumps(result, ensure_ascii=False)[:200]
+
+
+def agent_scene_payload(dst: Path) -> dict[str, Any]:
+    from claimlens.agent import load_trace
+
+    scene_id, title, trace_name, sample_id = AGENT_SCENE
+    recorded = load_trace(trace_name)
+    entries = []
+    for item in recorded["trace"]:
+        kind = item["kind"]
+        if kind == "question":
+            entries.append(
+                {
+                    "n": item["n"],
+                    "kind": kind,
+                    "tool": "ask_user",
+                    "question": item["question"],
+                    "why_needed": item["why_needed"],
+                    "answer": item["answer"],
+                }
+            )
+        elif kind == "final":
+            entries.append({"n": item["n"], "kind": kind, "text": item["text"]})
+        elif kind == "stopped":
+            entries.append({"n": item["n"], "kind": kind, "text": item["reason"]})
+        else:
+            entries.append(
+                {
+                    "n": item["n"],
+                    "kind": kind,
+                    "tool": item["tool"],
+                    "summary": _tool_summary(item["tool"], item["result"]),
+                }
+            )
+    tokens = sum(u.get("total_tokens", 0) for u in recorded.get("usages", []))
+    payload: dict[str, Any] = {
+        "id": scene_id,
+        "title": title,
+        "reading": None,
+        "eligibility": None,
+        "card": None,
+        "pack": None,
+        "timeline": {
+            "entries": entries,
+            "outcome": recorded.get("outcome", {}),
+            "model_calls": len(recorded.get("usages", [])),
+            "tokens": tokens,
+        },
+        "images": [],
+    }
+    base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
+    for stem, img in zip(("receipt", "medical_certificate"), resolve_sample_images(base, "photo")):
+        payload["images"].append(
+            {"src": _rel(dst.parent, img), "caption": f"{DOC_CAPTION[stem]} (photo)"}
+        )
+    return payload
+
+
 def export_demo(dst: Path | str = "docs/demo.html") -> Path:
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
+    scenes.append(agent_scene_payload(dst))
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_page({"scenes": scenes}), encoding="utf-8")
     return dst

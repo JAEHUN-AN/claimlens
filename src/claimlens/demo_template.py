@@ -38,6 +38,12 @@ table.bill td,table.bill th{border-bottom:1px solid #ddd;padding:.2rem .4rem;
 text-align:left}
 table.bill td.num,table.bill th.num{text-align:right;font-variant-numeric:tabular-nums}
 code.clause{background:#efefef;padding:.05rem .3rem;border-radius:.2rem;font-size:.85rem}
+ol.timeline{list-style:none;padding:0;margin:.4rem 0}
+ol.timeline li{border-left:3px solid #999;padding:.15rem 0 .5rem .8rem}
+ol.timeline li.tl-q{border-color:#b26a00;background:#fff7e6}
+ol.timeline li.tl-final{border-color:#2e7d32}
+ol.timeline p{margin:.15rem 0;font-size:.92rem}
+.tool-name{font-size:.92rem}
 ul.tight{margin:.3rem 0;padding-left:1.2rem}
 ul.tight li{margin:.15rem 0}
 .warn{color:#7a4d0b;font-weight:600}
@@ -58,9 +64,28 @@ data.scenes.forEach((s,i)=>{
   document.getElementById('stages').insertAdjacentHTML('beforeend',stage(s,i===0));
 });
 function stage(s,first){
+  const right=s.timeline?timeline(s):`${reading(s)}${eligibility(s)}${result(s)}`;
   return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(s.title)}</h2>
-  <div class="scene-grid"><div>${images(s)}</div>
-  <div>${reading(s)}${eligibility(s)}${result(s)}</div></div></section>`;
+  <div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div></section>`;
+}
+function timeline(s){
+  const t=s.timeline;
+  const items=t.entries.map(e=>{
+    if(e.kind==='question')
+      return `<li class="tl-q"><span class="tool-name"><strong>Step ${e.n} — ask_user</strong></span>`
+        +`<p>Q: ${esc(e.question)}</p><p>Why: ${esc(e.why_needed)}</p>`
+        +`<p>A: ${esc(e.answer)}</p></li>`;
+    if(e.kind==='final'||e.kind==='stopped')
+      return `<li class="tl-final"><span class="tool-name"><strong>Step ${e.n} — ${esc(e.kind)}</strong></span>`
+        +`<p>${esc(e.text)}</p></li>`;
+    return `<li><span class="tool-name"><strong>Step ${e.n} — ${esc(e.tool)}</strong></span>`
+      +`<p>${esc(e.summary)}</p></li>`;
+  }).join('');
+  const o=t.outcome||{};
+  const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${num(o.amount_krw)} KRW</p>`:'';
+  return `<h3>Agent timeline</h3>${head}`
+    +`<p class="pinned">${t.model_calls} model turns · ${num(t.tokens)} tokens · replayed trace</p>`
+    +`<ol class="timeline">${items}</ol>`;
 }
 function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
 function num(n){return Number(n).toLocaleString('en-US')}

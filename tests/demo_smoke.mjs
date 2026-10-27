@@ -29,8 +29,8 @@ function assert(cond, msg) {
   if (!cond) throw new Error(`smoke: ${msg}`);
 }
 const sections = stagesHtml.match(/<section class="scene/g) || [];
-assert(sections.length === 3, `3 scenes, got ${sections.length}`);
-assert(buttons.length === 3, `3 nav buttons, got ${buttons.length}`);
+assert(sections.length === 4, `4 scenes, got ${sections.length}`);
+assert(buttons.length === 4, `4 nav buttons, got ${buttons.length}`);
 assert(stagesHtml.includes(">PAID<"), "PAID badge");
 assert(stagesHtml.includes(">PARTIAL<"), "PARTIAL badge");
 assert(stagesHtml.includes(">not adjudicated<"), "not-adjudicated badge");
@@ -48,4 +48,7 @@ assert(billTable, "bill table");
 const rows = billTable[1].match(/<tr>/g) || [];
 assert(rows.length === 14, `12 items + header + total, got ${rows.length}`);
 assert(stagesHtml.includes("15,000,000"), "pack total");
-console.log("demo smoke: OK (3 scenes, badges, bill table, masked captions)");
+assert(stagesHtml.includes("Agent timeline"), "agent timeline");
+assert(stagesHtml.includes("Step 4 — ask_user"), "ask_user step");
+assert(stagesHtml.includes("cell_1=45000, cell_2=45000"), "copay answer");
+console.log("demo smoke: OK (4 scenes, badges, bill table, masked captions, timeline)");
