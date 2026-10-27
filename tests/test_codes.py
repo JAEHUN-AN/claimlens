@@ -86,10 +86,13 @@ def test_spine_pitfall_rows():
     assert "L2" in (pitfall_warning("S32.020") or {})["warning"]
 
 
-def test_hemorrhoid_exception_moves_to_k64():
+def test_hemorrhoid_exception_moves_to_bare_k64():
     got, notes = who_from_kcd("I84.1")
-    assert got == "K64.1"
-    assert notes
+    assert got == "K64"
+    assert "subdivision must be re-coded from the certificate" in notes
+    bare, bare_notes = who_from_kcd("I84")
+    assert bare == "K64"
+    assert "subdivision must be re-coded from the certificate" not in bare_notes
 
 
 def test_convert_diagnosis_end_to_end_for_s3():

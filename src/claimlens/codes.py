@@ -99,8 +99,13 @@ def who_from_kcd(code: str) -> tuple[str, list[str]]:
     who = f"{head}.{tail[0]}" if dot and tail else head
     notes: list[str] = []
     if who.startswith("I84"):
-        who = "K64" + who[3:]
+        # Hemorrhoids moved chapters but the subdivisions do not correspond,
+        # so only the bare category crosses over.
+        dropped = who[3:]
+        who = "K64"
         notes.append("I84 moved to K64 in WHO.")
+        if dropped:
+            notes.append("subdivision must be re-coded from the certificate")
     if who == "K35" or who.startswith("K35."):
         suffix = who[4:] if who.startswith("K35.") else ""
         if suffix not in ("2", "3", "8"):
