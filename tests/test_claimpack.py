@@ -74,6 +74,31 @@ def test_s3_pack_html_from_replay():
     assert "15,000,000" in page
 
 
+def test_s3_pii_lines_carry_check_mark():
+    from claimlens.providers.replay import ReplayProvider
+
+    pack = build_pack("S3_us_tourist_hip_fracture", "photo", ReplayProvider())
+    text = format_markdown(pack)
+    assert text.count("check against your passport/ID") == 4
+    assert "A0000000 — check against your passport/ID" in text
+    page = format_html(pack)
+    assert page.count("check against your passport/ID") == 4
+
+
+def test_conflicting_pii_shows_both_readings():
+    from claimlens.claimpack import _pii_line, pii_conflicts
+
+    docs = [
+        {"doc_type": "receipt", "pii": [{"kind": "name", "value": "AAA"}]},
+        {"doc_type": "medical_certificate", "pii": [{"kind": "name", "value": "BBB"}]},
+    ]
+    found = pii_conflicts(docs)
+    assert found == {"name": [["receipt", "AAA"], ["certificate", "BBB"]]}
+    line = _pii_line("Name", "AAA", found["name"])
+    assert "AAA (receipt)" in line and "BBB (certificate)" in line
+    assert "differs between documents" in line
+
+
 def test_clinical_estimate_warning_branch():
     pack = {
         "sample": "S3_us_tourist_hip_fracture",

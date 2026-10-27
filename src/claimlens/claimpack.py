@@ -16,6 +16,7 @@ from claimlens.schema import strict_schema_of
 
 POLICY_LINE = "We do not have your policy, so this is not a coverage decision."
 TRANSLATION_NOTE = "Draft translation of labels; not a certified translation."
+PII_CHECK_MARK = "check against your passport/ID"
 
 CHECKLIST = [
     "English medical certificate: request it while still under care.",
@@ -63,6 +64,47 @@ def _pii_of(docs: list[dict[str, Any]], kind: str) -> str:
             if item.get("kind") == kind and item.get("value"):
                 return item["value"]
     return ""
+
+
+def _doc_label(doc: dict[str, Any]) -> str:
+    return {"receipt": "receipt", "medical_certificate": "certificate"}.get(
+        doc.get("doc_type", ""), doc.get("doc_type", "document")
+    )
+
+
+def pii_conflicts(docs: list[dict[str, Any]]) -> dict[str, list[list[str]]]:
+    """Kinds whose value differs between documents: {kind: [[where, value]]}."""
+    seen: dict[str, list[list[str]]] = {}
+    for doc in docs:
+        where = _doc_label(doc)
+        for item in doc.get("pii", []):
+            kind, value = item.get("kind", ""), item.get("value", "")
+            if not kind or not value:
+                continue
+            entries = seen.setdefault(kind, [])
+            if [where, value] not in entries:
+                entries.append([where, value])
+    return {k: v for k, v in seen.items() if len({value for _, value in v}) > 1}
+
+
+def _pii_line(label: str, value: str, conflict: list[list[str]] | None) -> str:
+    if not value:
+        return f"- {label}: -"
+    if conflict:
+        readings = " / ".join(f"{v} ({w})" for w, v in conflict)
+        return f"- {label}: {readings} — differs between documents; {PII_CHECK_MARK}"
+    return f"- {label}: {value} — {PII_CHECK_MARK}"
+
+
+def html_pii(label: str, value: str, conflict: list[list[str]] | None) -> str:
+    if not value:
+        return f"{label}: -"
+    if conflict:
+        readings = " / ".join(
+            f"{html.escape(v)} ({html.escape(w)})" for w, v in conflict
+        )
+        return f"{label}: {readings} — differs between documents; {PII_CHECK_MARK}"
+    return f"{label}: {html.escape(value)} — {PII_CHECK_MARK}"
 
 
 def _laterality(label: str) -> str | None:
@@ -124,6 +166,7 @@ def build_pack(sample_id: str, variant: str, provider: Any) -> dict[str, Any]:
             "passport": _pii_of(docs, "passport"),
             "patient_id": _pii_of(docs, "patient_id"),
         },
+        "pii_conflicts": pii_conflicts(docs),
         "visit": {
             "hospital": receipt.get("provider_name", ""),
             "inpatient": receipt.get("inpatient", False),
@@ -145,6 +188,7 @@ def build_pack(sample_id: str, variant: str, provider: Any) -> dict[str, Any]:
 
 def format_markdown(pack: dict[str, Any]) -> str:
     patient = pack["patient"]
+    conflicts = pack.get("pii_conflicts", {})
     visit = pack["visit"]
     codes = pack["codes"] or {}
     cm = codes.get("cm") or {}
@@ -157,10 +201,10 @@ def format_markdown(pack: dict[str, Any]) -> str:
         "",
         "## Patient and visit",
         "",
-        f"- Name: {patient['name'] or '-'}",
-        f"- Date of birth: {patient['date_of_birth'] or '-'}",
-        f"- Passport: {patient['passport'] or '-'}",
-        f"- Patient ID: {patient['patient_id'] or '-'}",
+        _pii_line("Name", patient["name"], conflicts.get("name")),
+        _pii_line("Date of birth", patient["date_of_birth"], conflicts.get("date_of_birth")),
+        _pii_line("Passport", patient["passport"], conflicts.get("passport")),
+        _pii_line("Patient ID", patient["patient_id"], conflicts.get("patient_id")),
         f"- Hospital: {visit['hospital']}",
         f"- Stay: {stay}, {visit['period_from']} to {visit['period_to']}",
         "",
@@ -194,6 +238,7 @@ def format_markdown(pack: dict[str, Any]) -> str:
 
 def format_html(pack: dict[str, Any]) -> str:
     patient = pack["patient"]
+    conflicts = pack.get("pii_conflicts", {})
     visit = pack["visit"]
     codes = pack["codes"] or {}
     cm = codes.get("cm") or {}
@@ -226,10 +271,10 @@ def format_html(pack: dict[str, Any]) -> str:
 <p><strong>{html.escape(pack["policy_line"])}</strong></p>
 <h2>Patient and visit</h2>
 <ul>
-<li>Name: {html.escape(patient["name"] or "-")}</li>
-<li>Date of birth: {html.escape(patient["date_of_birth"] or "-")}</li>
-<li>Passport: {html.escape(patient["passport"] or "-")}</li>
-<li>Patient ID: {html.escape(patient["patient_id"] or "-")}</li>
+<li>{html_pii("Name", patient["name"], conflicts.get("name"))}</li>
+<li>{html_pii("Date of birth", patient["date_of_birth"], conflicts.get("date_of_birth"))}</li>
+<li>{html_pii("Passport", patient["passport"], conflicts.get("passport"))}</li>
+<li>{html_pii("Patient ID", patient["patient_id"], conflicts.get("patient_id"))}</li>
 <li>Hospital: {html.escape(visit["hospital"])}</li>
 <li>Stay: {stay}, {html.escape(visit["period_from"])} to {html.escape(visit["period_to"])}</li>
 </ul>

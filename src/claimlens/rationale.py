@@ -112,6 +112,31 @@ def check_rationale(draft: dict[str, Any], payload: dict[str, Any]) -> None:
         raise ValueError(f"Numbers not in engine output: {unknown}.")
 
 
+def compute_deductible(
+    claimed: int, institution: str | None, copay_rate: float | None, engine_amount: int
+) -> dict[str, Any] | None:
+    """Outpatient deductible terms from the reading; None when not applicable."""
+    if not institution or copay_rate is None:
+        return None
+    terms = [
+        20000 if institution in ("종합병원", "상급종합병원") else 10000,
+        int(claimed * 0.2 + 0.5),
+        int(claimed * copay_rate + 0.5),
+    ]
+    ours = max(terms)
+    return {"terms": terms, "ours": ours, "engine": engine_amount, "match": ours == engine_amount}
+
+
+def format_deductible(check: dict[str, Any]) -> str:
+    head = f"max({', '.join(f'{t:,}' for t in check['terms'])}) = {check['ours']:,}"
+    if check["match"]:
+        return f"{head} — matches the engine"
+    return (
+        f"ClaimLens {head} vs engine {check['engine']:,} — FLAGGED: amounts differ; "
+        "the engine amount stands."
+    )
+
+
 def build_rationale(sample_id: str, variant: str, provider: Any) -> dict[str, Any]:
     """Draft (model), check (code), then assemble the card with engine facts."""
     from claimlens.engine import build_inputs, load_result, replay_reading
@@ -123,11 +148,15 @@ def build_rationale(sample_id: str, variant: str, provider: Any) -> dict[str, An
     draft = provider.write(rationale_instructions(payload), rationale_schema(), Rationale)
     check_rationale(draft, payload)
     titles = {e["id"]: e["title"] for e in payload["evidence"]}
+    deductible = compute_deductible(
+        inputs["claimed_amount_krw"], inputs["institution"], inputs["copay_rate"], output["amount"]
+    )
     return {
         "sample": sample_id,
         "variant": variant,
         "decision": output["decision"],
         "amount_krw": output["amount"],
+        "deductible": deductible,
         "summary": draft["summary"],
         "steps": [{"step": s["step"], "text": s["text"]} for s in draft["steps"]],
         "clauses": [
@@ -158,6 +187,9 @@ def format_card(card: dict[str, Any]) -> str:
     lines += ["", "## Cited clauses", ""]
     for item in card["clauses"]:
         lines.append(f"- `{item['id']}` ({item['title']}): {item['text']}")
+    if card.get("deductible"):
+        lines += ["", "## Deductible check (computed by ClaimLens from the reading)", ""]
+        lines.append(format_deductible(card["deductible"]))
     if card["guardrails"]:
         lines += ["", "Guardrails: " + ", ".join(card["guardrails"])]
     return "\n".join(lines) + "\n"

@@ -63,6 +63,49 @@ def _payload_for(sample_id):
     return rationale_payload(recording["inputs"], recording["output"])
 
 
+def test_s2_card_shows_deductible_match():
+    from claimlens.providers.replay import ReplayProvider
+    from claimlens.rationale import format_card
+
+    card = build_rationale("S2_seoul_worker_bronchitis", "photo", ReplayProvider())
+    assert card["deductible"] == {
+        "terms": [20000, 9000, 22500],
+        "ours": 22500,
+        "engine": 22500,
+        "match": True,
+    }
+    text = format_card(card)
+    assert "max(20,000, 9,000, 22,500) = 22,500 — matches the engine" in text
+
+
+def test_abroad_card_has_no_deductible_section():
+    from claimlens.providers.replay import ReplayProvider
+    from claimlens.rationale import format_card
+
+    card = build_rationale("A_niseko_wrist", "photo", ReplayProvider())
+    assert card["deductible"] is None
+    assert "Deductible check" not in format_card(card)
+
+
+def test_deductible_mismatch_flags_without_replacing():
+    from claimlens.rationale import compute_deductible, format_deductible
+
+    check = compute_deductible(45000, "종합병원", 0.5, 20000)
+    assert check is not None and check["match"] is False
+    text = format_deductible(check)
+    assert "22,500 vs engine 20,000" in text
+    assert "FLAGGED" in text and "engine amount stands" in text
+
+
+def test_flat_term_follows_institution():
+    from claimlens.rationale import compute_deductible
+
+    assert compute_deductible(10000, "상급종합병원", 0.5, 0)["terms"][0] == 20000
+    assert compute_deductible(10000, "병원급", 0.5, 0)["terms"][0] == 10000
+    assert compute_deductible(10000, None, 0.5, 0) is None
+    assert compute_deductible(10000, "종합병원", None, 0) is None
+
+
 @pytest.mark.parametrize(
     ("sample", "decision", "amount"),
     [("A_niseko_wrist", "PAID", 2216050), ("S2_seoul_worker_bronchitis", "PARTIAL", 22500)],
