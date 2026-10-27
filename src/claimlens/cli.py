@@ -151,6 +151,20 @@ def cmd_mask(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_demo(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens.demo import export_demo
+
+    try:
+        path = export_demo(Path(args.output))
+    except (FileNotFoundError, RuntimeError, LookupError, ValueError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    print(str(path))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -183,6 +197,9 @@ def build_parser() -> argparse.ArgumentParser:
     mask.add_argument("--phrase", required=True, help="Noun phrase, e.g. 'red circular seal'.")
     mask.add_argument("--output", required=True, help="Where to save the masked copy.")
     mask.set_defaults(func=cmd_mask)
+    demo = sub.add_parser("demo", help="Export the offline replay demo page.")
+    demo.add_argument("--output", default="docs/demo.html", help="Where to save the page.")
+    demo.set_defaults(func=cmd_demo)
     return parser
 
 
