@@ -1,6 +1,5 @@
 """Demo page tests: offline export with all three scenes."""
 
-import html
 import json
 import re
 
@@ -21,7 +20,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert "matches the engine" in text
     assert "http://-onwards" not in text and "https://" not in text
     raw = re.search(r'<script id="demo-data"[^>]*>(.*?)</script>', text, re.DOTALL)[1]
-    payload = json.loads(html.unescape(raw))
+    payload = json.loads(raw)
     assert [s["id"] for s in payload["scenes"]] == [
         "A_niseko_wrist",
         "S2_seoul_worker_bronchitis",

@@ -1,6 +1,5 @@
 """Self-contained demo page template: no external requests, works from file://."""
 
-import html
 import json
 from typing import Any
 
@@ -66,7 +65,9 @@ function images(s){
 
 
 def render_page(payload: dict[str, Any]) -> str:
-    data = html.escape(json.dumps(payload, ensure_ascii=False))
+    # Script text is not entity-decoded: emit raw JSON, only neutralizing
+    # the closing tag.
+    data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"/>
