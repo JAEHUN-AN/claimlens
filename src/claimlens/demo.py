@@ -292,6 +292,62 @@ def _pack_section(
     }
 
 
+def _recovery_section(
+    sample_id: str,
+    scenarios: dict[str, Any],
+    prov: ProvBuilder,
+    prefix: str,
+    dst: Path,
+) -> dict[str, Any]:
+    """Fail-to-recovery story: clean base reading plus one narrow re-read."""
+    from claimlens.eval import compare, ground_truth
+    from claimlens.verify import verify_receipt
+
+    truth = ground_truth(scenarios[sample_id])
+    reading = replay_reading(sample_id, "clean")
+    receipt = reading["documents"][0]
+    base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
+    image = resolve_sample_images(base, "clean")[0]
+    result = verify_receipt(receipt, image, ReplayProvider())
+    merged = {"documents": [result["receipt"], reading["documents"][1]]}
+    before = compare(sample_id, truth, reading)
+    after = compare(sample_id, truth, merged)
+
+    def _num(pid: str, label: str, value: str, source: str) -> dict[str, str]:
+        return prov.num(
+            prov.add(f"{prefix}-rec-{pid}", "check", label, value, source), value
+        )
+
+    def _side(
+        metrics: dict[str, Any], tag: str, noun: str, origin: str
+    ) -> dict[str, Any]:
+        return {
+            "lines": _num(
+                f"lines-{tag}",
+                f"{noun} lines",
+                metrics["lines"],
+                f"{origin} lines {metrics['lines']}",
+            ),
+            "amounts": metrics["amounts"],
+            "checks": metrics["checks"],
+            "kr_cells": _num(
+                f"cells-{tag}",
+                f"{noun} KR cells",
+                metrics["kr_cells"],
+                f"{origin} kr cells {metrics['kr_cells']}",
+            ),
+        }
+
+    return {
+        "before": _side(before, "before", "Base reading", "clean base reading"),
+        "failed_before": result.get("failed_before", []),
+        "corrected": result.get("corrected", []),
+        "after": _side(after, "after", "Re-read", "narrow re-read"),
+        "status": result["status"],
+        "image": {"src": _rel(dst.parent, image), "caption": "Receipt (clean)"},
+    }
+
+
 def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     scenarios, inbound = load_scenarios()
     reading = replay_reading(sample_id, "photo")
@@ -306,6 +362,7 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         "eligibility": None,
         "card": None,
         "pack": None,
+        "recovery": None,
         "images": [],
     }
     if sample_id in inbound:
@@ -329,6 +386,9 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         flow_tokens["pack"] = sum(c.total_tokens for c in pack_provider.calls)
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         payload["pack"] = _pack_section(pack, rows, prov, prefix)
+        payload["recovery"] = _recovery_section(
+            sample_id, scenarios, prov, prefix, dst
+        )
     else:
         card_provider = ReplayProvider()
         card = build_rationale(sample_id, "photo", card_provider)

@@ -51,6 +51,12 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "prov": "s3-pack-total",
     }
     assert "pack_vi" not in payload["scenes"][2]
+    recovery = payload["scenes"][2]["recovery"]
+    assert recovery["before"]["lines"] == {"v": "0/12", "prov": "s3-rec-lines-before"}
+    assert recovery["after"]["lines"] == {"v": "12/12", "prov": "s3-rec-lines-after"}
+    assert recovery["corrected"] == ["line_items"]
+    assert recovery["status"] == "verified"
+    assert recovery["image"]["src"].endswith("receipt_clean.png")
     first_images = payload["scenes"][0]["images"]
     assert set(first_images[0]) == {"src", "caption"}
     assert "masked copy" in payload["scenes"][1]["images"][0]["caption"]

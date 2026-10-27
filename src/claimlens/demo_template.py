@@ -99,6 +99,7 @@ ol.timeline p{margin:.2rem 0;font-size:.95rem;line-height:1.45}
 .headline{margin:.1rem 0 .5rem;font-size:1.1rem}
 .headline .badge{font-size:.8rem}
 h4{font-size:.95rem;margin:.7rem 0 .25rem}
+.rec-cols{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 ul.tight{margin:.3rem 0;padding-left:1.2rem}
 ul.tight li{margin:.15rem 0}
 .warn{color:var(--stamp-partial);font-weight:600}
@@ -149,6 +150,7 @@ transition:background .2s ease}
 .topbar-inner{padding:.5rem .6rem}
 .wrap{padding:0 .6rem}
 .scene-grid,.flow-main{grid-template-columns:1fr}
+.rec-cols{grid-template-columns:1fr}
 .topnote{margin-left:0}
 #prov-panel{left:.6rem;right:.6rem;max-width:none}
 table.bill{font-size:.85rem}}
@@ -224,6 +226,11 @@ eval_foot:["Full table with tokens and cost: docs/eval.md in the repo.","토큰�
 th_sample:["Sample","샘플"],
 th_lines:["Lines","항목"],
 th_diags:["Diags","진단"],
+h_recovery:["Verify & re-read","검증 후 재판독"],
+rec_before:["Base reading","1차 판독"],
+rec_after:["After one narrow re-read","좁은 범위 재판독 후"],
+rec_corrected:["Corrected:","수정됨:"],
+rec_story:["The base reading failed receipt checks, so ClaimLens re-read only the failed cells. Amounts below are re-read, never computed.","1차 판독이 영수증 검사를 통과하지 못해 실패한 셀만 다시 읽었습니다. 아래 금액은 재판독본이며 계산된 값이 아닙니다."],
 total_w:["total","합계"],
 codes_w:["codes","코드"],
 no_checks:["no bill checks","청구서 검사 없음"],
@@ -493,7 +500,7 @@ function stage(s,first){
   if(s.clips)
     return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
       +`${headline(s)}${voiceScene(s)}</section>`;
-  const right=s.timeline?timeline(s):`${reading(s)}${eligibility(s)}${result(s)}`;
+  const right=s.timeline?timeline(s):`${reading(s)}${s.recovery?recoveryPanel(s.recovery):''}${eligibility(s)}${result(s)}`;
   return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
     +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div></section>`;
 }
@@ -593,6 +600,18 @@ function deductible(d){
   const c=d.cells||{};
   const cells=`<p>① = ${pv(c.c1)} · ② = ${pv(c.c2)} · ${esc(t('copay_w'))} = ① ÷ (① + ②) = ${pv(c.copay)}</p>`;
   return `<h3>${esc(t('h_deductible'))}</h3>${cells}<p>${text}</p>`;
+}
+function recoveryPanel(r){
+  const cols=(o)=>`<li>lines: ${pv(o.lines)}</li><li>amounts: ${esc(o.amounts)}</li>`
+    +`<li>checks: ${esc(o.checks)}</li><li>kr_cells: ${pv(o.kr_cells)}</li>`;
+  const img=r.image?`<figure class="doc"><img class="doc" src="${esc(r.image.src)}" onerror="this.closest('figure').remove()"/>`
+    +`<figcaption>${esc(r.image.caption)}</figcaption></figure>`:'';
+  return `<h3>${esc(t('h_recovery'))}</h3><div class="panel"><div class="rec-cols">`
+    +`<div><h4>${esc(t('rec_before'))}</h4><ul class="tight">${cols(r.before)}</ul></div>`
+    +`<div><h4>${esc(t('rec_after'))}</h4><ul class="tight">${cols(r.after)}</ul></div>`
+    +`</div><p>${esc(t('rec_corrected'))} ${esc((r.corrected||[]).join(', '))}</p>`
+    +img
+    +`<p><small class="dim">${esc(t('rec_story'))}</small></p></div>`;
 }
 function result(s){
   if(s.card)return engineCard(s.card);

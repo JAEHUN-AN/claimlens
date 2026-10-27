@@ -631,3 +631,26 @@ and its recorded translation stay as a library/CLI feature.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: fail-to-recovery panel (P2-B)
+
+`docs/track-p2-ambition.md` option B (the recommended one; A stays
+out). The S3 scene now shows a "Verify & re-read" panel under
+Reading: clean base reading (lines 0/12, amounts FAIL, checks FAIL)
+beside the narrow re-read (12/12, ok, pass), the corrected-cells
+line, the clean receipt image, and the story line. New numbers are
+`check`-kind provenance records, so they click like the rest. New UI
+keys are en/ko only (item 30 dropped vi from the demo).
+
+### Muse Code (coding agent)
+
+- `demo.py` builds `recovery` from `replay_reading(S3, clean)` +
+  `verify_receipt` with an explicit `ReplayProvider`; before/after
+  metrics come from `eval.compare`, matching the eval table.
+- Browser test S3 header list updated for the new panel.
+- Tests: 132 passed in the sandbox plus 1 browser test run by the
+  owner in a normal terminal. `ruff check` clean. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).
