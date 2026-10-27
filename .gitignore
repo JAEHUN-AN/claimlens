@@ -26,3 +26,4 @@ out/
 .uv-cache/
 .tmp/
 .tmp-uv/
+pytest-of-*/
