@@ -552,3 +552,28 @@ Round 3 items 29, 25, 26.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-27 — Backlog session: language-switch re-render fix
+
+Round 3 item 25b. The owner found in Edge that `render()` cleared the
+nav but appended stages, so stale English copies stayed visible and a
+second flow card survived tab switches. The fix clears `#stages` on
+every render and hides the provenance panel; `hideProv` is now
+null-safe for the Node stub.
+
+### Muse Code (coding agent)
+
+- New `tests/test_browser_lang.py` (Playwright, Edge `msedge`
+  channel): clicks the ko/vi switcher, opens all five scenes, and
+  asserts translated chrome, no stale English UI strings, and
+  exactly one visible view. The Node harness now models the stages
+  clear and asserts single copies too.
+- `playwright` added as a dev dependency (no browser download; uses
+  installed Edge).
+- Tests: 131 passed in the sandbox plus 2 browser tests run by the
+  owner in a normal terminal (sandbox blocks the loopback sockets
+  Playwright needs). `ruff check` clean. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

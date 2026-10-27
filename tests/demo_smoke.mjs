@@ -18,7 +18,12 @@ globalThis.document = {
   getElementById: (id) => {
     if (id === "demo-data") return { textContent: source };
     if (id === "scenes") return { appendChild: (b) => { if (b.tag === "button") buttons.push(b); } };
-    if (id === "stages") return { insertAdjacentHTML: (_p, h) => { stagesHtml += h; } };
+    if (id === "stages") {
+      return {
+        set innerHTML(v) { stagesHtml = v; },
+        insertAdjacentHTML: (_p, h) => { stagesHtml += h; },
+      };
+    }
     return { classList: { add() {}, remove() {} } };
   },
   createElement: (tag) => ({ tag }),
@@ -139,6 +144,10 @@ globalThis.__setLang("ko");
 assert(stagesHtml.includes("청구 처리"), "ko flow header");
 assert(stagesHtml.includes("장면 A"), "ko scene title");
 assert(stagesHtml.includes("확인 필요"), "ko to-confirm tag");
+assert(!stagesHtml.includes("Process a claim"), "flow re-rendered, not appended");
+assert(!stagesHtml.includes("Scene S2 — insured worker"), "scene re-rendered, not appended");
+assert((stagesHtml.match(/<section class="scene/g) || []).length === 5, "still 5 scenes");
+assert((stagesHtml.match(/id="flow-view"/g) || []).length === 1, "single flow card");
 globalThis.__setLang("vi");
 assert(stagesHtml.includes("Xử lý bồi thường"), "vi flow header");
 assert(stagesHtml.includes("Cảnh S2"), "vi scene title");

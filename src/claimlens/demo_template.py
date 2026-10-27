@@ -307,6 +307,7 @@ const PROV={};
 data.scenes.forEach(s=>Object.assign(PROV,s.provenance||{}));
 function render(){
   if(flowTimer){clearTimeout(flowTimer);flowTimer=null;}
+  hideProv();
   const root=document.documentElement;
   if(root)root.lang=LANG;
   const tn=document.getElementById('topnote');
@@ -329,6 +330,7 @@ function render(){
   exLabel.textContent=t('nav_examples');
   nav.appendChild(exLabel);
   const st=document.getElementById('stages');
+  st.innerHTML='';
   data.scenes.forEach((s)=>{
     const b=document.createElement('button');
     b.textContent=titleOf(s);b.onclick=()=>show(s.id);b._view=s.id;
@@ -450,7 +452,8 @@ function showProv(id){
   p.style.display='block';
 }
 function hideProv(){
-  document.getElementById('prov-panel').style.display='none';
+  const p=document.getElementById('prov-panel');
+  if(p&&p.style)p.style.display='none';
   document.querySelectorAll('.num.hl').forEach(n=>n.classList.remove('hl'));
 }
 function stage(s,first){
