@@ -1,4 +1,4 @@
-"""CLI: uv run claimlens read <sample-folder> [--variant photo|clean]."""
+"""CLI: uv run claimlens read|eval ... ."""
 
 import argparse
 import json
@@ -41,6 +41,14 @@ def cmd_read(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_eval(args: argparse.Namespace) -> int:
+    from claimlens.eval import eval_all, format_markdown
+
+    rows = eval_all()
+    print(format_markdown(rows), end="")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -48,6 +56,8 @@ def build_parser() -> argparse.ArgumentParser:
     read.add_argument("sample", help="Sample folder, e.g. samples/A_niseko_wrist.")
     read.add_argument("--variant", choices=["photo", "clean"], default="photo")
     read.set_defaults(func=cmd_read)
+    evaluation = sub.add_parser("eval", help="Accuracy table over all samples and variants.")
+    evaluation.set_defaults(func=cmd_eval)
     return parser
 
 
