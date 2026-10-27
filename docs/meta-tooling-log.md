@@ -44,3 +44,10 @@ tools during the hackathon. All documents read are synthetic samples.
   blocked the sandboxed PowerShell launch). The responses are in `cache/` and the
   replay tests (9) pass.
 - Cost: about $0.02 today (Meta free credits).
+- Verification (Muse Code, same day): replay suite passes 9/9 against the
+  recorded responses with no key. Two live probe re-reads (scratch cache dir,
+  discarded) returned identical input tokens (A 3,785, S2 3,567) and
+  re-verified outputs (JPY 235,000; S2 cells + 종합병원 + checks pass); probe
+  cache keys matched the committed filenames exactly, proving this code
+  reproduces the recorded requests bit-for-bit. Day-1 total: 4 Spark calls,
+  20,503 tokens.
