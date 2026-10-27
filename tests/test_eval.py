@@ -81,3 +81,16 @@ def test_format_markdown_table():
     assert text.startswith("| sample | variant |")
     assert "A_niseko_wrist" in text
     assert text.count("\n") == 3
+
+
+def test_eval_output_flag_writes_file(tmp_path, capsys):
+    from claimlens.cli import main
+
+    target = tmp_path / "eval.md"
+    assert main(["eval", "--output", str(target)]) == 0
+    body = target.read_text(encoding="utf-8")
+    assert body.startswith("# ClaimLens reading accuracy")
+    assert "A_niseko_wrist" in body
+    assert "S3_us_tourist_hip_fracture" in body
+    out = capsys.readouterr().out
+    assert "| sample | variant |" in out
