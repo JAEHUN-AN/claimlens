@@ -21,3 +21,6 @@ data/external/
 # 실측 원본·임시
 out/
 *.log
+
+# uv cache for the Muse Code sandbox user
+.uv-cache/
