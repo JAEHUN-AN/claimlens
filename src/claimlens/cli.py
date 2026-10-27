@@ -118,6 +118,23 @@ def cmd_rationale(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_claimpack(args: argparse.Namespace) -> int:
+    from claimlens.claimpack import build_pack, format_html, format_markdown
+    from claimlens.rationale import rationale_provider_default
+
+    try:
+        pack = build_pack(args.sample_id, args.variant, rationale_provider_default())
+    except (FileNotFoundError, RuntimeError, LookupError, ValueError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    text = format_html(pack) if args.format == "html" else format_markdown(pack)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    print(text, end="")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claimlens")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -137,6 +154,12 @@ def build_parser() -> argparse.ArgumentParser:
     rationale.add_argument("--variant", choices=["photo", "clean"], default="photo")
     rationale.add_argument("--output", default=None, help="Write the card to a Markdown file.")
     rationale.set_defaults(func=cmd_rationale)
+    pack = sub.add_parser("claimpack", help="English Claim Pack for uninsured visitors.")
+    pack.add_argument("sample_id", help="Sample id, e.g. S3_us_tourist_hip_fracture.")
+    pack.add_argument("--variant", choices=["photo", "clean"], default="photo")
+    pack.add_argument("--format", choices=["md", "html"], default="md")
+    pack.add_argument("--output", default=None, help="Write the pack to a file.")
+    pack.set_defaults(func=cmd_claimpack)
     return parser
 
 
