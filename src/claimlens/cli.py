@@ -30,13 +30,48 @@ def receipt_checks(envelope: dict[str, Any]) -> list[dict[str, Any]] | None:
     return out
 
 
+def verify_envelope(
+    sample: str, variant: str, envelope: dict[str, Any]
+) -> list[dict[str, Any]] | None:
+    from pathlib import Path
+
+    from claimlens.reader import get_provider, resolve_sample_images
+    from claimlens.verify import verify_receipt
+
+    docs = envelope["result"].get("documents", [])
+    bills = [(i, d) for i, d in enumerate(docs) if d.get("kr_bill")]
+    if not bills:
+        return None
+    images = resolve_sample_images(Path(sample), variant)
+    provider = get_provider()
+    out = []
+    for i, doc in bills:
+        result = verify_receipt(doc, images[i], provider)
+        entry: dict[str, Any] = {
+            "document": i,
+            "status": result["status"],
+            "corrected": result["corrected"],
+            "checks": [asdict(c) for c in result["checks"]],
+        }
+        if "failed_before" in result:
+            entry["failed_before"] = result["failed_before"]
+            entry["receipt"] = result["receipt"]
+        if "failing" in result:
+            entry["failing"] = result["failing"]
+        out.append(entry)
+    for entry in out:
+        entry["calls"] = [vars(c) for c in provider.calls]
+    return out
+
+
 def cmd_read(args: argparse.Namespace) -> int:
     try:
         envelope = read_sample(args.sample, args.variant)
+        envelope["receipt_checks"] = receipt_checks(envelope)
+        envelope["verification"] = verify_envelope(args.sample, args.variant, envelope)
     except (FileNotFoundError, RuntimeError, LookupError, ValidationError) as exc:
         print(f"claimlens: {exc}", file=sys.stderr)
         return 1
-    envelope["receipt_checks"] = receipt_checks(envelope)
     print(json.dumps(envelope, ensure_ascii=False, indent=2))
     return 0
 

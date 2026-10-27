@@ -83,6 +83,15 @@ def test_format_markdown_table():
     assert text.count("\n") == 3
 
 
+def test_eval_cost_uses_configured_rates(monkeypatch):
+    monkeypatch.setenv("CLAIMLENS_USD_PER_1K_INPUT", "0.00125")
+    monkeypatch.setenv("CLAIMLENS_USD_PER_1K_OUTPUT", "0.00425")
+    row = eval_sample("A_niseko_wrist", "photo")
+    assert row.get("error") is None
+    assert row["cost"] is not None and row["cost"] > 0
+    assert "$" in format_markdown([row])
+
+
 def test_eval_output_flag_writes_file(tmp_path, capsys):
     from claimlens.cli import main
 

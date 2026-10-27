@@ -7,8 +7,8 @@ from typing import Any
 @dataclass
 class BillCheck:
     name: str
-    expected: int | None
-    actual: int | None
+    expected: int | float | None
+    actual: int | float | None
     passed: bool
     detail: str
 
@@ -112,3 +112,51 @@ def check_kr_bill(cells: Any) -> list[BillCheck]:
 
 def all_passed(checks: list[BillCheck]) -> bool:
     return all(c.passed for c in checks)
+
+
+def _number_or_none(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def check_kr_lines(receipt: dict[str, Any]) -> list[BillCheck]:
+    """Line-item checks for Korean receipts: present, count, and sum.
+
+    A bill with a non-zero total but no line items fails, so the re-read
+    loop runs instead of the gap passing silently.
+    """
+    bill = receipt.get("kr_bill") or {}
+    lines = receipt.get("line_items") or []
+    rows = bill.get("charge_rows") or []
+    total = _number_or_none(receipt.get("total_amount"))
+    gross = _int_or_none(bill.get("cell_6"))
+    if lines or total == 0:
+        present = BillCheck("lines_present", None, len(lines), True, "ok")
+    else:
+        present = BillCheck("lines_present", None, 0, False, "missing line_items")
+    count_ok = len(lines) == len(rows)
+    count = BillCheck(
+        "lines_count",
+        len(rows),
+        len(lines),
+        count_ok,
+        "ok" if count_ok else f"expected {len(rows)}, read {len(lines)}",
+    )
+    amounts = [_number_or_none(i.get("amount")) for i in lines]
+    # Line amounts are per-row totals across the four columns, so they sum to
+    # cell 6 (진료비 총액), not to the patient-borne total.
+    target = float(gross) if gross is not None else total
+    if any(a is None for a in amounts):
+        total_check = BillCheck("lines_sum", target, None, False, "missing line amount")
+    elif target is None:
+        total_check = BillCheck("lines_sum", None, sum(amounts), False, "missing total")
+    else:
+        found = sum(a for a in amounts if a is not None)
+        ok = abs(found - target) < 0.01
+        total_check = BillCheck(
+            "lines_sum", target, found, ok, "ok" if ok else f"expected {target}, read {found}"
+        )
+    return [present, count, total_check]

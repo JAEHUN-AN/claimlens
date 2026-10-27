@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from claimlens import cache as replay_cache
 from claimlens.cache import CacheMissError
-from claimlens.checks import all_passed, check_kr_bill
+from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
 from claimlens.prompts import READING_INSTRUCTIONS
 from claimlens.providers.meta import MetaProvider
 from claimlens.providers.replay import ReplayProvider
@@ -158,7 +158,8 @@ def compare(sample_id: str, truth: dict[str, Any], reading: dict[str, Any]) -> d
             hit = sum(1 for n, exp in enumerate(exp_cells, start=1) if bill.get(f"cell_{n}") == exp)
             kr_cells = f"{hit}/{len(exp_cells)}"
             instit = "ok" if bill.get("institution_type") == truth["institution"] else "FAIL"
-            checks = "pass" if all_passed(check_kr_bill(bill)) else "FAIL"
+            full = [*check_kr_bill(bill), *check_kr_lines(receipt)]
+            checks = "pass" if all_passed(full) else "FAIL"
     pii_found = set()
     for doc in docs:
         for item in doc.get("pii", []):
@@ -182,6 +183,7 @@ def compare(sample_id: str, truth: dict[str, Any], reading: dict[str, Any]) -> d
 
 def read_with_fallback(sample: Path, variant: str) -> dict[str, Any]:
     """Replay first; record live only when the cache entry is missing."""
+    load_dotenv()
     images = resolve_sample_images(sample, variant)
     schema = reading_schema()
     replay = ReplayProvider()
@@ -191,7 +193,6 @@ def read_with_fallback(sample: Path, variant: str) -> dict[str, Any]:
         return {"result": result, "calls": calls, "provider": "replay"}
     except CacheMissError:
         pass
-    load_dotenv()
     live = MetaProvider()
     result = live.read_documents(images, READING_INSTRUCTIONS, schema)
     calls = [vars(c) for c in live.calls]
