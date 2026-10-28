@@ -803,3 +803,38 @@ says what each model decides.
 ### Model APIs
 
 - Live calls: 6 consistency recordings by the owner (~$0.05).
+
+## 2026-10-28 — Backlog session: item 39 verification layer
+
+Item 36 was already committed; verified the thesis in README and
+demo hero. Item 39 adds the verification layer after Meta's
+legal-agent-workshop pattern (own implementation): checks inside
+the terminal tools (`src/claimlens/supervision.py` gates; the agent
+loop itself untouched, so no recording churn), a second Spark pass
+over rationale lines and Spark consistency findings (one call per
+claim set; code still owns every number), escalation after 3
+refusals or any blocker with a handoff card, resume only on answer
+or new documents, reviewer sign-off with one revision, and Files
+API upload-once with base64 fallback (method recorded per call).
+The demo Agent scene shows re-executed guard verdicts plus a
+scripted walkthrough (refuse-fix, handoff, resume, sign-off).
+
+### Muse Code (coding agent)
+
+- Tests: 181 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: guard/escalation/resume/sign-off tests with a
+  scripted model, claims-verifier stub tests, Files API stub tests,
+  demo verification asserts.
+- Recordings: the owner ran 2 rationale + 2 consistency commands
+  (4 verifier calls, ~$0.03; the Files probe was not run). Verdicts:
+  rationale A/S2 8/8 supported, Ar-Cc 1 of 2 dropped, S2r-Ac empty.
+  The bundle re-calls also rewrote 4 existing keys (model variance:
+  S2r-Ac findings went from 6 to 0); rule precision/recall still
+  1.000, eval table regenerated.
+- Owner checks: browser language test, demo at 1280x720 + 375px,
+  Files probe optional. No push.
+
+### Model APIs
+
+- Live calls: 4 verifier recordings by the owner (~$0.03).

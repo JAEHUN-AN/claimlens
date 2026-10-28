@@ -18,6 +18,7 @@ from claimlens import cache as replay_cache
 from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
 from claimlens.providers.meta import MODEL, cost_usd
 from claimlens.schema import strict_schema_of
+from claimlens.supervision import guard_terminal_tool
 
 MAX_STEPS = 12
 TRACE_DIR = "cache/agent"
@@ -125,6 +126,7 @@ class AgentState:
     codes: dict[str, Any] | None = None
     envelope: dict[str, Any] | None = None
     pack: dict[str, Any] | None = None
+    reread_verified: bool = False
 
 
 def parse_user_amounts(text: str) -> dict[str, int]:
@@ -222,6 +224,9 @@ def tool_reread_cells(state: AgentState, cells: list[str], provider: Any) -> dic
         return {"error": f"re-read not available offline: {exc}"}
     merged, corrected = merge_reread(receipt, reread)
     state.reading["documents"][0] = merged
+    if corrected:
+        fixed = [*check_kr_bill(merged.get("kr_bill") or {}), *check_kr_lines(merged)]
+        state.reread_verified = all_passed(fixed)
     return {"corrected": corrected}
 
 
@@ -269,6 +274,9 @@ def tool_adjudicate(state: AgentState) -> dict[str, Any]:
         return {"error": "no reading yet; call read_documents first."}
     receipt = state.reading["documents"][0]
     bill = receipt.get("kr_bill")
+    refused = guard_terminal_tool(state, "adjudicate")
+    if refused is not None:
+        return refused
     if receipt.get("country") == "KR" and copay_rate_from_bill(bill) is None:
         return {
             "error": "cannot adjudicate without copay_rate (receipt cells 1 and 2); "
@@ -305,6 +313,9 @@ def tool_build_claim_pack(state: AgentState, provider: Any) -> dict[str, Any]:
     if state.sample_id not in inbound:
         return {"error": "traveller cases go through adjudication, not the pack."}
     try:
+        refused = guard_terminal_tool(state, "build_claim_pack")
+        if refused is not None:
+            return refused
         pack = build_pack(state.sample_id, state.variant, provider)
     except ValueError as exc:
         return {"error": str(exc)}

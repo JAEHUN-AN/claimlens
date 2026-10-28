@@ -137,9 +137,37 @@ def format_deductible(check: dict[str, Any]) -> str:
     )
 
 
+def verification_claims(draft: dict[str, Any], payload: dict[str, Any]) -> list[dict[str, str]]:
+    """One claim per drafted line, each paired with its engine quote."""
+    steps = {s["step"]: s for s in payload["steps"]}
+    evidence = {e["id"]: e for e in payload["evidence"]}
+    claims = [
+        {
+            "statement": draft.get("summary", ""),
+            "quote": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        }
+    ]
+    for item in draft.get("steps", []):
+        claims.append(
+            {
+                "statement": item["text"],
+                "quote": json.dumps(steps.get(item["step"], {}), ensure_ascii=False, sort_keys=True),
+            }
+        )
+    for item in draft.get("clauses", []):
+        claims.append(
+            {
+                "statement": item["text"],
+                "quote": json.dumps(evidence.get(item["id"], {}), ensure_ascii=False, sort_keys=True),
+            }
+        )
+    return claims
+
+
 def build_rationale(sample_id: str, variant: str, provider: Any) -> dict[str, Any]:
-    """Draft (model), check (code), then assemble the card with engine facts."""
+    """Draft (model), check (code), verify quotes, then assemble the card."""
     from claimlens.engine import build_inputs, load_result, replay_reading
+    from claimlens.supervision import verify_claims
 
     reading = replay_reading(sample_id, variant)
     inputs = build_inputs(sample_id, variant, reading)
@@ -147,6 +175,14 @@ def build_rationale(sample_id: str, variant: str, provider: Any) -> dict[str, An
     payload = rationale_payload(inputs, output)
     draft = provider.write(rationale_instructions(payload), rationale_schema(), Rationale)
     check_rationale(draft, payload)
+    verdict = verify_claims(verification_claims(draft, payload), provider)
+    flags = verdict["verdicts"]
+    steps = [s for s, ok in zip(draft["steps"], flags[1 : 1 + len(draft["steps"])], strict=True) if ok]
+    clauses = [
+        c
+        for c, ok in zip(draft["clauses"], flags[1 + len(draft["steps"]) :], strict=True)
+        if ok
+    ]
     titles = {e["id"]: e["title"] for e in payload["evidence"]}
     deductible = compute_deductible(
         inputs["claimed_amount_krw"], inputs["institution"], inputs["copay_rate"], output["amount"]
@@ -158,12 +194,18 @@ def build_rationale(sample_id: str, variant: str, provider: Any) -> dict[str, An
         "amount_krw": output["amount"],
         "deductible": deductible,
         "summary": draft["summary"],
-        "steps": [{"step": s["step"], "text": s["text"]} for s in draft["steps"]],
+        "steps": [{"step": s["step"], "text": s["text"]} for s in steps],
         "clauses": [
             {"id": c["id"], "title": titles.get(c["id"], ""), "text": c["text"]}
-            for c in draft["clauses"]
+            for c in clauses
         ],
         "guardrails": payload["guardrails"],
+        "verification": {
+            "checked": len(flags),
+            "dropped_steps": len(draft["steps"]) - len(steps),
+            "dropped_clauses": len(draft["clauses"]) - len(clauses),
+            "summary_supported": flags[0],
+        },
         "provider": provider.name,
         "model": provider.model,
         "calls": [vars(c) for c in provider.calls],

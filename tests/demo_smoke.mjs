@@ -104,6 +104,12 @@ assert(stagesHtml.includes("Michael J. CARTER"), "mismatch cert quote");
 assert(stagesHtml.includes(">needs review<"), "mismatch badge");
 assert(stagesHtml.includes("Which patient is this claim for?"), "mismatch ask");
 assert(html.includes("/api/health"), "live probe");
+assert(stagesHtml.includes("Verification"), "verification heading");
+assert(stagesHtml.includes("Scripted walkthrough"), "walkthrough heading");
+assert(stagesHtml.includes("refuse → fix"), "walkthrough refusal");
+assert(stagesHtml.includes("Handoff"), "handoff card");
+assert(stagesHtml.includes("resume → sign-off"), "walkthrough signoff");
+assert(stagesHtml.includes("· approved<"), "signoff approved");
 assert(stagesHtml.includes("Claim Pack ·"), "pack headline");
 assert(stagesHtml.includes("15,000,000"), "pack headline total");
 // Provenance coverage: every bare number on A/S2/S3/Agent must sit inside

@@ -1,10 +1,10 @@
 {
   "model": "muse-spark-1.3",
-  "output_text": "{\"findings\": [{\"kind\": \"billed_not_described\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\uc9c4\\ucc30\\ub8cc\", \"reason\": \"Receipt bills \\uc9c4\\ucc30\\ub8cc with no matching line in certificate paperwork.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\uac80\\uc0ac\\ub8cc\", \"reason\": \"Receipt bills \\uac80\\uc0ac\\ub8cc with no matching line in certificate paperwork.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\uc601\\uc0c1\\uc9c4\\ub2e8\\ub8cc\", \"reason\": \"Receipt bills \\uc601\\uc0c1\\uc9c4\\ub2e8\\ub8cc with no matching line in certificate paperwork.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\ud22c\\uc57d\\ubc0f\\uc870\\uc81c\\ub8cc\", \"reason\": \"Receipt bills \\ud22c\\uc57d\\ubc0f\\uc870\\uc81c\\ub8cc with no matching line in certificate paperwork.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\uc8fc\\uc0ac\\ub8cc\", \"reason\": \"Receipt bills \\uc8fc\\uc0ac\\ub8cc with no matching line in certificate paperwork.\", \"severity\": \"check\"}, {\"kind\": \"described_not_billed\", \"quote_cert\": \"Fracture of scaphoid bone, left wrist\", \"quote_receipt\": \"\\uc11c\\uc6b8\\ud55c\\ube5b\\uc885\\ud569\\ubcd1\\uc6d0\", \"reason\": \"Certificate describes diagnosis with no counterpart in receipt paperwork.\", \"severity\": \"check\"}]}",
+  "output_text": "{\"findings\": []}",
   "usage": {
     "input_tokens": 997,
-    "output_tokens": 2625,
-    "total_tokens": 3622
+    "output_tokens": 1600,
+    "total_tokens": 2597
   },
-  "recorded_at": "2026-10-28T00:36:06.994270+00:00"
+  "recorded_at": "2026-10-28T01:28:09.777154+00:00"
 }

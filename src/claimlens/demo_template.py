@@ -52,6 +52,8 @@ padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
 .sev-check{color:var(--stamp-partial);background:var(--tint-warn)}
 .ask{border-left:3px solid var(--stamp-partial);padding:.2rem 0 .2rem .8rem}
 @media (max-width:640px){.quotes{grid-template-columns:1fr}}
+.vpass{font-size:.75rem;font-weight:700;border-radius:999px;padding:.1rem .5rem;color:var(--pass);background:var(--tint-pass)}
+.vref{font-size:.75rem;font-weight:700;border-radius:999px;padding:.1rem .5rem;color:var(--fail);background:var(--tint-fail)}
 .langswitch{display:flex;gap:.25rem;margin-left:.4rem}
 .langswitch button{padding:.25rem .6rem;font-size:.8rem;border-radius:999px;cursor:pointer}
 .langswitch button.active{background:var(--tab-active-bg);color:var(--accent)}
@@ -304,7 +306,10 @@ mm_findings:["Cross-document findings","문서 간 대조 결과"],
 mm_receipt:["Receipt says","영수증"],
 mm_cert:["Certificate says","진단서"],
 sev_blocker:["blocker","차단"],
-sev_check:["note","참고"]
+sev_check:["note","참고"],
+h_verify:["Verification","검증"],
+v_walk:["Scripted walkthrough","스크립트 시연"],
+v_handoff:["Handoff","인계"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -633,6 +638,25 @@ function voiceScene(s){
     +`<p><strong>${esc(s.next_step)}</strong> (${esc(e.rule)})</p>`
     +`<p><small class="dim">${esc(e.basis)}</small></p>${clips}</div>`;
 }
+function verifyBlock(v){
+  const guards=(v.trace_guards||[]).map(g=>
+    `<li><span class="${g.verdict==='pass'?'vpass':'vref'}">${esc(g.verdict)}</span> `
+    +`<strong class="noprov">${esc(t('step_w'))} ${esc(String(g.step))} — ${esc(g.tool)}</strong> `
+    +`<span class="noprov">${esc(g.feedback||'')}</span></li>`).join('');
+  const w=v.walkthrough,ho=w.handoff;
+  const walk=`<li><strong class="noprov">refuse → fix</strong><br/>`
+    +`<span class="noprov">${esc(w.refusal.rule)}: ${esc(w.refusal.feedback)}</span><br/>`
+    +`<span class="noprov">fix recorded ${esc(JSON.stringify(w.fix.recorded))} → ${esc(w.fix.decision)} `
+    +`${esc(num(w.fix.amount_krw))} KRW</span></li>`
+    +`<li><strong class="noprov">${esc(t('v_handoff'))}</strong><br/>`
+    +`<span class="noprov">${esc(ho.blocked_item)} · ${esc(ho.rule_fired)}</span><br/>`
+    +`<span class="noprov">${esc(t('q_w'))} ${esc(ho.question)}</span></li>`
+    +`<li><strong class="noprov">resume → sign-off</strong><br/>`
+    +`<span class="noprov">${esc(w.resume.checks)} · ${esc(w.signoff.revision)} · `
+    +`${esc(w.signoff.signed)}</span></li>`;
+  return `<h3>${esc(t('h_verify'))}</h3><ul class="tight noprov">${guards}</ul>`
+    +`<h3>${esc(t('v_walk'))}</h3><ul class="tight noprov">${walk}</ul>`;
+}
 function timeline(s){
   const tl=s.timeline;
   const seg=g=>g.prov?`<span class="num" tabindex="0" data-prov="${esc(g.prov)}">${esc(g.n)}</span>`
@@ -652,7 +676,7 @@ function timeline(s){
   const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${pv(o.amount)}</p>`:'';
   return `<h3>${esc(t('h_agent'))}</h3>${head}`
     +`<p class="pinned">${pv(tl.model_calls)} ${esc(t('model_turns'))} · ${pv(tl.tokens)} ${esc(t('tokens_w'))} · ${esc(t('replayed_w'))}</p>`
-    +`<ol class="timeline">${items}</ol>`;
+    +`<ol class="timeline">${items}</ol>`+(tl.verification?verifyBlock(tl.verification):'');
 }
 function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
 function num(n){return Number(n).toLocaleString('en-US')}

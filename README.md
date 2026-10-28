@@ -92,6 +92,18 @@ Every number shown to a user comes from a document reading, a deterministic chec
 or the engine — never from model arithmetic. The tooling log linked above is the
 main evidence for "Use of Meta AI Tooling".
 
+## Verification
+
+Checks the agent cannot skip, after Meta's
+[legal-agent-workshop](https://github.com/meta-models/legal-agent-workshop)
+pattern (own implementation): `adjudicate` and `build_claim_pack`
+refuse unless receipt checks pass and no consistency blocker is open;
+a second Spark pass confirms model statements against their quotes
+(code still owns every number); three refusals or any blocker stop
+the run for a person with a handoff, and resume only on an answer or
+new documents; nothing ships without reviewer sign-off, with one
+revision on return. See the Agent scene's Verification section.
+
 ## Eval
 
 Field accuracy per sample and variant, from `claimlens eval` (full table with

@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"verdicts\": [{\"supported\": true}, {\"supported\": true}, {\"supported\": true}, {\"supported\": true}, {\"supported\": true}, {\"supported\": true}, {\"supported\": true}, {\"supported\": true}]}",
+  "usage": {
+    "input_tokens": 1124,
+    "output_tokens": 749,
+    "total_tokens": 1873
+  },
+  "recorded_at": "2026-10-28T01:27:31.443694+00:00"
+}

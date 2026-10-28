@@ -23,6 +23,7 @@ from claimlens.provenance import ProvBuilder
 from claimlens.providers.replay import ReplayProvider
 from claimlens.rationale import build_rationale
 from claimlens.reader import resolve_sample_images
+from claimlens.supervision import build_walkthrough, replay_trace_guards
 
 SCENES = [
     ("A_niseko_wrist", "Scene A — Korean traveller treated in Japan"),
@@ -687,6 +688,10 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
             "outcome": outcome,
             "model_calls": prov.num(turns_pid, str(len(recorded.get("usages", [])))),
             "tokens": prov.num(tokens_pid, f"{tokens:,}"),
+            "verification": {
+                "trace_guards": replay_trace_guards(AGENT_SCENE[2], hidden_cells={"cell_1", "cell_2"}),
+                "walkthrough": build_walkthrough(),
+            },
         },
         "images": [],
         "provenance": prov.records,

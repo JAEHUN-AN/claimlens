@@ -76,11 +76,40 @@ class MetaProvider:
         self.calls: list[CallRecord] = []
         self._client = OpenAI(base_url=BASE_URL, api_key=key)
 
-    def _request(self, blobs: list[bytes], instructions: str, schema: dict[str, Any]):
+    def _resolve_file_ids(self, blobs: list[bytes]) -> list[str] | None:
+        """Upload-once file ids for every blob, or None when uploads fail."""
+        try:
+            index = replay_cache.load_files_index()
+            file_ids = []
+            for blob in blobs:
+                sha = replay_cache.blob_sha(blob)
+                if sha not in index:
+                    created = self._client.files.create(
+                        file=(f"claimlens-{sha[:12]}.jpg", blob, "image/jpeg"),
+                        purpose="vision",
+                    )
+                    replay_cache.store_file_id(sha, created.id)
+                    index[sha] = created.id
+                file_ids.append(index[sha])
+        except Exception:  # noqa: BLE001 - any upload failure means base64 fallback
+            return None
+        return file_ids
+
+    def _request(
+        self,
+        blobs: list[bytes],
+        instructions: str,
+        schema: dict[str, Any],
+        file_ids: list[str] | None = None,
+    ):
         content: list[dict[str, Any]] = [{"type": "input_text", "text": instructions}]
-        for blob in blobs:
-            b64 = base64.b64encode(blob).decode("ascii")
-            content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{b64}"})
+        if file_ids is not None:
+            for file_id in file_ids:
+                content.append({"type": "input_image", "file_id": file_id})
+        else:
+            for blob in blobs:
+                b64 = base64.b64encode(blob).decode("ascii")
+                content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{b64}"})
         return self._client.responses.create(
             model=self.model,
             input=[{"role": "user", "content": content}],
@@ -103,12 +132,28 @@ class MetaProvider:
         result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]:
         blobs = [prepare_image(p) for p in images]
-        response = self._request(blobs, instructions, schema)
+        file_ids = self._resolve_file_ids(blobs) if blobs else None
+        refs: list[dict[str, str]] | None = None
+        if file_ids is not None:
+            key = replay_cache.cache_key(
+                replay_cache.file_key_bytes(file_ids), instructions, schema, self.model
+            )
+            try:
+                response = self._request(blobs, instructions, schema, file_ids=file_ids)
+            except Exception:  # noqa: BLE001 - file refs rejected; retry once as base64
+                for blob in blobs:
+                    replay_cache.drop_file_id(replay_cache.blob_sha(blob))
+                file_ids = None
+            else:
+                refs = [{"type": "file", "id": file_id} for file_id in file_ids]
+        if file_ids is None:
+            key = replay_cache.cache_key(blobs, instructions, schema, self.model)
+            response = self._request(blobs, instructions, schema)
+            refs = [{"type": "base64", "sha256": replay_cache.blob_sha(b)} for b in blobs]
         usage = response.usage
         in_tokens = getattr(usage, "input_tokens", 0) or 0
         out_tokens = getattr(usage, "output_tokens", 0) or 0
         total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
-        key = replay_cache.cache_key(blobs, instructions, schema, self.model)
         replay_cache.store(
             key,
             {
@@ -119,6 +164,7 @@ class MetaProvider:
                     "output_tokens": out_tokens,
                     "total_tokens": total,
                 },
+                "input_refs": refs,
                 "recorded_at": datetime.now(UTC).isoformat(),
             },
         )

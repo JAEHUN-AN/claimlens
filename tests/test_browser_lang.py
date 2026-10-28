@@ -47,7 +47,7 @@ H3 = {
             "본인부담금 확인 (ClaimLens가 판독본에서 계산)",
         ],
         "S3_us_tourist_hip_fracture": ["읽기", "검증 후 재판독", "자격", "Claim Pack"],
-        "agent_s2_hidden_copay": ["에이전트 타임라인"],
+        "agent_s2_hidden_copay": ["에이전트 타임라인", "검증", "스크립트 시연"],
         "voice_factory_fall": ["음성 접수"],
         "mismatch_s2r_s3c": ["문서 간 대조 결과"],
     },

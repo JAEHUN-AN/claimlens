@@ -251,10 +251,23 @@ def spark_findings(
 
 
 def check_consistency(bundle_id: str, provider: Any) -> dict[str, Any]:
-    """Both layers; blockers stop the claim with ask_user questions."""
+    """Both layers plus quote verification; blockers stop the claim."""
+    from claimlens.supervision import verify_claims
+
     docs = bundle_reading(bundle_id)
     ruled = deterministic_findings(docs["receipt"], docs["cert"])
     sparked, dropped = spark_findings(docs["receipt"], docs["cert"], provider)
+    verdict = verify_claims(
+        [
+            {
+                "statement": f["reason"],
+                "quote": f"Receipt: {f['quote_receipt']} | Certificate: {f['quote_cert']}",
+            }
+            for f in sparked
+        ],
+        provider,
+    )
+    sparked = [f for f, ok in zip(sparked, verdict["verdicts"], strict=True) if ok]
     findings = ruled + sparked
     blockers = [f for f in findings if f["severity"] == "blocker"]
     spec = BUNDLES[bundle_id]
@@ -269,6 +282,7 @@ def check_consistency(bundle_id: str, provider: Any) -> dict[str, Any]:
         ],
         "stopped": bool(blockers),
         "dropped_quotes": dropped,
+        "unverified_dropped": verdict["dropped"],
         "provider": provider.name,
         "model": provider.model,
         "calls": [vars(c) for c in provider.calls],

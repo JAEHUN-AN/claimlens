@@ -128,4 +128,4 @@ def test_english_cards_from_replay(sample, decision, amount):
     }
     assert draft_numbers(prose) <= allowed
     assert {c["id"] for c in card["clauses"]} <= {e["id"] for e in payload["evidence"]}
-    assert len(card["calls"]) == 1
+    assert len(card["calls"]) == 2  # draft + quote verification

@@ -75,4 +75,6 @@ def test_adjudicate_missing_copay():
     )
     tool_read_documents(state)
     result = tool_adjudicate(state)
-    assert "copay_rate" in result["missing"][0]
+    assert result["refused"] is True
+    assert result["rule"] == "receipt_checks"
+    assert "failing" in result["feedback"]

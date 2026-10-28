@@ -80,6 +80,16 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     for entry in timeline["entries"]:
         for seg in entry.get("segments", []):
             assert "None" not in seg.get("t", "") + seg.get("n", "")
+    verification = timeline["verification"]
+    assert verification["trace_guards"] == [
+        {"step": 7, "tool": "adjudicate", "verdict": "pass", "rule": "", "feedback": ""}
+    ]
+    walkthrough = verification["walkthrough"]
+    assert walkthrough["refusal"]["rule"] == "receipt_checks"
+    assert walkthrough["fix"]["decision"] == "PARTIAL"
+    assert walkthrough["fix"]["amount_krw"] == 22500
+    assert walkthrough["handoff"]["rule_fired"] == "receipt_checks"
+    assert walkthrough["signoff"]["signed"] == "approved"
     mismatch = payload["scenes"][5]["mismatch"]
     assert mismatch["bundle"] == "S2r-S3c"
     assert mismatch["stopped"] is True
