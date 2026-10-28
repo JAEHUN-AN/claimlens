@@ -1,9 +1,14 @@
 # ClaimLens
 
-Medical paperwork that crosses borders — in both directions.
+**AI reads, reasons and asks; code counts.**
+
+| Muse Spark reads & reasons | code counts | people decide |
+|---|---|---|
+| reading, consistency, agent, voice facts | checks, deductible, eligibility, codes | questions, to-confirm, human review |
 
 **Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
 
+Medical paperwork that crosses borders — in both directions.
 ClaimLens reads hospital bills and medical certificates for people whose care crosses a border
 (Koreans treated abroad, foreigners treated in Korea). When a Korean policy applies, it prepares a
 claim decision with the cited policy clauses. When no policy applies, it does not decide — it builds
@@ -25,8 +30,8 @@ uv run claimlens demo --output out/demo.html   # or open the committed docs/demo
 ```
 
 Then open the HTML file in a browser. It opens on a guided flow: pick one of
-five samples, play its pipeline steps, then inspect the full example. The five
-scenes (A, S2, S3, Agent, Voice) carry readings, check marks, eligibility, the
+five samples, play its pipeline steps, then inspect the full example. The six
+scenes (A, S2, S3, Agent, Voice, Mismatch) carry readings, check marks, eligibility, the
 engine card or the Claim Pack, the agent timeline, and the spoken-intake scene.
 Every number there is clickable for its provenance.
 The demo UI switches between English and Korean; `claimlens claimpack
@@ -42,6 +47,9 @@ uv run claimlens adjudicate A_niseko_wrist                       # engine decisi
 uv run claimlens rationale A_niseko_wrist                        # English rationale card (replay)
 uv run claimlens claimpack S3_us_tourist_hip_fracture --format html --output out/pack.html  # Claim Pack (replay)
 uv run claimlens claimpack S3_us_tourist_hip_fracture --lang vi --output out/pack_vi.md  # Vietnamese pack
+uv run claimlens consistency S2r-S3c                       # cross-document findings, one bundle
+uv run claimlens consistency-eval --output out/consistency.md  # blocker precision/recall
+uv run claimlens serve                                       # local live server on 127.0.0.1:8000
 uv run pytest -q                                                  # full suite, replay only
 ```
 
@@ -58,6 +66,7 @@ copy `.env.example` to `.env`. `CLAIMLENS_PROVIDER=replay` forces cache-only mod
 | English rationale cards, Claim Pack, SAM masking | |
 | Clarifying agent loop, voice intake, spoken-fact confirmation | |
 | `claimlens eval`, offline replay demo, Spark Open step | |
+| Cross-document consistency, local live server | |
 
 Using a pre-existing open-source dependency was confirmed as acceptable in the hackathon Discord
 (#questions, 2026-10-26).
@@ -67,16 +76,17 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Step | Model | How |
 |---|---|---|
 | Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) |
-| Read receipts + certificates | `muse-spark-1.3` (hosted) | `POST /v1/responses`, two images, strict JSON schema |
-| Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Text-only, strict schema; amounts and clause IDs copied by code |
-| Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Strict schema; amounts copied by code |
-| Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | One strict-schema call for labels + sentences; amounts, codes, dates copied by code |
-| Clarifying agent loop | `muse-spark-1.3` (hosted) | `POST /v1/responses` with 8 tool calls, `ask_user` for missing values, step cap 12 |
-| Transcribe spoken intake | `muse-voice-transcribe-1.0` (hosted) | `POST /v1/asr/transcribe`, WAV; dates/codes marked to confirm, never certain |
-| Extract facts from transcript | `muse-spark-1.3` (hosted) | Strict schema with per-fact quotes of the supporting words |
-| Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_labels` tool call |
-| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Chat Completions with forced `submit_reading` tool call, images as data URLs |
-| Mask seals and signatures | `sam-3.1` (hosted) | One noun phrase per request, box tags painted on a copy |
+| Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images |
+| Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked |
+| Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Decides label wording; amounts copied by code |
+| Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | Decides labels + sentences; amounts, codes, dates copied by code |
+| Clarifying agent loop | `muse-spark-1.3` (hosted) | Decides the next tool and when to ask; numbers only from tools, step cap 12 |
+| Transcribe spoken intake | `muse-voice-transcribe-1.0` (hosted) | Decides the transcript; dates/codes marked to confirm, never certain |
+| Extract facts from transcript | `muse-spark-1.3` (hosted) | Decides facts + supporting quotes; uncertain ones routed to confirm |
+| Compare documents (consistency) | `muse-spark-1.3` (hosted) | Decides mismatch findings from quoted evidence; code drops unquoted claims |
+| Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same labels for comparison; forced `submit_labels` tool call |
+| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call |
+| Mask seals and signatures | `sam-3.1` (hosted) | Decides seal/signature boxes; painted on a copy |
 
 Every number shown to a user comes from a document reading, a deterministic check,
 or the engine — never from model arithmetic. The tooling log linked above is the

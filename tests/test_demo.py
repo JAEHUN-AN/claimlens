@@ -1,4 +1,4 @@
-"""Demo page tests: offline export with all three scenes."""
+"""Demo page tests: offline export with all six scenes."""
 
 import json
 import re
@@ -38,6 +38,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "S3_us_tourist_hip_fracture",
         "agent_s2_hidden_copay",
         "voice_factory_fall",
+        "mismatch_s2r_s3c",
     ]
     assert payload["scenes"][0]["card"]["decision"] == "PAID"
     assert payload["scenes"][0]["card"]["steps"]
@@ -79,6 +80,17 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     for entry in timeline["entries"]:
         for seg in entry.get("segments", []):
             assert "None" not in seg.get("t", "") + seg.get("n", "")
+    mismatch = payload["scenes"][5]["mismatch"]
+    assert mismatch["bundle"] == "S2r-S3c"
+    assert mismatch["stopped"] is True
+    ruled = [f for f in mismatch["findings"] if f["layer"] == "rule"]
+    assert sorted(f["kind"] for f in ruled if f["severity"] == "blocker") == [
+        "patient_name",
+        "visit_date",
+        "visit_type",
+    ]
+    assert all(f["quote_receipt"] and f["quote_cert"] and f["reason"] for f in mismatch["findings"])
+    assert all(f["question"] and f["why_needed"] for f in ruled if f["severity"] == "blocker")
     flow = payload["flow"]["examples"]
     assert [e["id"] for e in flow] == [
         "A_niseko_wrist",

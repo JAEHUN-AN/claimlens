@@ -751,3 +751,55 @@ ask, S3 warning, built-with and link cards. Output:
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-28 — Backlog session: Round 5 consistency, live server, thesis
+
+Round 5 items 34–36 (done before Round 4 per the backlog order note;
+the committed v2/vertical storyboards predate them and do not show
+the new scene yet).
+
+Item 34: `src/claimlens/consistency.py` compares a claim bundle's
+receipt and certificate in two layers: deterministic exact checks
+(patient name, birth date, visit dates, visit type as blockers;
+hospital as a note) plus one Muse Spark strict-schema pass for
+narrative-vs-billed, diagnosis-vs-department, and prose-date
+mismatches. Every Spark finding carries a quote from each document;
+code drops findings whose quotes are not found in the readings or
+that use banned wording. The Spark pass is text-only over the
+verified readings (not images), so every quote stays verifiable.
+Blockers stop the claim and ship as ask_user questions. Six bundles
+mix existing samples (matched A/S2/S3, three mismatches);
+`claimlens consistency-eval` scores blocker precision/recall into
+`docs/consistency-eval.md` (1.000 everywhere; Spark extras listed).
+The agent loop itself is untouched (no recording churn): blockers
+surface as ask_user payloads in the CLI, the demo, and the server.
+
+Item 35: `claimlens serve` (stdlib, 127.0.0.1 only, 10 MB cap,
+images only) serves the demo and a JSON pipeline: live Spark
+reading, checks + re-read, eligibility, consistency, then a live
+engine call when Neo4j is up (never overwriting recordings) or a
+sample-matched Claim Pack. Person facts come from the request or a
+byte-matched sample. The demo probes `/api/health`, shows LIVE vs
+REPLAY, and runs dropped photos through `/api/run` with real
+timings and token counts; GitHub Pages stays replay.
+
+Item 36: thesis "AI reads, reasons and asks; code counts." in the
+README lead, the demo hero, and a three-column strip (Spark reads &
+reasons / code counts / people decide); the Meta-tools table now
+says what each model decides.
+
+### Muse Code (coding agent)
+
+- Tests: 163 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: consistency pins (deterministic + replay), Spark
+  quote/fraud-drop tests, no-socket endpoint tests over the pure
+  route functions plus a real-HTTP test where listen() works.
+- Recordings: the owner ran `consistency-eval --output` once (6
+  Spark calls, ~$0.05); the sandbox cannot reach the API.
+- Owner checks: live drop of the S2 photos in a real browser,
+  the browser language test, demo at 1280x720 + 375px. No push.
+
+### Model APIs
+
+- Live calls: 6 consistency recordings by the owner (~$0.05).

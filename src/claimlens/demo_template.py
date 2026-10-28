@@ -43,6 +43,15 @@ body{font-family:var(--sans);margin:0;color:var(--ink);background:var(--paper)}
 h1{font-size:1.2rem;margin:0;letter-spacing:-.01em}
 .replay-tag{font-size:.75rem;font-weight:700;color:var(--accent);background:var(--tab-active-bg);
 padding:.15rem .55rem;border-radius:999px;white-space:nowrap}
+.replay-tag.live{color:var(--pass);background:var(--tint-pass)}
+.quotes{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:.4rem 0}
+.quotes>div{background:var(--paper);border-radius:8px;padding:.4rem .6rem}
+.quotes h5{margin:.1rem 0 .3rem;font-size:.8rem;color:var(--ink-dim)}
+.sev{font-size:.75rem;font-weight:700;border-radius:999px;padding:.1rem .5rem;white-space:nowrap}
+.sev-blocker{color:var(--fail);background:var(--tint-fail)}
+.sev-check{color:var(--stamp-partial);background:var(--tint-warn)}
+.ask{border-left:3px solid var(--stamp-partial);padding:.2rem 0 .2rem .8rem}
+@media (max-width:640px){.quotes{grid-template-columns:1fr}}
 .langswitch{display:flex;gap:.25rem;margin-left:.4rem}
 .langswitch button{padding:.25rem .6rem;font-size:.8rem;border-radius:999px;cursor:pointer}
 .langswitch button.active{background:var(--tab-active-bg);color:var(--accent)}
@@ -168,6 +177,8 @@ const LANGS=["en","ko"];
 let LANG="en";
 let currentView="flow";
 let flowTimer=null;
+let LIVE=false;
+const MMKIND={"patient_name":"patient name","birth_date":"birth date","visit_date":"visit date","visit_type":"visit type","hospital":"hospital","billed_not_described":"billed, not described","described_not_billed":"described, not billed","diagnosis_vs_department":"diagnosis vs department","prose_date":"prose date"};
 // UI chrome strings only (labels, step names, buttons). Document contents
 // stay in their own language. Every row is [en, ko].
 const UI={
@@ -177,10 +188,10 @@ nav_flow:["Guided flow","안내 흐름"],
 nav_examples:["Examples: ","예시: "],
 nav_aria:["Demo scenes","데모 장면"],
 prov_aria:["Number provenance","숫자 출처"],
-tagline:["Medical paperwork that crosses borders — in both directions","국경을 넘나드는 의료 서류 — 양방향으로"],
-strip_1:["Read","읽기"],
-strip_2:["Verify","검증"],
-strip_3:["Decide or build a Claim Pack","판정 또는 Claim Pack 작성"],
+tagline:["AI reads, reasons and asks; code counts.","AI는 읽고 추론하고 묻고, 코드는 계산한다."],
+strip_1:["Muse Spark reads & reasons","Muse Spark가 읽고 추론"],
+strip_2:["code counts","코드가 계산"],
+strip_3:["people decide","사람이 결정"],
 flow_h2:["Process a claim","청구 처리"],
 flow_note:["Replay mode: pick a sample. Every step below replays a recording.","리플레이 모드: 예시를 고르세요. 아래 단계는 모두 녹화본을 재생합니다."],
 drop:["Want to try your own document? Live upload needs an API key — or pick an example above.","직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요."],
@@ -281,7 +292,19 @@ guards_w:["Guardrails: ","가드레일: "],
 cap_receipt_photo:["Receipt (photo)","영수증 (사진)"],
 cap_cert_photo:["Certificate (photo)","진단서 (사진)"],
 cap_receipt_masked:["Receipt (masked copy)","영수증 (마스킹본)"],
-cap_cert_masked:["Certificate (masked copy)","진단서 (마스킹본)"]
+cap_cert_masked:["Certificate (masked copy)","진단서 (마스킹본)"],
+live_tag:["LIVE","LIVE"],
+live_drop:["Drop receipt + certificate photos here — runs live on your machine.","영수증과 진단서 사진을 여기에 놓으세요 — 이 컴퓨터에서 실시간으로 실행됩니다."],
+live_running:["Running live…","실시간 실행 중…"],
+live_failed:["Live run failed: ","실시간 실행 실패: "],
+live_tokens:["tokens (live)","토큰 (실시간)"],
+step_consistency:["Consistency","일관성"],
+mm_head:["Resolve the blocking questions first.","차단 질문부터 해결하세요."],
+mm_findings:["Cross-document findings","문서 간 대조 결과"],
+mm_receipt:["Receipt says","영수증"],
+mm_cert:["Certificate says","진단서"],
+sev_blocker:["blocker","차단"],
+sev_check:["note","참고"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -291,7 +314,7 @@ function t(k){
 function titleOf(o){return (o.titles&&o.titles[LANG])||o.title;}
 const STEPLABEL={"Reading":"step_reading","Checks":"step_checks","Eligibility":"step_eligibility",
 "Decision":"step_decision","Claim Pack":"step_pack","Question":"step_question","Codes":"step_codes",
-"Re-read":"step_reread","Fact extraction":"step_facts"};
+"Re-read":"step_reread","Consistency":"step_consistency","Fact extraction":"step_facts"};
 function stepLabel(s){
   const k=STEPLABEL[s.label];
   if(k)return t(k);
@@ -302,7 +325,8 @@ function stepLabel(s){
 function stepMeta(m){
   if(m==="deterministic")return t("meta_det");
   return String(m||"").replace(/([\\d,]+) tokens \\(recorded\\)/,
-    (mm,n)=>n+" "+t("meta_tokens")).replace(/· user answers$/,"· "+t("meta_user"));
+    (mm,n)=>n+" "+t("meta_tokens")).replace(/· user answers$/,"· "+t("meta_user"))
+    .replace(/([\\d,]+) tokens \\(live\\)/,(mm,n)=>n+" "+t("live_tokens"));
 }
 const CAPTION={"Receipt (photo)":"cap_receipt_photo","Certificate (photo)":"cap_cert_photo",
 "Receipt (masked copy)":"cap_receipt_masked","Certificate (masked copy)":"cap_cert_masked"};
@@ -334,7 +358,7 @@ function render(){
   const tn=document.getElementById('topnote');
   if(tn)tn.textContent=t('topnote');
   const rt=document.getElementById('replaytag');
-  if(rt)rt.textContent=t('replay_tag');
+  if(rt){if(LIVE){rt.textContent=t('live_tag');if(rt.classList)rt.classList.add('live');}else rt.textContent=t('replay_tag');}
   const pp=document.getElementById('prov-panel');
   if(pp&&pp.setAttribute)pp.setAttribute('aria-label',t('prov_aria'));
   document.querySelectorAll('#langswitch button').forEach(b=>{
@@ -363,6 +387,7 @@ function render(){
   pickFlow('A_niseko_wrist');
 }
 render();
+liveProbe();
 function reducedMotion(){
   return typeof window!=='undefined'&&window.matchMedia
     &&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -422,7 +447,7 @@ function flowView(f){
     +`<p><small class="dim">${esc(t('flow_note'))}</small></p>`
     +`<p id="flow-tip"><small class="dim">${esc(t('tip_numbers'))}</small></p>`
     +`<div class="flow-pick">${picks}</div>`
-    +`<div id="flow-drop">${esc(t('drop'))}</div>`
+    +`<div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}</div>`
     +`<p id="flow-msg" role="status"></p>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
@@ -452,8 +477,50 @@ document.addEventListener('drop',e=>{
   const dz=e.target&&e.target.closest?e.target.closest('#flow-drop'):null;
   if(!dz)return;
   e.preventDefault();
-  document.getElementById('flow-msg').textContent=t('live_msg');
+  liveDrop(e);
 });
+function liveProbe(){
+  try{
+    if(typeof fetch==='undefined'||typeof location==='undefined')return;
+    if(!/^https?:/.test(location.protocol||''))return;
+    fetch('/api/health').then(r=>r.json()).then(j=>{
+      if(!j||j.mode!=='live')return;
+      LIVE=true;
+      const rt=document.getElementById('replaytag');
+      if(rt){rt.textContent=t('live_tag');if(rt.classList)rt.classList.add('live');}
+      const dz=document.getElementById('flow-drop');
+      if(dz)dz.textContent=t('live_drop');
+    }).catch(()=>{});
+  }catch(e){}
+}
+function liveDrop(e){
+  if(!LIVE){document.getElementById('flow-msg').textContent=t('live_msg');return;}
+  const files=[...((e.dataTransfer&&e.dataTransfer.files)||[])].slice(0,2);
+  if(!files.length)return;
+  document.getElementById('flow-msg').textContent=t('live_running');
+  Promise.all(files.map(f=>new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res({name:f.name,data:String(r.result).split(',')[1]});
+    r.onerror=rej;r.readAsDataURL(f);
+  }))).then(images=>fetch('/api/run',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({images})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j})))
+  ).then(({ok,j})=>{
+    const msg=document.getElementById('flow-msg');
+    if(!ok){msg.textContent=t('live_failed')+(j.error||'');return;}
+    msg.textContent='';
+    document.getElementById('flow-steps').innerHTML=j.steps.map((s,i)=>
+      `<div class="fstep done" id="fstep-${i}"><strong>${esc(stepLabel(s))}</strong>`
+      +`<span>${esc(s.detail)}</span><small class="dim">${esc(String(s.seconds))}s · ${esc(liveMeta(s))}</small></div>`
+    ).join('');
+    document.getElementById('flow-result').innerHTML=`<div class="flow-result"><p>${badge(j.result.badge)}</p>`
+      +`<p class="amount">${esc(j.result.title)}</p></div>`;
+  }).catch(err=>{document.getElementById('flow-msg').textContent=t('live_failed')+err;});
+}
+function liveMeta(s){
+  if(s.tokens)return String(s.tokens).replace(/(\\d)(?=(\\d{3})+$)/g,'$1,')+" "+t('live_tokens');
+  return stepMeta(s.meta);
+}
 document.addEventListener('click',e=>{
   const go=e.target.closest?e.target.closest('.plink'):null;
   if(go){
@@ -496,7 +563,29 @@ function hideProv(){
   if(p&&p.style)p.style.display='none';
   document.querySelectorAll('.num.hl').forEach(n=>n.classList.remove('hl'));
 }
+// MMKIND lookup is declared near the top: the first render needs it.
+function mismatchSection(s,first){
+  return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
+    +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${mismatchScene(s)}</div></div></section>`;
+}
+function mismatchScene(s){
+  const items=s.mismatch.findings.map(f=>{
+    const sev=f.severity==='blocker'?'sev-blocker':'sev-check';
+    const sevText=f.severity==='blocker'?t('sev_blocker'):t('sev_check');
+    const ask=f.question?`<p class="ask noprov"><strong>${esc(t('q_w'))} ${esc(f.question)}</strong><br/>`
+      +`<small class="dim">${esc(t('why_w'))} ${esc(f.why_needed||'')}</small></p>`:'';
+    return `<li><p><span class="sev ${sev}">${esc(sevText)}</span> `
+      +`<strong>${esc(MMKIND[f.kind]||f.kind)}</strong></p>`
+      +`<p class="noprov">${esc(f.reason)}</p>`
+      +`<div class="quotes"><div><h5>${esc(t('mm_receipt'))}</h5>`
+      +`<p class="noprov">“${esc(f.quote_receipt)}”</p></div>`
+      +`<div><h5>${esc(t('mm_cert'))}</h5><p class="noprov">“${esc(f.quote_cert)}”</p></div></div>`
+      +ask+`</li>`;
+  }).join('');
+  return `<h3>${esc(t('mm_findings'))}</h3><ul class="tight">${items}</ul>`;
+}
 function stage(s,first){
+  if(s.mismatch)return mismatchSection(s,first);
   if(s.clips)
     return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
       +`${headline(s)}${voiceScene(s)}</section>`;
@@ -505,6 +594,7 @@ function stage(s,first){
     +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div></section>`;
 }
 function headline(s){
+  if(s.mismatch)return `<p class="headline">${badge('needs review')} <strong>${esc(t('mm_head'))}</strong></p>`;
   if(s.card)
     return `<p class="headline">${badge(s.card.decision)} <strong>${pv(s.card.amount)}</strong></p>`;
   if(s.pack)

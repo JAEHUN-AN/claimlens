@@ -1,0 +1,10 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"findings\": [{\"kind\": \"billed_not_described\", \"quote_cert\": \"Panic disorder [episodic paroxysmal anxiety]\", \"quote_receipt\": \"Diagnostic imaging (X-ray, wrist 3 views)\", \"reason\": \"Receipt lists this billed line with no matching wording in the certificate.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Panic disorder [episodic paroxysmal anxiety]\", \"quote_receipt\": \"Treatment - closed reduction\", \"reason\": \"Receipt lists this billed line with no matching wording in the certificate.\", \"severity\": \"check\"}, {\"kind\": \"billed_not_described\", \"quote_cert\": \"Palpitations\", \"quote_receipt\": \"Treatment - splint immobilization\", \"reason\": \"Receipt lists this billed line with no matching wording in the certificate.\", \"severity\": \"check\"}]}",
+  "usage": {
+    "input_tokens": 777,
+    "output_tokens": 1742,
+    "total_tokens": 2519
+  },
+  "recorded_at": "2026-10-28T00:35:56.803365+00:00"
+}

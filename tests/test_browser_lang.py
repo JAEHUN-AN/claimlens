@@ -1,6 +1,6 @@
 """Real-browser check for the UI language switch (Edge via Playwright).
 
-Clicks the topbar switcher like the owner did, opens all five scenes,
+Clicks the topbar switcher like the owner did, opens all six scenes,
 and asserts the whole chrome (not just topbar and tabs) shows the
 picked language with exactly one view visible.
 """
@@ -19,7 +19,10 @@ SCENES = [
     "S3_us_tourist_hip_fracture",
     "agent_s2_hidden_copay",
     "voice_factory_fall",
+    "mismatch_s2r_s3c",
 ]
+
+FLOW_EXAMPLES = SCENES[:5]
 
 TITLES = {
     "ko": {
@@ -28,6 +31,7 @@ TITLES = {
         "S3_us_tourist_hip_fracture": "장면 S3 — 서울에서 치료받은 미가입 방문자",
         "agent_s2_hidden_copay": "장면 Agent — 본인부담 칸이 숨겨진 S2",
         "voice_factory_fall": "장면 Voice — 공장 추락 (음성 접수)",
+        "mismatch_s2r_s3c": "장면 Mismatch — S2 영수증과 S3 진단서",
     },
 }
 
@@ -45,13 +49,14 @@ H3 = {
         "S3_us_tourist_hip_fracture": ["읽기", "검증 후 재판독", "자격", "Claim Pack"],
         "agent_s2_hidden_copay": ["에이전트 타임라인"],
         "voice_factory_fall": ["음성 접수"],
+        "mismatch_s2r_s3c": ["문서 간 대조 결과"],
     },
 }
 
 FLOW = {
     "ko": {
-        "tagline": "국경을 넘나드는 의료 서류 — 양방향으로",
-        "strip": ["읽기", "검증", "판정 또는 Claim Pack 작성"],
+        "tagline": "AI는 읽고 추론하고 묻고, 코드는 계산한다.",
+        "strip": ["Muse Spark가 읽고 추론", "코드가 계산", "사람이 결정"],
         "h2": "청구 처리",
         "drop": "직접 문서를 올려보고 싶으세요? 실시간 업로드에는 API 키가 필요합니다 — 위 예시로 체험해 보세요.",
         "play": "재생",
@@ -62,7 +67,7 @@ FLOW = {
 
 EN_CHROME = [
     "Process a claim",
-    "Medical paperwork that crosses borders",
+    "AI reads, reasons and asks; code counts.",
     "Want to try your own document?",
     "Scene S2 — insured worker treated in Seoul",
     "See the full example",
@@ -91,9 +96,9 @@ def test_language_switch_in_browser(browser, lang):
     assert page.locator("#flow-view h2").inner_text() == "Process a claim"
     page.locator(f'#langswitch button[data-lang="{lang}"]').click()
 
-    # One flow card and five scenes: re-render replaces, never appends.
+    # One flow card and six scenes: re-render replaces, never appends.
     assert page.locator("#flow-view").count() == 1
-    assert page.locator("section.scene").count() == 5
+    assert page.locator("section.scene").count() == 6
 
     # Flow card chrome is translated.
     flow = FLOW[lang]
@@ -103,7 +108,7 @@ def test_language_switch_in_browser(browser, lang):
     assert page.locator("#flow-drop").inner_text() == flow["drop"]
     assert page.locator("#flow-play").inner_text() == flow["play"]
     picks = page.locator("#flow-view .fpick").all_inner_texts()
-    assert picks == [TITLES[lang][s] for s in SCENES]
+    assert picks == [TITLES[lang][s] for s in FLOW_EXAMPLES]
 
     # Scene tabs carry the translated titles.
     tabs = page.locator("#scenes button").all_inner_texts()

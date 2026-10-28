@@ -1,5 +1,5 @@
 // Render smoke for the demo page: stubs a minimal DOM, runs the page script,
-// and asserts the three scenes render with badges, tables, and masked captions.
+// and asserts the six scenes render with badges, tables, and masked captions.
 import { readFileSync } from "node:fs";
 
 const html = readFileSync(process.argv[2], "utf-8");
@@ -37,8 +37,8 @@ function assert(cond, msg) {
   if (!cond) throw new Error(`smoke: ${msg}`);
 }
 const sections = stagesHtml.match(/<section class="scene/g) || [];
-assert(sections.length === 5, `5 scenes, got ${sections.length}`);
-assert(buttons.length === 6, `6 nav buttons, got ${buttons.length}`);
+assert(sections.length === 6, `6 scenes, got ${sections.length}`);
+assert(buttons.length === 7, `7 nav buttons, got ${buttons.length}`);
 assert(stagesHtml.includes('id="flow-view"'), "flow first screen");
 assert(els["flow-steps"].innerHTML.includes("Reading"), "preselect fills steps");
 assert(els["flow-play"].disabled === false, "preselect enables play");
@@ -73,8 +73,10 @@ assert(stagesHtml.includes(">work_injury<"), "work_injury badge");
 assert(stagesHtml.includes("industrial accident compensation insurance first"), "next step");
 assert(stagesHtml.includes("<audio"), "audio player");
 assert(stagesHtml.includes("hurt my left wrist"), "en transcript");
-assert(stagesHtml.includes("Medical paperwork that crosses borders"), "product tagline");
-assert(stagesHtml.includes("Decide or build a Claim Pack"), "three-step strip");
+assert(stagesHtml.includes("AI reads, reasons and asks; code counts."), "product thesis");
+assert(stagesHtml.includes("Muse Spark reads &amp; reasons"), "thesis strip reads");
+assert(stagesHtml.includes("code counts"), "thesis strip counts");
+assert(stagesHtml.includes("people decide"), "thesis strip decides");
 assert(stagesHtml.includes("Reading accuracy (offline eval)"), "eval subtitle");
 assert(stagesHtml.includes("Open weights match hosted on A/B"), "eval open line");
 assert(stagesHtml.includes("<td>S3</td>"), "eval S3 row");
@@ -94,7 +96,14 @@ assert(stagesHtml.includes("I heard 20 October"), "confirmation question");
 assert(stagesHtml.includes("10월 20일로 들었습니다 — 맞나요?"), "ko confirmation question");
 assert(!stagesHtml.includes("WHO J20.9 + None"), "no None in timeline");
 const headlines = stagesHtml.match(/<p class="headline">/g) || [];
-assert(headlines.length === 5, `5 headlines, got ${headlines.length}`);
+assert(headlines.length === 6, `6 headlines, got ${headlines.length}`);
+assert(stagesHtml.includes("Scene Mismatch"), "mismatch scene");
+assert(stagesHtml.includes("Cross-document findings"), "mismatch findings");
+assert(stagesHtml.includes("NGUYEN VAN AN"), "mismatch receipt quote");
+assert(stagesHtml.includes("Michael J. CARTER"), "mismatch cert quote");
+assert(stagesHtml.includes(">needs review<"), "mismatch badge");
+assert(stagesHtml.includes("Which patient is this claim for?"), "mismatch ask");
+assert(html.includes("/api/health"), "live probe");
 assert(stagesHtml.includes("Claim Pack ·"), "pack headline");
 assert(stagesHtml.includes("15,000,000"), "pack headline total");
 // Provenance coverage: every bare number on A/S2/S3/Agent must sit inside
@@ -104,12 +113,13 @@ const VOID = new Set(["img", "br", "hr", "audio", "source"]);
 for (const part of stagesHtml.split("<section")) {
   const idMatch = part.match(/id="([^"]+)"/);
   if (!idMatch || SKIP_SECTIONS.has(idMatch[1])) continue;
+  const body = part.split('<div id="flow-view">')[0]; // stub appends flow-view last
   const stack = [];
   const inProv = () => stack.some((c) => c.prov);
   const inNoprov = () => stack.some((c) => c.noprov);
   const token = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)(\s[^<>]*)?(\/?)>|([^<>]+)/g;
   let tok;
-  while ((tok = token.exec(part))) {
+  while ((tok = token.exec(body))) {
     if (tok[5] !== undefined) {
       if (inProv() || inNoprov()) continue;
       const bare = tok[5].match(/(?<![A-Za-z_0-9-])\d[\d,]*(\.\d+)?/g) || [];
@@ -160,8 +170,9 @@ assert(stagesHtml.includes("확인 필요"), "ko to-confirm tag");
 assert(stagesHtml.includes("판독 정확도 (오프라인 평가)"), "ko eval subtitle");
 assert(!stagesHtml.includes("Process a claim"), "flow re-rendered, not appended");
 assert(!stagesHtml.includes("Scene S2 — insured worker"), "scene re-rendered, not appended");
-assert((stagesHtml.match(/<section class="scene/g) || []).length === 5, "still 5 scenes");
+assert((stagesHtml.match(/<section class="scene/g) || []).length === 6, "still 6 scenes");
+assert(stagesHtml.includes("장면 Mismatch"), "ko mismatch title");
 assert((stagesHtml.match(/id="flow-view"/g) || []).length === 1, "single flow card");
 globalThis.__setLang("en");
 assert(stagesHtml.includes("2,216,050 KRW"), "amounts unchanged by switch");
-console.log("demo smoke: OK (5 scenes, badges, bill table, masked captions, timeline, voice, provenance)");
+console.log("demo smoke: OK (6 scenes, badges, bill table, masked captions, timeline, voice, mismatch, provenance)");

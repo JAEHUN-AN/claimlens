@@ -48,6 +48,12 @@ VOICE_SCENE = (
     (("en", "W_factory_fall_en"), ("ko", "W_factory_fall_ko")),
 )
 
+MISMATCH_SCENE = (
+    "mismatch_s2r_s3c",
+    "Scene Mismatch — S2 receipt, S3 certificate",
+    "S2r-S3c",
+)
+
 DOC_CAPTION = {"receipt": "Receipt", "medical_certificate": "Certificate"}
 
 SCENE_TITLES = {
@@ -71,6 +77,12 @@ SCENE_TITLES = {
         "en": "Scene Voice — factory fall (spoken intake)",
         "ko": "장면 Voice — 공장 추락 (음성 접수)",
     },
+}
+
+# Kept beside the table: the mismatch scene pairs two samples, not one.
+SCENE_TITLES["mismatch_s2r_s3c"] = {
+    "en": "Scene Mismatch — S2 receipt, S3 certificate",
+    "ko": "장면 Mismatch — S2 영수증과 S3 진단서",
 }
 
 FLOW_LABELS = {
@@ -864,11 +876,51 @@ def _eval_section() -> dict[str, Any]:
     return {"rows": rows, "open_line": line}
 
 
+def mismatch_scene_payload(dst: Path) -> dict[str, Any]:
+    from claimlens.consistency import check_consistency
+
+    scene_id, title, bundle = MISMATCH_SCENE
+    provider = ReplayProvider()
+    result = check_consistency(bundle, provider)
+    base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples"))
+    receipt_img = resolve_sample_images(base / "S2_seoul_worker_bronchitis", "photo")[0]
+    masked = Path("docs/masking") / "S3_cert_after.png"
+    photo_cert = resolve_sample_images(base / "S3_us_tourist_hip_fracture", "photo")[1]
+    cert_src = _rel(dst.parent, masked if masked.exists() else photo_cert)
+    images = [
+        {"src": _rel(dst.parent, receipt_img), "caption": "Receipt (photo)"},
+        {"src": cert_src, "caption": "Certificate (masked copy)"},
+    ]
+    keys = ("kind", "severity", "layer", "quote_receipt", "quote_cert",
+            "reason", "question", "why_needed")
+    return {
+        "id": scene_id,
+        "title": title,
+        "titles": SCENE_TITLES[scene_id],
+        "reading": None,
+        "eligibility": None,
+        "card": None,
+        "pack": None,
+        "timeline": None,
+        "clips": None,
+        "images": images,
+        "mismatch": {
+            "bundle": bundle,
+            "receipt_sample": "S2_seoul_worker_bronchitis",
+            "cert_sample": "S3_us_tourist_hip_fracture",
+            "stopped": result["stopped"],
+            "dropped_quotes": result["dropped_quotes"],
+            "findings": [{k: f.get(k) for k in keys} for f in result["findings"]],
+        },
+    }
+
+
 def export_demo(dst: Path | str = "docs/demo.html") -> Path:
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
     scenes.append(agent_scene_payload(dst))
     scenes.append(voice_scene_payload(dst))
+    scenes.append(mismatch_scene_payload(dst))
     flow = {
         "examples": [
             _scene_flow(scenes[0]["id"], scenes[0]),
