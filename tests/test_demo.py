@@ -116,6 +116,13 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         assert all(s["label"] and s["detail"] and s["meta"] for s in example["steps"])
         assert example["result"]["badge"]
     assert [e["result"]["engine"] for e in flow] == [True, True, False, True, False]
+    presets = payload["flow"]["person_presets"]
+    assert [p["id"] for p in presets] == [
+        "S2_seoul_worker_bronchitis",
+        "S3_us_tourist_hip_fracture",
+    ]
+    assert presets[0]["label"] == {"en": "Worker in Seoul (S2)", "ko": "서울 근로자 (S2)"}
+    assert presets[0]["person"]["alien_registration_date"] == "2026-03-20"
     assert timeline["outcome"]["engine"] is True
     assert [s["key"] for s in flow[3]["steps"]].count("ask_user") == 1
     assert flow[4]["result"]["badge"] == "work_injury"

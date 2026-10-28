@@ -103,6 +103,26 @@ TERM_LABELS = (
     "claimed times copay rate",
 )
 
+PERSON_PRESETS = (
+    ("S2_seoul_worker_bronchitis", "Worker in Seoul (S2)", "서울 근로자 (S2)"),
+    ("S3_us_tourist_hip_fracture", "US tourist (S3)", "미국 관광객 (S3)"),
+)
+
+
+def _person_presets():
+    from claimlens.engine import load_scenarios
+
+    scenarios, _ = load_scenarios()
+    presets = []
+    for sample_id, en, ko in PERSON_PRESETS:
+        person = scenarios.get(sample_id, {}).get("person")
+        if person:
+            presets.append(
+                {"id": sample_id, "label": {"en": en, "ko": ko}, "person": person}
+            )
+    return presets
+
+
 
 def _rel(from_dir: Path, target: Path) -> str:
     start = _normpath(os.path.abspath(from_dir))
@@ -952,6 +972,7 @@ def export_demo(dst: Path | str = "docs/demo.html") -> Path:
             _voice_flow(scenes[4]),
         ],
         "eval": _eval_section(),
+        "person_presets": _person_presets(),
     }
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_page({"scenes": scenes, "flow": flow}), encoding="utf-8")

@@ -1196,3 +1196,37 @@ short "Demo video" section. No behaviour change.
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-28 — Backlog session: item 40f live run without person facts (uncommitted)
+
+A live run with no person facts dead-ended at "Human review: no decision
+path" (the owner's post-only main video). The flow view now has a "Whose
+claim is this?" panel next to the drop zone (visa, Korean employer yes/no,
+work injury yes/no, entry date; en/ko) with presets from
+`samples/scenarios_inbound.json` ("Worker in Seoul (S2)", "US tourist
+(S3)"), sent as `person` (+ preset `scenario`) with `/api/run`. Missing
+facts return `ask_user`-shaped questions and pause the run after the
+checks; answering continues the same run with no new reading call. The
+engine path accepts a preset-declared scenario context (labeled as such,
+`matched_sample` stays honest), so the S2 preset + retake drop ends
+PARTIAL 22,500 KRW. Long result titles no longer use the big amount font;
+blocker questions now show on the page too. Both storyboards pick the S2
+preset before the live drop. NOT committed: the owner runs the browser
+tests and re-records first, then one single commit.
+
+### Muse Code (coding agent)
+
+- Tests: 239 passed, 9 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser file deselected in the sandbox (`ruff check`
+  clean). New: pause/questions/continue/preset-context route tests,
+  two owner-run browser tests (preset → PARTIAL; no facts → questions
+  → answer → PARTIAL with no second reading), person-preset demo data
+  test; dry runs pass for both cuts.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: `uv run pytest tests/test_browser_lang.py -q`, then
+  re-record both videos (live runs end PARTIAL 22,500 KRW) and verify;
+  only then commit once. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.

@@ -267,11 +267,11 @@ def pick_rush(board: dict, actuals: list[tuple[str, float, float]], lead: float,
     span = (start + first, end - last)
     if span[1] - span[0] <= 0.5:
         raise RuntimeError(f"rush window on {seg['id']} is empty; cannot fit {limit:g}s")
-    for speed in (2, 4):
+    for speed in (2, 4, 8, 16):
         if (span[1] - span[0]) * (1 - 1 / speed) >= excess - 0.05:
             return {"seg": seg["id"], "span": span, "speed": speed, "tag": f"{speed}×"}
     raise RuntimeError(
-        f"live wait overruns by {excess:.1f}s; even 4x cannot fit {limit:g}s"
+        f"live wait overruns by {excess:.1f}s; even 16x cannot fit {limit:g}s"
     )
 
 

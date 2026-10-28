@@ -53,6 +53,21 @@ def _sample_images() -> list[dict[str, str]]:
     return out
 
 
+def _retake_images() -> list[dict[str, str]]:
+    root = Path(__file__).resolve().parent.parent / "samples" / "live"
+    out = []
+    for name in ("S2_receipt_retake.jpg", "S2_medical_certificate_retake.jpg"):
+        blob = (root / name).read_bytes()
+        out.append({"name": name, "data": base64.b64encode(blob).decode("ascii")})
+    return out
+
+
+def _s2_person() -> dict:
+    root = Path(__file__).resolve().parent.parent / "samples" / "scenarios_inbound.json"
+    scenarios = json.loads(root.read_text(encoding="utf-8"))["scenarios"]
+    return next(s for s in scenarios if s["id"] == "S2_seoul_worker_bronchitis")["person"]
+
+
 PORT = 8000
 
 
@@ -84,7 +99,7 @@ def test_static_demo_but_nothing_sensitive(stubbed):
 
 
 def test_run_live_end_to_end_with_stub(stubbed):
-    status, result = _run(stubbed, {"images": _sample_images()})
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     assert [s["key"] for s in result["steps"]] == [
         "reading", "checks", "eligibility", "consistency", "decision",
@@ -95,12 +110,13 @@ def test_run_live_end_to_end_with_stub(stubbed):
     assert result["result"]["badge"] == "engine_unreachable"
     assert result["tokens_total"] == 150
     assert result["questions"] == []
+    assert "run_id" not in result
 
 
 def test_reused_recordings_say_so_with_zero_new_tokens(monkeypatch):
     monkeypatch.setattr(serve, "live_provider", lambda: StubProvider(reused=True))
     monkeypatch.setattr(serve, "neo4j_up", lambda: False)
-    status, result = _run(serve, {"images": _sample_images()})
+    status, result = _run(serve, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     by_key = {s["key"]: s for s in result["steps"]}
     assert by_key["reading"]["tokens"] == 0
@@ -147,11 +163,83 @@ def test_run_live_engine_path_never_overwrites_recordings(stubbed, monkeypatch):
         raise AssertionError("live run must not overwrite engine recordings")
 
     monkeypatch.setattr(engine, "store_result", _boom)
-    status, result = _run(stubbed, {"images": _sample_images()})
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     assert result["result"]["badge"] == "PARTIAL"
     assert result["result"]["title"] == "22,500 KRW"
     assert result["result"]["note"] == "live engine call, not cached"
+
+
+def test_no_person_facts_pauses_with_questions(stubbed):
+    status, result = _run(stubbed, {"images": _sample_images()})
+    assert status == 200
+    assert result["result"]["badge"] == "need_facts"
+    assert [s["key"] for s in result["steps"]] == ["reading", "checks"]
+    assert len(result["questions"]) == 4
+    assert all(set(q) == {"question", "why_needed"} for q in result["questions"])
+    assert all(q["question"] and q["why_needed"] for q in result["questions"])
+    assert result["run_id"]
+
+
+def test_partial_person_asks_only_what_is_missing(stubbed):
+    person = {"visa": "E-7", "korean_employer": True, "work_related": False}
+    status, result = _run(stubbed, {"images": _sample_images(), "person": person})
+    assert status == 200
+    assert result["result"]["badge"] == "need_facts"
+    assert len(result["questions"]) == 1
+    assert "enter Korea" in result["questions"][0]["question"]
+
+
+def test_continue_finishes_with_no_new_reading(stubbed, monkeypatch):
+    stub = StubProvider()
+    monkeypatch.setattr(serve, "live_provider", lambda: stub)
+    _, paused = _run(stubbed, {"images": _sample_images()})
+    reads = [c for c in stub.calls if c.total_tokens == 100]
+    assert len(reads) == 1
+    status, result = _run(
+        stubbed, {"run_id": paused["run_id"], "person": _s2_person()}
+    )
+    assert status == 200
+    assert [s["key"] for s in result["steps"]] == [
+        "reading", "checks", "eligibility", "consistency", "decision",
+    ]
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert "run_id" not in result
+    assert len([c for c in stub.calls if c.total_tokens == 100]) == 1
+    status, result = _run(stubbed, {"run_id": paused["run_id"], "person": _s2_person()})
+    assert status == 400
+    assert "drop the photos again" in result["error"]
+
+
+def test_preset_scenario_reaches_engine_without_byte_match(stubbed, monkeypatch):
+    from claimlens import engine
+
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate", lambda inputs: {"decision": "PARTIAL", "amount": 22500})
+    status, result = _run(stubbed, {
+        "images": _retake_images(),
+        "person": _s2_person(),
+        "scenario": "S2_seoul_worker_bronchitis",
+    })
+    assert status == 200
+    assert result["matched_sample"] is None
+    assert result["scenario"] == "S2_seoul_worker_bronchitis"
+    assert result["result"]["badge"] == "PARTIAL"
+    assert result["result"]["title"] == "22,500 KRW"
+    assert "preset-declared" in result["result"]["note"]
+
+
+def test_continue_rejects_bad_run_id_person_and_scenario(stubbed):
+    status, result = _run(stubbed, {"run_id": "nope", "person": _s2_person()})
+    assert status == 400
+    status, result = _run(stubbed, {"images": _sample_images(), "person": ["E-7"]})
+    assert status == 400
+    assert "person must be an object" in result["error"]
+    status, result = _run(
+        stubbed, {"images": _sample_images(), "person": _s2_person(), "scenario": "S9_nope"}
+    )
+    assert status == 400
+    assert "Unknown scenario" in result["error"]
 
 
 def test_run_rejects_non_images_and_wrong_counts(stubbed):

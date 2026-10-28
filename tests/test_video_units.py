@@ -69,8 +69,8 @@ def test_pick_rush_prefers_2x_then_4x():
     assert (plan["speed"], plan["tag"]) == (4, "4×")
 
 
-def test_pick_rush_fails_when_4x_cannot_fit():
-    with pytest.raises(RuntimeError, match="even 4x cannot fit"):
+def test_pick_rush_fails_when_16x_cannot_fit():
+    with pytest.raises(RuntimeError, match="even 16x cannot fit"):
         V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 20.0)
     with pytest.raises(RuntimeError, match="no rush window"):
         V.pick_rush({"segments": []}, _rush_actuals(), 2.0, 20.0)

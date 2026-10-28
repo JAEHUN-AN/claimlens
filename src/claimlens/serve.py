@@ -12,6 +12,7 @@ import binascii
 import hashlib
 import json
 import os
+import secrets
 import tempfile
 import threading
 import time
@@ -102,13 +103,102 @@ def order_docs(reading: dict[str, Any]) -> dict[str, Any]:
     return {"documents": [receipt, cert]}
 
 
-def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dict[str, Any]:
-    """Full pipeline on uploaded images. Raises ValueError on bad input."""
+PERSON_FIELDS = ("visa", "korean_employer", "work_related", "entry_date")
+
+FACT_QUESTIONS = {
+    "visa": (
+        "What visa does the patient hold?",
+        "Special visas change when coverage starts (eligibility row 2).",
+    ),
+    "korean_employer": (
+        "Does the patient work for a Korean employer?",
+        "Workplace subscribers are covered from the first working day (row 1).",
+    ),
+    "work_related": (
+        "Is this injury or illness work-related?",
+        "Work injuries go to industrial-accident insurance first (row 7).",
+    ),
+    "entry_date": (
+        "When did the patient enter Korea (YYYY-MM-DD)?",
+        "Coverage starts from entry or registration (rows 2-4).",
+    ),
+}
+
+_RUNS: dict[str, dict[str, Any]] = {}
+_MAX_RUNS = 20
+
+
+def missing_facts(person: dict[str, Any] | None) -> list[str]:
+    """Panel fields with no answer yet. False is an answer; blank is not."""
+    person = person or {}
+    missing = []
+    for key in PERSON_FIELDS:
+        value = person.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            missing.append(key)
+    return missing
+
+
+def fact_questions(keys: list[str]) -> list[dict[str, str]]:
+    """Missing facts as ask_user questions: same question/why_needed shape."""
+    return [
+        {"question": FACT_QUESTIONS[key][0], "why_needed": FACT_QUESTIONS[key][1]}
+        for key in keys
+    ]
+
+
+def check_person(person: Any) -> dict[str, Any]:
+    if person is None:
+        return {}
+    if not isinstance(person, dict):
+        raise TypeError("person must be an object.")
+    return person
+
+
+def check_scenario(scenario: Any, scenarios: dict[str, dict[str, Any]]) -> str | None:
+    if scenario is None or scenario == "":
+        return None
+    if not isinstance(scenario, str) or scenario not in scenarios:
+        raise ValueError(f"Unknown scenario: {scenario!r}.")
+    return scenario
+
+
+def _step(steps: list[dict[str, Any]], key: str, label: str, detail: str,
+          meta: str, seconds: float, tokens: int = 0) -> None:
+    steps.append(
+        {"key": key, "label": label, "detail": detail, "meta": meta,
+         "seconds": round(seconds, 3), "tokens": tokens}
+    )
+
+
+def _step_usage(provider: Any, since: int) -> tuple[int, bool, bool]:
+    """New tokens, whether any call was made, whether all were reused."""
+    made = provider.calls[since:]
+    fresh = [c for c in made if not getattr(c, "reused", False)]
+    return sum(c.total_tokens for c in fresh), bool(made), bool(made) and not fresh
+
+
+def _live_meta(provider: Any, since: int) -> tuple[str, int]:
+    """Honest meta: only a real network call may say 'live'."""
+    tokens, _, reused_only = _step_usage(provider, since)
+    if reused_only:
+        return REUSED_LABEL, 0
+    return f"{tokens} tokens (live)", tokens
+
+
+def run_live(
+    images: list[dict[str, str]],
+    person: dict[str, Any] | None = None,
+    scenario: str | None = None,
+) -> dict[str, Any]:
+    """Full pipeline on uploaded images. Raises ValueError on bad input.
+
+    When person facts are missing the run pauses after the checks with
+    ask_user questions instead of dead-ending; answering continues the
+    same run (see run_continue) with no new reading call.
+    """
     from claimlens.checks import check_kr_bill, check_kr_lines
-    from claimlens.claimpack import build_pack
-    from claimlens.consistency import deterministic_findings, spark_findings
-    from claimlens.eligibility import check_eligibility
-    from claimlens.engine import build_inputs, live_adjudicate, load_scenarios
+    from claimlens.engine import load_scenarios
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
     from claimlens.verify import verify_receipt
@@ -127,28 +217,12 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
     if sum(len(b) for b in blobs) > MAX_UPLOAD_BYTES:
         raise ValueError("Uploads exceed the 10 MB limit.")
 
+    person = check_person(person)
+    scenarios, inbound = load_scenarios()
+    declared = check_scenario(scenario, scenarios)
+
     steps: list[dict[str, Any]] = []
     tokens_total = 0
-
-    def step(key: str, label: str, detail: str, meta: str, seconds: float, tokens: int = 0) -> None:
-        steps.append(
-            {"key": key, "label": label, "detail": detail, "meta": meta,
-             "seconds": round(seconds, 3), "tokens": tokens}
-        )
-
-    def step_usage(since: int) -> tuple[int, bool, bool]:
-        """New tokens, whether any call was made, whether all were reused."""
-        made = provider.calls[since:]
-        fresh = [c for c in made if not getattr(c, "reused", False)]
-        return sum(c.total_tokens for c in fresh), bool(made), bool(made) and not fresh
-
-    def live_meta(since: int) -> tuple[str, int]:
-        """Honest meta: only a real network call may say 'live'."""
-        tokens, _, reused_only = step_usage(since)
-        if reused_only:
-            return REUSED_LABEL, 0
-        return f"{tokens} tokens (live)", tokens
-
     provider = live_provider()
     with tempfile.TemporaryDirectory(prefix="claimlens-live-") as tmp:
         paths = []
@@ -160,12 +234,12 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
         started = time.monotonic()
         mark = len(provider.calls)
         reading = provider.read_documents(paths, READING_INSTRUCTIONS, reading_schema())
-        meta, tokens = live_meta(mark)
+        meta, tokens = _live_meta(provider, mark)
         tokens_total += tokens
-        step("reading", "Reading", "2 documents read by Muse Spark",
-             meta, time.monotonic() - started, tokens)
+        _step(steps, "reading", "Reading", "2 documents read by Muse Spark",
+              meta, time.monotonic() - started, tokens)
         reading = order_docs(reading)
-        receipt, cert = reading["documents"]
+        receipt = reading["documents"][0]
 
         started = time.monotonic()
         mark = len(provider.calls)
@@ -179,82 +253,167 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
             detail = f"{names}; re-read: {verified['status']}"
         else:
             detail = "no bill checks for non-Korean receipts"
-        tokens, made, _ = step_usage(mark)
+        tokens, made, _ = _step_usage(provider, mark)
         tokens_total += tokens
         if made:
-            meta, _ = live_meta(mark)
+            meta, _ = _live_meta(provider, mark)
             meta = f"deterministic + {meta}"
         else:
             meta = "deterministic"
-        step("checks", "Checks", detail, meta, time.monotonic() - started, tokens)
+        _step(steps, "checks", "Checks", detail, meta, time.monotonic() - started, tokens)
 
         matched = match_sample(blobs)
-        scenarios, inbound = load_scenarios()
-        facts = person or (scenarios[matched]["person"] if matched and "person" in scenarios.get(matched, {}) else None)
-        started = time.monotonic()
-        if matched and matched not in inbound:
-            eligibility = {"outcome": "traveller_abroad", "rule": "engine_path",
-                           "basis": "Korean traveller abroad — engine path."}
-        elif facts:
-            eligibility = check_eligibility(facts, receipt.get("service_date") or "")
-        else:
-            eligibility = {"outcome": "unknown_person", "rule": "no_person_facts",
-                           "basis": "No person facts provided; eligibility needs them."}
-        step("eligibility", "Eligibility", f"{eligibility['outcome']} ({eligibility['rule']})",
-             "deterministic", time.monotonic() - started)
+        run = {
+            "reading": reading,
+            "steps": steps,
+            "tokens_total": tokens_total,
+            "matched": matched,
+            "scenario": declared,
+            "person": person,
+        }
+        context = matched or declared
+        if context and context not in inbound:
+            return _finish_run(provider, run)
+        if missing_facts(person):
+            return _pause_run(run)
+        return _finish_run(provider, run)
 
-        started = time.monotonic()
-        mark = len(provider.calls)
-        ruled = deterministic_findings(receipt, cert)
-        sparked, dropped = spark_findings(receipt, cert, provider)
-        meta, tokens = live_meta(mark)
-        tokens_total += tokens
-        blockers = [f for f in ruled + sparked if f["severity"] == "blocker"]
-        step("consistency", "Consistency",
-             f"{len(blockers)} blockers, {len(ruled + sparked) - len(blockers)} notes"
-             + (f"; {dropped} dropped quotes" if dropped else ""),
-             meta, time.monotonic() - started, tokens)
 
-        started = time.monotonic()
-        note = ""
-        if blockers:
-            decision = {"badge": "blocked", "title": "Resolve the blocking questions first."}
-            detail = f"{len(blockers)} blocking questions asked"
-            meta = "stopped before decision"
-        elif eligibility["outcome"] in ("nhi_member", "traveller_abroad") and matched:
-            if neo4j_up():
-                inputs = build_inputs(matched, "photo", reading)
-                output = live_adjudicate(inputs)
-                decision = {"badge": output["decision"], "title": f"{output['amount']:,} KRW"}
+def _pause_run(run: dict[str, Any], run_id: str | None = None) -> dict[str, Any]:
+    """Park a run after the checks; the answer continues it (run_continue)."""
+    missing = missing_facts(run["person"])
+    if run_id is None:
+        run_id = secrets.token_urlsafe(16)
+    _RUNS[run_id] = run
+    while len(_RUNS) > _MAX_RUNS:
+        _RUNS.pop(next(iter(_RUNS)))
+    plural = "s" if len(missing) != 1 else ""
+    return {
+        "steps": run["steps"],
+        "result": {
+            "badge": "need_facts",
+            "title": f"Answer {len(missing)} question{plural} to continue.",
+            "note": "",
+        },
+        "tokens_total": run["tokens_total"],
+        "matched_sample": run["matched"],
+        "scenario": run["scenario"],
+        "questions": fact_questions(missing),
+        "run_id": run_id,
+    }
+
+
+def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
+    """Eligibility, consistency, and decision on a run with full facts."""
+    from claimlens.claimpack import build_pack
+    from claimlens.consistency import deterministic_findings, spark_findings
+    from claimlens.eligibility import check_eligibility
+    from claimlens.engine import build_inputs, live_adjudicate, load_scenarios
+
+    reading = run["reading"]
+    steps = run["steps"]
+    tokens_total = run["tokens_total"]
+    matched = run["matched"]
+    declared = run["scenario"]
+    person = run["person"]
+    receipt, cert = reading["documents"]
+    _, inbound = load_scenarios()
+    context = matched or declared
+    started = time.monotonic()
+    if context and context not in inbound:
+        eligibility = {"outcome": "traveller_abroad", "rule": "engine_path",
+                       "basis": "Korean traveller abroad — engine path."}
+    else:
+        eligibility = check_eligibility(person, receipt.get("service_date") or "")
+    _step(steps, "eligibility", "Eligibility",
+          f"{eligibility['outcome']} ({eligibility['rule']})",
+          "deterministic", time.monotonic() - started)
+
+    started = time.monotonic()
+    mark = len(provider.calls)
+    ruled = deterministic_findings(receipt, cert)
+    sparked, dropped = spark_findings(receipt, cert, provider)
+    meta, tokens = _live_meta(provider, mark)
+    tokens_total += tokens
+    blockers = [f for f in ruled + sparked if f["severity"] == "blocker"]
+    _step(steps, "consistency", "Consistency",
+          f"{len(blockers)} blockers, {len(ruled + sparked) - len(blockers)} notes"
+          + (f"; {dropped} dropped quotes" if dropped else ""),
+          meta, time.monotonic() - started, tokens)
+
+    started = time.monotonic()
+    note = ""
+    if blockers:
+        decision = {"badge": "blocked", "title": "Resolve the blocking questions first."}
+        detail = f"{len(blockers)} blocking questions asked"
+        meta = "stopped before decision"
+    elif eligibility["outcome"] in ("nhi_member", "traveller_abroad") and context:
+        if neo4j_up():
+            inputs = build_inputs(context, "photo", reading)
+            output = live_adjudicate(inputs)
+            decision = {"badge": output["decision"], "title": f"{output['amount']:,} KRW"}
+            detail = f"{output['decision']} {output['amount']:,} KRW"
+            if matched:
                 note = "live engine call, not cached"
-                detail = f"{output['decision']} {output['amount']:,} KRW"
-                meta = "live engine call, not cached"
             else:
-                decision = {"badge": "engine_unreachable", "title": "Neo4j is down; no decision made."}
-                detail = "engine skipped: Neo4j unreachable"
-                meta = "deterministic"
-        elif eligibility["outcome"] == "not_member_or_unknown" and matched:
-            pack = build_pack(matched, "photo", provider)
-            decision = {"badge": "claim_pack", "title": "Claim Pack built (sample-matched)."}
-            detail = f"{len(pack['items'])} lines, total {pack['total_krw']:,} KRW"
-            meta = "sample-matched pack"
+                note = f"{context} context (preset-declared); live engine call, not cached"
+            meta = note
         else:
-            decision = {"badge": "needs_review", "title": "Human review: no decision path."}
-            detail = eligibility["basis"]
+            decision = {"badge": "engine_unreachable", "title": "Neo4j is down; no decision made."}
+            detail = "engine skipped: Neo4j unreachable"
             meta = "deterministic"
-        decision["note"] = note
-        step("decision", "Decision", detail, meta, time.monotonic() - started)
+    elif eligibility["outcome"] == "not_member_or_unknown" and matched:
+        pack = build_pack(matched, "photo", provider)
+        decision = {"badge": "claim_pack", "title": "Claim Pack built (sample-matched)."}
+        detail = f"{len(pack['items'])} lines, total {pack['total_krw']:,} KRW"
+        meta = "sample-matched pack"
+    else:
+        decision = {"badge": "needs_review", "title": "Human review: no decision path."}
+        detail = eligibility["basis"]
+        meta = "deterministic"
+    decision["note"] = note
+    _step(steps, "decision", "Decision", detail, meta, time.monotonic() - started)
 
     return {
         "steps": steps,
         "result": decision,
         "tokens_total": tokens_total,
         "matched_sample": matched,
+        "scenario": declared,
         "questions": [
             {"question": f.get("question", ""), "why_needed": f.get("why_needed", "")}
             for f in blockers
         ],
     }
+
+
+def run_continue(
+    run_id: str,
+    person: dict[str, Any] | None = None,
+    scenario: str | None = None,
+) -> dict[str, Any]:
+    """Answer a paused run's questions; finishes with no new reading call."""
+    from claimlens.engine import load_scenarios
+
+    if not isinstance(run_id, str) or run_id not in _RUNS:
+        raise ValueError("Unknown or expired run; drop the photos again.")
+    run = _RUNS[run_id]
+    scenarios, inbound = load_scenarios()
+    declared = check_scenario(scenario, scenarios)
+    if declared:
+        run["scenario"] = declared
+    merged = dict(run["person"])
+    for key, value in check_person(person).items():
+        if value is None or (isinstance(value, str) and not value.strip()):
+            merged.pop(key, None)
+        else:
+            merged[key] = value
+    run["person"] = merged
+    context = run["matched"] or run["scenario"]
+    if not (context and context not in inbound) and missing_facts(merged):
+        return _pause_run(run, run_id)
+    del _RUNS[run_id]
+    return _finish_run(live_provider(), run)
 
 
 def route_get(path: str) -> tuple[int, bytes, str]:
@@ -309,7 +468,10 @@ def route_post(
         return 413, {"error": "Uploads exceed the 10 MB limit."}
     try:
         body = json.loads(raw.decode("utf-8"))
-        result = run_live(body.get("images", []), body.get("person"))
+        if body.get("run_id"):
+            result = run_continue(body["run_id"], body.get("person"), body.get("scenario"))
+        else:
+            result = run_live(body.get("images", []), body.get("person"), body.get("scenario"))
     except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         return 400, {"error": str(exc)}
     except RuntimeError as exc:

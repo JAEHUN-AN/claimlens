@@ -170,5 +170,6 @@ def run_post(board: dict, out_dir: Path, webm: Path, actuals: list[tuple[str, fl
 
 def _show(stage: str, exc: subprocess.CalledProcessError) -> None:
     print(f"{stage} failed:", file=sys.stderr)
-    print(f"command: {exc.cmd}", file=sys.stderr)
-    print(f"stderr:\n{exc.stderr}", file=sys.stderr)
+    if getattr(exc, "cmd", None):
+        print(f"command: {exc.cmd}", file=sys.stderr)
+    print(f"stderr:\n{getattr(exc, 'stderr', None) or exc}", file=sys.stderr)

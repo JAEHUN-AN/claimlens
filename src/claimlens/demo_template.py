@@ -87,6 +87,14 @@ letter-spacing:.02em;border:none;border-radius:999px}
 .badge-none{background:var(--badge-none-bg);color:var(--stamp-none)}
 .amount{font-family:var(--mono);font-size:1.75rem;font-weight:700;margin:.1rem 0;
 font-variant-numeric:tabular-nums}
+#flow-top{display:flex;flex-wrap:wrap;gap:.6rem;align-items:stretch}
+#flow-drop{flex:1 1 16rem}
+#person-panel{flex:1 1 16rem;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;font-size:.85rem}
+#person-panel p{margin:.25rem 0}
+#person-panel label{display:block;margin:.15rem 0}
+#person-panel input,#person-panel select{margin-left:.4rem;max-width:9rem}
+#person-presets button{margin:0 .25rem .25rem 0}
+#flow-questions ul{margin:.3rem 0;padding-left:1.2rem}
 .pinned{font-size:.8rem;color:var(--ink-dim)}
 .pill{display:inline-block;padding:.1rem .5rem;border-radius:1rem;font-size:.85rem;
 margin:0 .25rem .25rem 0;border:1px solid var(--line)}
@@ -318,7 +326,17 @@ mm_claims:["Spark claims check","Spark 클레임 검사"],
 mm_dropped:["dropped — not supported by its quotes","기각 — 인용으로 뒷받침되지 않음"],
 v_reviewer:["reviewer","검토자"],
 v_returned:["return with notes","의견을 달아 반려"],
-v_approved:["approve","승인"]
+v_approved:["approve","승인"],
+person_h:["Whose claim is this?","누구의 청구인가요?"],
+person_visa:["Visa","비자"],
+person_employer:["Works for a Korean employer","한국 고용주에게 고용됨"],
+person_work:["Injured at work","업무 중 부상"],
+person_entry:["Entry date","입국일"],
+person_yn_y:["Yes","예"],
+person_yn_n:["No","아니요"],
+person_continue:["Continue","계속하기"],
+person_q_head:["Answer to continue:","계속하려면 답하세요:"],
+person_q_blocker:["Blocking questions:","차단 질문:"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -463,8 +481,10 @@ function flowView(f){
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
     +`<p id="flow-tip"><small class="dim">${esc(t('tip_numbers'))}</small></p>`
     +`<div class="flow-pick">${picks}</div>`
-    +`<div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}</div>`
+    +`<div id="flow-top"><div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}</div>`
+    +(LIVE?personPanel():'')+`</div>`
     +`<p id="flow-msg" role="status"></p>`
+    +`<div id="flow-questions"></div>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
     +evalBlock(f.eval)+`</div>`;
@@ -484,7 +504,7 @@ function evalBlock(e){
 function flowResult(ex){
   const pin=ex.result.engine?`<p class="pinned">${esc(t('pinned_w'))}</p>`:'';
   return `<div class="flow-result"><p>${badge(ex.result.badge)}</p>`
-    +`<p class="amount">${esc(ex.result.title)}</p>`+pin
+    +resultTitle(ex.result.title)+pin
     +`<p><button onclick="show('${ex.result.scene}')">${esc(t('see_full'))}</button></p></div>`;
 }
 document.addEventListener('dragover',e=>{
@@ -496,6 +516,46 @@ document.addEventListener('drop',e=>{
   e.preventDefault();
   liveDrop(e);
 });
+let personScenario='',personExtras=null,personRunId=null;
+function personPanel(){
+  const ps=(data.flow.person_presets||[]).map(p=>
+    `<button data-preset="${esc(p.id)}" onclick="pickPreset('${esc(p.id)}')">`
+    +`${esc(p.label[LANG]||p.label.en)}</button>`).join('');
+  const yn=`<option value="">—</option><option value="yes">${esc(t('person_yn_y'))}`
+    +`</option><option value="no">${esc(t('person_yn_n'))}</option>`;
+  return `<div id="person-panel"><p><strong>${esc(t('person_h'))}</strong></p>`
+    +`<div id="person-presets">${ps}</div>`
+    +`<label>${esc(t('person_visa'))}`
+    +`<input id="person-visa" type="text" onchange="personEdited()"/></label>`
+    +`<label>${esc(t('person_employer'))}`
+    +`<select id="person-employer" onchange="personEdited()">${yn}</select></label>`
+    +`<label>${esc(t('person_work'))}`
+    +`<select id="person-work" onchange="personEdited()">${yn}</select></label>`
+    +`<label>${esc(t('person_entry'))}`
+    +`<input id="person-entry" type="date" onchange="personEdited()"/></label></div>`;
+}
+function pickPreset(id){
+  const p=(data.flow.person_presets||[]).find(q=>q.id===id);
+  if(!p||!LIVE)return;
+  document.getElementById('person-visa').value=p.person.visa||'';
+  document.getElementById('person-employer').value=p.person.korean_employer?'yes':'no';
+  document.getElementById('person-work').value=p.person.work_related?'yes':'no';
+  document.getElementById('person-entry').value=p.person.entry_date||'';
+  personScenario=id;personExtras=p.person;
+}
+function personEdited(){personScenario='';personExtras=null;}
+function personSel(id){
+  const v=document.getElementById(id).value;
+  return v==='' ? null : v==='yes';
+}
+function readPerson(){
+  return Object.assign({},personExtras||{},{
+    visa:document.getElementById('person-visa').value,
+    korean_employer:personSel('person-employer'),
+    work_related:personSel('person-work'),
+    entry_date:document.getElementById('person-entry').value,
+  });
+}
 function liveProbe(){
   try{
     if(typeof fetch==='undefined'||typeof location==='undefined')return;
@@ -513,26 +573,56 @@ function liveDrop(e){
   if(!files.length)return;
   document.getElementById('flow-steps').innerHTML='';
   document.getElementById('flow-result').innerHTML='';
+  document.getElementById('flow-questions').innerHTML='';
+  personRunId=null;
   document.getElementById('flow-msg').textContent=t('live_running');
+  const person=readPerson(),scenario=personScenario;
   Promise.all(files.map(f=>new Promise((res,rej)=>{
     const r=new FileReader();
     r.onload=()=>res({name:f.name,data:String(r.result).split(',')[1]});
     r.onerror=rej;r.readAsDataURL(f);
   }))).then(images=>fetch('/api/run',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({images})})
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({images,person,scenario})})
     .then(r=>r.json().then(j=>({ok:r.ok,j})))
   ).then(({ok,j})=>{
     const msg=document.getElementById('flow-msg');
     if(!ok){msg.textContent=t('live_failed')+(j.error||'');return;}
     msg.textContent='';
-    document.getElementById('flow-steps').innerHTML=j.steps.map((s,i)=>
-      `<div class="fstep done" id="fstep-${i}"><strong>${esc(stepLabel(s))}</strong>`
-      +`<span>${esc(s.detail)}</span><small class="dim">${esc(String(s.seconds))}s · ${esc(liveMeta(s))}</small></div>`
-    ).join('');
-    document.getElementById('flow-result').innerHTML=`<div class="flow-result"><p>${badge(j.result.badge)}</p>`
-      +`<p class="amount">${esc(j.result.title)}</p>`
-      +(j.result.note?`<p><small class="dim">${esc(j.result.note)}</small></p>`:'')+`</div>`;
+    renderLive(j);
   }).catch(err=>{document.getElementById('flow-msg').textContent=t('live_failed')+err;});
+}
+function liveContinue(){
+  if(!LIVE||!personRunId)return;
+  document.getElementById('flow-msg').textContent=t('live_running');
+  fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({run_id:personRunId,person:readPerson(),scenario:personScenario})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j})))
+    .then(({ok,j})=>{
+      const msg=document.getElementById('flow-msg');
+      if(!ok){msg.textContent=t('live_failed')+(j.error||'');return;}
+      msg.textContent='';
+      renderLive(j);
+    }).catch(err=>{document.getElementById('flow-msg').textContent=t('live_failed')+err;});
+}
+function resultTitle(title){
+  if(/[\\d,]+\\s*KRW/.test(title||''))
+    return `<p class="amount">${esc(title)}</p>`;
+  return `<p>${esc(title)}</p>`;
+}
+function renderLive(j){
+  document.getElementById('flow-steps').innerHTML=j.steps.map((s,i)=>
+    `<div class="fstep done" id="fstep-${i}"><strong>${esc(stepLabel(s))}</strong>`
+    +`<span>${esc(s.detail)}</span><small class="dim">${esc(String(s.seconds))}s · ${esc(liveMeta(s))}</small></div>`
+  ).join('');
+  document.getElementById('flow-result').innerHTML=`<div class="flow-result"><p>${badge(j.result.badge)}</p>`
+    +resultTitle(j.result.title)
+    +(j.result.note?`<p><small class="dim">${esc(j.result.note)}</small></p>`:'')+`</div>`;
+  personRunId=j.run_id||null;
+  const qs=j.questions||[];
+  document.getElementById('flow-questions').innerHTML=!qs.length?''
+    :`<p><strong>${esc(t(j.run_id?'person_q_head':'person_q_blocker'))}</strong></p><ul>`
+    +qs.map(q=>`<li>${esc(q.question)} <small class="dim">(${esc(q.why_needed)})</small></li>`).join('')
+    +`</ul>`+(j.run_id?`<p><button onclick="liveContinue()">${esc(t('person_continue'))}</button></p>`:'');
 }
 function liveMeta(s){
   if(s.tokens)return String(s.tokens).replace(/(\\d)(?=(\\d{3})+$)/g,'$1,')+" "+t('live_tokens');

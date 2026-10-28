@@ -1,15 +1,18 @@
-"""Real-browser check for the UI language switch (Edge via Playwright).
-
-Clicks the topbar switcher like the owner did, opens all six scenes,
-and asserts the whole chrome (not just topbar and tabs) shows the
-picked language with exactly one view visible.
+"""Real-browser checks (Edge via Playwright): the UI language switch and
+the live person-facts flow against a stubbed live server.
 """
 
+import copy
+import socket
 from pathlib import Path
 
 import pytest
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
+
+from claimlens import engine, serve
+from claimlens.engine import replay_reading
+from claimlens.providers.meta import CallRecord
 
 DEMO = Path(__file__).resolve().parent.parent / "docs" / "demo.html"
 
@@ -169,3 +172,118 @@ def test_phone_layout_in_browser(browser):
     assert errors == []
     page.close()
     context.close()
+
+
+class _LiveStub:
+    """Stub provider that counts readings; reads the S2 replay recording."""
+
+    name = "stub"
+    model = "stub"
+
+    def __init__(self):
+        self.calls: list[CallRecord] = []
+        self.reads = 0
+
+    def _log(self, total: int):
+        self.calls.append(
+            CallRecord(model=self.model, input_tokens=total, output_tokens=0,
+                       total_tokens=total, cost_usd=None)
+        )
+
+    def read_documents(self, images, instructions, schema, result_model=None):
+        self.reads += 1
+        self._log(100)
+        return copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
+
+    def write(self, instructions, schema, result_model=None):
+        self._log(50)
+        return {"findings": []}
+
+
+DROP_RETAKES = """async () => {
+  const spec = [
+    ['/samples/live/S2_receipt_retake.jpg', 'receipt.jpg'],
+    ['/samples/live/S2_medical_certificate_retake.jpg', 'cert.jpg'],
+  ];
+  const dt = new DataTransfer();
+  for (const [url, name] of spec) {
+    const buf = await (await fetch(url)).arrayBuffer();
+    dt.items.add(new File([buf], name, {type: 'image/jpeg'}));
+  }
+  document.getElementById('flow-drop').dispatchEvent(
+    new DragEvent('drop', {dataTransfer: dt, bubbles: true}));
+}"""
+
+S2_PRESET = '#person-presets button[data-preset="S2_seoul_worker_bronchitis"]'
+
+
+def _can_listen() -> bool:
+    try:
+        sock = socket.socket()
+        sock.bind(("127.0.0.1", 0))
+        sock.listen(1)
+        sock.close()
+    except OSError:
+        return False
+    return True
+
+
+@pytest.mark.skipif(not _can_listen(), reason="sandbox blocks listen()")
+def test_live_preset_run_reaches_partial_in_browser(browser, monkeypatch):
+    stub = _LiveStub()
+    monkeypatch.setattr(serve, "live_provider", lambda: stub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: {"decision": "PARTIAL", "amount": 22500})
+    server = serve.start_background(0)
+    try:
+        page = browser.new_page(viewport={"width": 1280, "height": 720})
+        errors: list[str] = []
+        page.on("pageerror", lambda exc: errors.append(str(exc)))
+        page.goto(f"http://127.0.0.1:{server.server_port}/docs/demo.html")
+        page.locator("#person-presets").wait_for(timeout=15000)
+        page.locator(S2_PRESET).click()
+        assert page.locator("#person-visa").input_value() == "E-7"
+        page.evaluate(DROP_RETAKES)
+        page.locator("#flow-view .flow-result").wait_for(timeout=60000)
+        assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
+        assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
+        assert stub.reads == 1
+        assert errors == []
+        page.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.skipif(not _can_listen(), reason="sandbox blocks listen()")
+def test_live_questions_continue_in_browser(browser, monkeypatch):
+    stub = _LiveStub()
+    monkeypatch.setattr(serve, "live_provider", lambda: stub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: {"decision": "PARTIAL", "amount": 22500})
+    server = serve.start_background(0)
+    try:
+        page = browser.new_page(viewport={"width": 1280, "height": 720})
+        errors: list[str] = []
+        page.on("pageerror", lambda exc: errors.append(str(exc)))
+        page.goto(f"http://127.0.0.1:{server.server_port}/docs/demo.html")
+        page.locator("#person-presets").wait_for(timeout=15000)
+        page.evaluate(DROP_RETAKES)
+        page.locator("#flow-questions li").first.wait_for(timeout=60000)
+        assert page.locator("#flow-questions li").count() == 4
+        assert page.locator("#flow-result .badge").inner_text() == "need_facts"
+        assert page.locator("#flow-result .amount").count() == 0
+        assert stub.reads == 1
+        page.locator(S2_PRESET).click()
+        page.locator("#flow-questions button").click()
+        page.locator("#flow-result .amount").wait_for(timeout=60000)
+        assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
+        assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
+        assert stub.reads == 1
+        assert errors == []
+        page.close()
+    finally:
+        server.shutdown()
+        server.server_close()

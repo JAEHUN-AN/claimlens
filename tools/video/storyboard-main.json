@@ -316,6 +316,10 @@
           "timeout": 15000
         },
         {
+          "op": "click",
+          "selector": "#person-presets button[data-preset=\"S2_seoul_worker_bronchitis\"]"
+        },
+        {
           "files": [
             "samples/live/S2_receipt_retake.jpg",
             "samples/live/S2_medical_certificate_retake.jpg"
