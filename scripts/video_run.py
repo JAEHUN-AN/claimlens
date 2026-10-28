@@ -105,10 +105,16 @@ class Clock:
         time.sleep(max(0.0, self.end - time.monotonic()))
 
     def shoot(self) -> None:
-        vis = self.page.evaluate(
-            "()=>{const c=document.getElementById('vcap');"
-            "return !!c&&c.textContent.length>0&&getComputedStyle(c).opacity==='1';}"
-        )
+        # Captions fade in (~260 ms); on 1 s chapter cards the midpoint can land mid-fade.
+        vis = False
+        for _ in range(10):
+            vis = self.page.evaluate(
+                "()=>{const c=document.getElementById('vcap');"
+                "return !!c&&c.textContent.length>0&&getComputedStyle(c).opacity==='1';}"
+            )
+            if vis:
+                break
+            time.sleep(0.06)
         if not vis:
             raise RuntimeError(f"{self.seg_id}: no visible caption at midpoint")
         self.page.screenshot(path=str(self.mid_path))
