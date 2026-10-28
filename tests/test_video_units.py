@@ -14,6 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import video_lib as V
+import video_post as P
 import video_sound as VS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -138,6 +139,108 @@ def test_validate_catches_bad_speed(tmp_path):
     board = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo", "speed": 1}]}
     errors = V.validate(tmp_path, board, {"demo": ""}, 190)
     assert any("bad speed" in e for e in errors)
+
+
+def test_validate_press_needs_key(tmp_path):
+    good = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo",
+                                    "actions": [{"op": "press", "key": "Escape"}]}]}
+    assert V.validate(tmp_path, good, {"demo": ""}, 190) == []
+    bad = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo",
+                                  "actions": [{"op": "press"}]}]}
+    assert any("press needs a key" in e for e in V.validate(tmp_path, bad, {"demo": ""}, 190))
+
+
+def test_actuals_roundtrip_and_garbage(tmp_path):
+    path = tmp_path / "actuals.json"
+    actuals = [("a", 1.5, 7.5), ("b", 7.5, 12.5)]
+    P.save_actuals(path, actuals, 1.5, 12.0)
+    assert P.load_actuals(path) == (actuals, 1.5, 12.0)
+    path.write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="bad actuals file"):
+        P.load_actuals(path)
+
+
+def test_actuals_from_timeline_stops_at_final_cut(tmp_path):
+    timeline = tmp_path / "timeline.txt"
+    timeline.write_text(
+        "00:00:00.000 --> 00:00:06.000 a Cap a (planned 00:00:00.000 --> 00:00:06.000)\n"
+        "00:00:06.000 --> 00:00:21.000 live Cap live (planned 00:00:06.000 --> 00:00:11.000)\n"
+        "# final cut (lead trimmed, live wait rushed)\n"
+        "00:00:00.000 --> 00:00:06.000 a Cap a\n",
+        encoding="utf-8",
+    )
+    assert P.actuals_from_timeline(timeline) == [("a", 0.0, 6.0), ("live", 6.0, 21.0)]
+    timeline.write_text("garbage\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="bad timeline line"):
+        P.actuals_from_timeline(timeline)
+
+
+def test_resolve_post_inputs_prefers_saved_actuals(tmp_path):
+    board = {"segments": [
+        {"id": "a", "caption": "x", "duration": 6},
+        {"id": "closing", "caption": "y", "duration": 6},
+    ]}
+    webm = tmp_path / "cut.webm"
+    webm.write_bytes(b"fake")
+    actuals = [("a", 2.0, 8.0), ("closing", 8.0, 14.0)]
+    saved = tmp_path / "cut_actuals.json"
+    P.save_actuals(saved, actuals, 2.0, 12.0)
+    got_webm, got_actuals, got_lead = P.resolve_post_inputs(
+        board, tmp_path, "cut.webm", "cut_actuals.json", "timeline.txt", "p-",
+        None, None, None,
+    )
+    assert (got_webm, got_actuals, got_lead) == (webm, actuals, 2.0)
+
+
+def test_resolve_post_inputs_recovers_from_timeline_with_lead(tmp_path):
+    board = {"segments": [
+        {"id": "a", "caption": "x", "duration": 6},
+        {"id": "closing", "caption": "y", "duration": 6},
+    ]}
+    webm = tmp_path / "cut.webm"
+    webm.write_bytes(b"fake")
+    (tmp_path / "timeline.txt").write_text(
+        "00:00:00.000 --> 00:00:06.000 a Cap a (planned 00:00:00.000 --> 00:00:06.000)\n"
+        "00:00:06.000 --> 00:00:12.000 closing Cap b (planned 00:00:06.000 --> 00:00:12.000)\n",
+        encoding="utf-8",
+    )
+    _, actuals, lead = P.resolve_post_inputs(
+        board, tmp_path, "cut.webm", "missing_actuals.json", "timeline.txt", "p-",
+        None, None, 2.5,
+    )
+    assert actuals == [("a", 0.0, 6.0), ("closing", 6.0, 12.0)]
+    assert lead == 2.5
+
+
+def test_resolve_post_inputs_rejects_id_mismatch(tmp_path):
+    board = {"segments": [{"id": "a", "caption": "x", "duration": 6}]}
+    webm = tmp_path / "cut.webm"
+    webm.write_bytes(b"fake")
+    saved = tmp_path / "cut_actuals.json"
+    P.save_actuals(saved, [("zzz", 0.0, 6.0)], 0.0, 6.0)
+    with pytest.raises(ValueError, match="actuals cover"):
+        P.resolve_post_inputs(board, tmp_path, "cut.webm", "cut_actuals.json",
+                              "timeline.txt", "p-", None, None, None)
+
+
+def test_run_post_prints_full_ffmpeg_error(monkeypatch, tmp_path, capsys):
+    def boom(cmd, **kwargs):
+        raise subprocess.CalledProcessError(1, cmd, "", "full-stderr-here")
+
+    monkeypatch.setattr(VS, "have_ffmpeg", lambda: True)
+    monkeypatch.setattr(VS.subprocess, "run", boom)
+    board = {"segments": [
+        {"id": "a", "caption": "x", "duration": 6},
+        {"id": "closing", "caption": "y", "duration": 6},
+    ]}
+    webm = tmp_path / "cut.webm"
+    webm.write_bytes(b"fake")
+    actuals = [("a", 0.0, 6.0), ("closing", 6.0, 12.0)]
+    code = P.run_post(board, tmp_path, webm, actuals, 0.0, 12.0, None, "p-",
+                      "timeline.txt", 12.0)
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "command:" in err and "full-stderr-here" in err
 
 
 class _FakePage:

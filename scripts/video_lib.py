@@ -25,6 +25,7 @@ from video_run import (
 from video_shots import SHOTS, build_shots
 from video_sound import (
     check_first_frame,
+    content_lead,
     extract_frame,
     ffmpeg_bin,
     find_font,
@@ -49,6 +50,7 @@ __all__ = [
     "check_assets",
     "check_first_frame",
     "clean_out",
+    "content_lead",
     "drop_payload",
     "effective_total",
     "extract_frame",
@@ -82,7 +84,8 @@ __all__ = [
 
 CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
             "thesis")
-OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles")
+OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles",
+       "press")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
 FX_HOOKS = ("window.__zoom", "window.__unzoom", "window.__zoomFit",
             "vzoom", "vpop", "vplink", "vhl")
@@ -161,6 +164,10 @@ def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -
             if act["op"] in ("hold", "unzoom"):
                 if act["op"] == "hold" and act.get("seconds", 0) <= 0:
                     errors.append(f"{seg['id']}: bad hold")
+                continue
+            if act["op"] == "press":
+                if not act.get("key"):
+                    errors.append(f"{seg['id']}: press needs a key")
                 continue
             if act["op"] == "dropfiles":
                 if not act.get("files"):

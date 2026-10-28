@@ -10,11 +10,11 @@ webm, timeline_vertical_v3.txt and midpoint PNGs.
 Usage:
     uv run python scripts/record_vertical_v3.py [--music track.mp3]
     uv run python scripts/record_vertical_v3.py --dry-run
+    uv run python scripts/record_vertical_v3.py --post-only [--music track.mp3]
 """
 
 import argparse
 import json
-import subprocess
 import sys
 import tempfile
 import time
@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import video_lib as V
+import video_post as P
 
 ROOT = Path(__file__).resolve().parent.parent
 CARDS = ROOT / "docs" / "video" / "cards" / "cards.html"
@@ -137,36 +138,32 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
     webm = out_dir / "claimlens_vertical_v3.webm"
     video.rename(webm)
     print(f"wrote {webm}")
-    if not V.have_ffmpeg():
-        print("ffmpeg not found; .webm kept, .mp4 skipped", file=sys.stderr)
-        return 2
-    mp4 = out_dir / "claimlens_vertical_v3.mp4"
     lead = actuals[0][1] if actuals else 0.0
+    total = sum(seg["duration"] for seg in board["segments"])
+    P.save_actuals(out_dir / "claimlens_vertical_v3_actuals.json", actuals, lead, total)
+    return P.run_post(board, out_dir, webm, actuals, lead, None,
+                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45)
+
+
+def post_only(root: Path, board_path: Path, out_dir: Path, music: str | None,
+              webm_arg: str | None, actuals_arg: str | None, lead_arg: float | None) -> int:
+    """Redo rush, mux, and frame check from a saved recording. No browser."""
+    if music and not Path(music).exists():
+        print(f"music file not found: {music}", file=sys.stderr)
+        return 2
+    board = json.loads(board_path.read_text(encoding="utf-8"))
+    if dry_run(board):
+        return 1
     try:
-        video_src, spans, final_len = V.apply_rush(
-            board, actuals, lead, 45, webm, out_dir / "claimlens_vertical_v3_sped.mp4"
+        webm, actuals, lead = P.resolve_post_inputs(
+            board, out_dir, "claimlens_vertical_v3.webm", "claimlens_vertical_v3_actuals.json",
+            "timeline_vertical_v3.txt", "vv3-", webm_arg, actuals_arg, lead_arg,
         )
-    except (subprocess.CalledProcessError, RuntimeError, ValueError) as exc:
-        print(f"rush failed: {exc}", file=sys.stderr)
+    except (RuntimeError, ValueError, OSError) as exc:
+        print(f"post-only: {exc}", file=sys.stderr)
         return 2
-    V.append_final_cut(out_dir / "timeline_vertical_v3.txt", board, actuals, lead, spans)
-    if V.final_times(actuals, lead, spans)[-1][2] > 45.05:
-        print("final cut exceeds 45 s; failing instead of cutting the ending", file=sys.stderr)
-        return 2
-    try:
-        V.mux_sound(video_src, mp4, final_len - lead, music=Path(music) if music else None,
-                    lead=lead)
-    except subprocess.CalledProcessError as exc:
-        print(f"ffmpeg failed:\n{(exc.stderr or '')[-800:]}", file=sys.stderr)
-        return 2
-    print(f"wrote {mp4}")
-    try:
-        diff = V.check_first_frame(mp4, board, out_dir, "vv3-")
-    except (subprocess.CalledProcessError, RuntimeError) as exc:
-        print(f"frame check failed: {exc}", file=sys.stderr)
-        return 2
-    print(f"frame check OK (diff {diff:.1f})")
-    return 0
+    return P.run_post(board, out_dir, webm, actuals, lead, None,
+                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -175,10 +172,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default="out/video")
     parser.add_argument("--music", default=None, help="optional music bed (rights-cleared file)")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--post-only", action="store_true",
+                        help="redo rush/mux/frame check from the saved webm + actuals (no browser)")
+    parser.add_argument("--webm", default=None, help="post-only input (default: the recorded webm)")
+    parser.add_argument("--actuals", default=None, help="post-only measurement file")
+    parser.add_argument("--lead", type=float, default=None, help="post-only lead override (seconds)")
     args = parser.parse_args(argv)
     board = json.loads((ROOT / args.storyboard).read_text(encoding="utf-8"))
     if args.dry_run:
         return dry_run(board)
+    if args.post_only:
+        return post_only(ROOT, ROOT / args.storyboard, ROOT / args.out, args.music,
+                         args.webm, args.actuals, args.lead)
     return record(ROOT, ROOT / args.storyboard, ROOT / args.out, args.music)
 
 

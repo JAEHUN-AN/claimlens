@@ -87,6 +87,21 @@ def test_v3_dry_run_catches_missing_drop_file(tmp_path):
     assert "drop file missing" in proc.stdout
 
 
+def test_v3_post_only_fails_cleanly_without_webm(tmp_path):
+    root = Path(__file__).resolve().parent.parent
+    proc = subprocess.run(
+        [sys.executable, "scripts/record_video_v3.py", "--post-only",
+         "--storyboard", "docs/video/storyboard-v3.json", "--out", str(tmp_path)],
+        check=False,
+        cwd=str(root).removeprefix("\\\\?\\"),
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert proc.returncode == 2
+    assert "webm not found" in proc.stderr
+
+
 def test_vertical_dry_run():
     root = Path(__file__).resolve().parent.parent
     proc = subprocess.run(

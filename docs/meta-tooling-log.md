@@ -1136,3 +1136,35 @@ strings, never computed. No demo or video changes (video frozen;
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-28 — Backlog session: item 40e re-runnable post-processing
+
+The main recording finished its `.webm` but failed in post-processing with the
+rush/mux stderr lost, so the run could not be redone without re-recording.
+Each recorder now saves measured `*_actuals.json` (segment actuals, lead,
+total) next to the `.webm`, and both recorders gained
+`--post-only [--webm/--actuals/--lead]`: rush → mux → frame check re-run from
+the saved files with no browser and no live call, printing the full ffmpeg
+command plus stderr on failure. Missing actuals fall back to the timeline with
+an explicit `--lead`, or to a content-match lead measured against the
+opening-card midpoint PNG. Vertical scene A presses Escape to close the
+provenance panel before clicking the element the panel covers (new `press`
+storyboard op); intercepted clicks are never relied on.
+
+### Muse Code (coding agent)
+
+- Tests: 239 passed, 9 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: actuals save/load roundtrip + garbage, timeline parse
+  stopping at the final-cut appendix, resolve prefers saved actuals /
+  recovers from timeline + lead / rejects id mismatch, full ffmpeg
+  error printed on a stubbed mux failure, press validation, plus
+  ffmpeg-gated content-lead and end-to-end post tests for the owner.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: `uv run python scripts/record_video_v3.py --post-only`
+  on the existing main `.webm` should print a ≤180s `.mp4` ending on
+  the closing screen; then re-record the vertical. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.

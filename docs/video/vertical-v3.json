@@ -99,6 +99,10 @@
     {
       "actions": [
         {
+          "op": "press",
+          "key": "Escape"
+        },
+        {
           "op": "click",
           "selector": "#scenes button:has-text(\"Scene Mismatch\")"
         },

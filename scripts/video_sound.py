@@ -8,6 +8,7 @@ from pathlib import Path
 
 __all__ = [
     "check_first_frame",
+    "content_lead",
     "extract_frame",
     "ffmpeg_bin",
     "find_font",
@@ -97,6 +98,28 @@ def extract_frame(mp4: Path, at_s: float, out_png: Path) -> None:
     cmd = [ffmpeg_bin(), "-y", "-ss", f"{at_s:.3f}", "-i", str(mp4),
            "-frames:v", "1", str(out_png)]
     subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def content_lead(webm: Path, ref_png: Path, ref_at: float, window_s: float = 30.0) -> float:
+    """Legacy rescue: lead from the webm time best matching ref content.
+
+    ref_png shows the recording at content time ref_at (a midpoint PNG).
+    Scans 1 fps over the first window_s seconds and returns the best
+    match minus ref_at. Good to ~1 s; the frame check still guards the cut.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        pattern = str(Path(tmp) / "scan%03d.png")
+        cmd = [ffmpeg_bin(), "-y", "-i", str(webm), "-vf", "fps=1",
+               "-t", f"{window_s:.0f}", pattern]
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        frames = sorted(Path(tmp).glob("scan*.png"))
+        if not frames:
+            raise RuntimeError("lead scan produced no frames")
+        best_diff, best = min((mean_frame_diff(frame, ref_png), i) for i, frame in enumerate(frames))
+        print(f"lead scan: best frame {best}s diff {best_diff:.1f}")
+        if best_diff > 40:
+            raise RuntimeError("opening card not found in the webm; pass --lead SECONDS")
+        return float(best) - ref_at
 
 
 def mean_frame_diff(a: Path, b: Path, width: int = 320) -> float:

@@ -72,6 +72,32 @@ def test_mux_lead_cut_keeps_total(tmp_path):
     assert abs(_duration(out) - 8.0) < 0.2
 
 
+def test_content_lead_finds_opening_card(tmp_path):
+    webm, _, _ = _make_fixtures(tmp_path)
+    ref = tmp_path / "ref.png"
+    V.extract_frame(webm, 5.0, ref)
+    assert abs(V.content_lead(webm, ref, 5.0) - 0.0) < 1.5
+
+
+def test_run_post_end_to_end(tmp_path):
+    import video_post as P
+
+    webm, _, _ = _make_fixtures(tmp_path)
+    board = {"segments": [
+        {"id": "a", "caption": "Cap a", "duration": 6},
+        {"id": "closing", "caption": "Cap b", "duration": 6},
+    ]}
+    ref = tmp_path / "p-a_mid.png"
+    V.extract_frame(webm, 3.0, ref)
+    actuals = [("a", 0.0, 6.0), ("closing", 6.0, 12.0)]
+    code = P.run_post(board, tmp_path, webm, actuals, 0.0, 12.0, None, "p-",
+                      "timeline.txt", 12.0)
+    assert code == 0
+    mp4 = webm.with_name(webm.stem + ".mp4")
+    assert abs(_duration(mp4) - 12.0) < 0.5
+    assert "# final cut" in (tmp_path / "timeline.txt").read_text(encoding="utf-8")
+
+
 def test_check_first_frame_matches_and_catches_mismatch(tmp_path):
     webm, _, _ = _make_fixtures(tmp_path)
     mp4 = tmp_path / "cut.mp4"

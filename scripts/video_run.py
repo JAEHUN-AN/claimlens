@@ -233,6 +233,9 @@ def run_action(page, act: dict, clock: Clock, urls: dict[str, str], caption: str
         # Locator.wait_for works for both a page and a frame locator (FrameLocator has no wait_for_selector).
         base.locator(act["selector"]).first.wait_for(state="visible", timeout=act.get("timeout", 20000))
         return None, None
+    if op == "press":
+        page.keyboard.press(act["key"])
+        return None, None
     if op == "dropfiles":
         loc = locate(page, act)
         loc.wait_for(state="visible", timeout=10000)
