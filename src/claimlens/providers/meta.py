@@ -134,16 +134,16 @@ class MetaProvider:
     def _resolve_file_ids(self, blobs: list[bytes]) -> list[str] | None:
         """Upload-once file ids for every blob, or None when uploads fail."""
         try:
-            index = replay_cache.load_files_index()
+            index = replay_cache.load_files_index(self.live)
             file_ids = []
             for blob in blobs:
                 sha = replay_cache.blob_sha(blob)
                 if sha not in index:
                     created = self._client.files.create(
                         file=(f"claimlens-{sha[:12]}.jpg", blob, "image/jpeg"),
-                        purpose="vision",
+                        purpose="user_data",
                     )
-                    replay_cache.store_file_id(sha, created.id)
+                    replay_cache.store_file_id(sha, created.id, self.live)
                     index[sha] = created.id
                 file_ids.append(index[sha])
         except Exception as exc:  # noqa: BLE001 - any upload failure means base64
@@ -157,11 +157,12 @@ class MetaProvider:
         instructions: str,
         schema: dict[str, Any],
         file_ids: list[str] | None = None,
+        file_part: str = "input_image",
     ):
         content: list[dict[str, Any]] = [{"type": "input_text", "text": instructions}]
         if file_ids is not None:
             for file_id in file_ids:
-                content.append({"type": "input_image", "file_id": file_id})
+                content.append({"type": file_part, "file_id": file_id})
         else:
             for blob in blobs:
                 b64 = base64.b64encode(blob).decode("ascii")
@@ -190,7 +191,7 @@ class MetaProvider:
         blobs = [prepare_image(p) for p in images]
         if self.live:
             keys = [replay_cache.cache_key(blobs, instructions, schema, self.model)]
-            index = replay_cache.load_files_index()
+            index = replay_cache.load_files_index(live=True)
             shas = [replay_cache.blob_sha(b) for b in blobs]
             if blobs and all(s in index for s in shas):
                 keys.append(
@@ -211,15 +212,22 @@ class MetaProvider:
             key = replay_cache.cache_key(
                 replay_cache.file_key_bytes(file_ids), instructions, schema, self.model
             )
-            try:
-                response = self._request(blobs, instructions, schema, file_ids=file_ids)
-            except Exception as exc:  # noqa: BLE001 - file refs rejected; retry as base64
-                self.last_files_error = {"stage": "read", **files_error_details(exc)}
-                for blob in blobs:
-                    replay_cache.drop_file_id(replay_cache.blob_sha(blob))
-                file_ids = None
+            attempts: list[dict[str, Any]] = []
+            for part in ("input_image", "input_file"):
+                try:
+                    response = self._request(
+                        blobs, instructions, schema, file_ids=file_ids, file_part=part
+                    )
+                except Exception as exc:  # noqa: BLE001 - record each part failure
+                    attempts.append({"part": part, **files_error_details(exc)})
+                else:
+                    refs = [{"type": "file", "part": part, "id": fid} for fid in file_ids]
+                    break
             else:
-                refs = [{"type": "file", "id": file_id} for file_id in file_ids]
+                self.last_files_error = {"stage": "read", "attempts": attempts}
+                for blob in blobs:
+                    replay_cache.drop_file_id(replay_cache.blob_sha(blob), self.live)
+                file_ids = None
         if file_ids is None:
             key = replay_cache.cache_key(blobs, instructions, schema, self.model)
             response = self._request(blobs, instructions, schema)

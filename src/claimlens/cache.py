@@ -36,32 +36,34 @@ def cache_path(key: str) -> Path:
     return cache_dir() / f"{key}.json"
 
 
-def files_index_path() -> Path:
-    return cache_dir() / "files_index.json"
+def files_index_path(live: bool = False) -> Path:
+    """Live runs remember file ids under live/ so committed cache stays fixed."""
+    base = live_dir() if live else cache_dir()
+    return base / "files_index.json"
 
 
-def load_files_index() -> dict[str, str]:
+def load_files_index(live: bool = False) -> dict[str, str]:
     """Maps prepared-image sha256 to the uploaded file id ({} when absent)."""
-    path = files_index_path()
+    path = files_index_path(live)
     if not path.exists():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     return data if isinstance(data, dict) else {}
 
 
-def store_file_id(blob_sha: str, file_id: str) -> None:
-    path = files_index_path()
-    index = load_files_index()
+def store_file_id(blob_sha: str, file_id: str, live: bool = False) -> None:
+    path = files_index_path(live)
+    index = load_files_index(live)
     index[blob_sha] = file_id
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def drop_file_id(blob_sha: str) -> None:
-    index = load_files_index()
+def drop_file_id(blob_sha: str, live: bool = False) -> None:
+    index = load_files_index(live)
     if blob_sha in index:
         del index[blob_sha]
-        files_index_path().write_text(
+        files_index_path(live).write_text(
             json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
         )
 

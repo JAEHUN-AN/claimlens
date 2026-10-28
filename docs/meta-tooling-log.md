@@ -928,3 +928,32 @@ reason.
 
 - Live calls: none in the sandbox. One probe call by the owner
   pending (~$0.007).
+
+## 2026-10-28 — Backlog session: item 35e Files API retry with user_data
+
+The owner's 35d probe recorded `upload status=400 - Unsupported file
+purpose: vision`. Following Meta's own workshop, the provider now
+uploads with `purpose="user_data"` and reads by file id trying
+`input_image` first, then `input_file`; the probe records which part
+worked (`file_part`) or each read error (`attempts`). Live runs keep
+uploading once per document (keyed by image sha256) and remember
+file ids under `cache/live/` only, so committed `cache/` recordings
+stay untouched; base64 remains the fallback. The README line waits
+for the owner's next probe result.
+
+### Muse Code (coding agent)
+
+- Tests: 198 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: input_file used when input_image is rejected, each
+  read error recorded, live file ids under `live/` only, probe
+  reports the working part.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: run `claimlens probe-files <image>` once more from
+  a normal terminal and paste the `file_part` / `files_error`
+  lines; the README line follows from them. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. One probe call by the owner
+  pending (~$0.007).

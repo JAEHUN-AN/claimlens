@@ -224,9 +224,18 @@ def cmd_probe_files(args: argparse.Namespace) -> int:
         return 1
     _emit(f"files_api: {summary['files_api']}")
     _emit(f"input: {summary['input']}")
+    if summary.get("file_part"):
+        _emit(f"file_part: {summary['file_part']}")
     if summary.get("files_error"):
         err = summary["files_error"]
-        _emit(f"files_error: {err['stage']} status={err['status']} {err['message']}")
+        if err.get("attempts"):
+            for attempt in err["attempts"]:
+                _emit(
+                    f"files_error: read part={attempt['part']} "
+                    f"status={attempt['status']} {attempt['message']}"
+                )
+        else:
+            _emit(f"files_error: {err['stage']} status={err['status']} {err['message']}")
     tokens = summary["tokens"]
     _emit(
         f"tokens: {tokens.get('total_tokens', 0)} "
