@@ -362,7 +362,7 @@ class Handler(BaseHTTPRequestHandler):
 def serve_forever(port: int = 8000) -> None:
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
-    print(f"ClaimLens live on http://127.0.0.1:{server.server_port} (Ctrl-C to stop)")
+    print(f"ClaimLens live on http://127.0.0.1:{server.server_port} (Ctrl-C to stop)", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

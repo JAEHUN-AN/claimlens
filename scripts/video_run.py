@@ -177,7 +177,7 @@ def start_live_server(root: Path):
     The caller must terminate the process.
     """
     proc = subprocess.Popen(
-        [sys.executable, "-c", "from claimlens.serve import serve_forever; serve_forever(0)"],
+        [sys.executable, "-u", "-c", "from claimlens.serve import serve_forever; serve_forever(0)"],
         cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
     )
     try:
