@@ -157,6 +157,38 @@ def test_language_switch_in_browser(browser, lang):
     page.close()
 
 
+def test_scope_footer_and_proposed_labels_in_browser(browser):
+    page = browser.new_page(viewport={"width": 1280, "height": 720})
+    errors: list[str] = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(DEMO.as_uri())
+    seen_labeled: set[str] = set()
+    for lang in ("en", "ko"):
+        page.locator(f'#langswitch button[data-lang="{lang}"]').click()
+        buttons = page.locator("#scenes button")
+        assert buttons.count() == 7
+        for pos in range(buttons.count()):
+            buttons.nth(pos).click()
+            scopes = page.locator(".scope:visible")
+            assert scopes.count() >= 1
+            for idx in range(scopes.count()):
+                assert scopes.nth(idx).inner_text() == SCOPE_TEXT[lang]
+            badges = page.locator(".badge:visible")
+            for idx in range(badges.count()):
+                badge = badges.nth(idx)
+                if badge.inner_text() in DECISION_BADGES:
+                    text = badge.evaluate(
+                        "b => (b.nextElementSibling && "
+                        "b.nextElementSibling.classList.contains('proposed')) ? "
+                        "b.nextElementSibling.textContent : ''"
+                    )
+                    assert text == PROPOSED_TEXT[lang]
+                    seen_labeled.add(badge.inner_text())
+    assert {"PAID", "PARTIAL"} <= seen_labeled
+    assert errors == []
+    page.close()
+
+
 def test_phone_layout_in_browser(browser):
     context = browser.new_context(viewport={"width": 375, "height": 812}, is_mobile=True)
     page = context.new_page()
@@ -215,6 +247,16 @@ DROP_RETAKES = """async () => {
 }"""
 
 S2_PRESET = '#person-presets button[data-preset="S2_seoul_worker_bronchitis"]'
+
+SCOPE_TEXT = {
+    "en": "Paperwork check — not medical or legal advice. A person makes every decision.",
+    "ko": "서류 점검 도구입니다. 의료·법률 조언이 아니며, 최종 결정은 사람이 합니다.",
+}
+PROPOSED_TEXT = {
+    "en": "Proposed — for a reviewer",
+    "ko": "제안 — 검토자 확인 필요",
+}
+DECISION_BADGES = ("PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW")
 
 
 def _can_listen() -> bool:

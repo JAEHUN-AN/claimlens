@@ -6,6 +6,14 @@
 |---|---|---|
 | reading, consistency, agent, voice facts | checks, deductible, eligibility, codes | questions, to-confirm, human review |
 
+**Why:** Built by a developer who works on hospital data systems in Korea — a problem I
+see first-hand. Korea, 2022: an estimated ₩251.2 billion of private medical insurance
+went unclaimed ([estimate from NHIS and insurer statistics](https://www.fnnews.com/news/202309060625012843)).
+2.01 million foreign patients were treated in Korea in 2025
+([Ministry of Health and Welfare](https://v.daum.net/v/20260424060102461)).
+ClaimLens works on the paperwork step. Bill photo → checked claim, every number traceable.
+Theme: Build for Your World.
+
 **Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
 
 Medical paperwork that crosses borders — in both directions.
@@ -17,6 +25,12 @@ a claim pack the person can take to their own insurer (English, Vietnamese on re
 Built for the **Meta Global AI Developer Hackathon** (Indie track, Oct 27 – Nov 4, 2026).
 All documents used in this repository are **synthetic**. ClaimLens processes insurance paperwork;
 it does not give medical advice and never guesses a diagnosis.
+
+## What ClaimLens is not
+
+- *Not medical advice* — it never suggests a diagnosis or treatment; it reads codes a doctor already wrote.
+- *Not a chat-with-your-documents app* — there is no retrieval chat; readings pass deterministic checks, a pinned clause-graph engine and an agent behind a verification layer.
+- *Not a single image analyzer* — it cross-checks several documents, re-reads, reads twice and stops for a person.
 
 ## Run it offline in 60 seconds
 

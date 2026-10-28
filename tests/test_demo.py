@@ -10,9 +10,50 @@ import pytest
 
 from claimlens.demo import export_demo
 
+WHY_URLS = (
+    "https://www.fnnews.com/news/202309060625012843",
+    "https://v.daum.net/v/20260424060102461",
+)
+
 
 def _node_path(path: Path) -> str:
     return str(path).removeprefix("\\\\?\\")
+
+
+def test_why_block_numbers_are_exact(tmp_path, monkeypatch):
+    monkeypatch.delenv("META_API_KEY", raising=False)
+    monkeypatch.delenv("NEO4J_URI", raising=False)
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    dst = export_demo(tmp_path / "demo.html")
+    text = dst.read_text(encoding="utf-8")
+    for url in WHY_URLS:
+        assert url in text
+    assert "₩251.2 billion" in text
+    assert "2.01 million" in text
+    assert "Bill photo → checked claim, every number traceable" in text
+    assert "Theme: Build for Your World." in text
+    why_lines = [line for line in text.splitlines()
+                 if re.search(r"why_\w+:\[", line) or "WHY_URL" in line]
+    assert len(why_lines) >= 12
+    block = "\n".join(why_lines)
+    block = re.sub(r"WHY_URL\d|why_\w+", "", block)
+    for allowed in (*WHY_URLS, "₩251.2 billion", "2.01 million", "2022", "2025",
+                    "2023-09-06", "2026-04-24"):
+        block = block.replace(allowed, "")
+    assert not re.search(r"\d", block)
+
+
+def test_scope_footer_and_proposed_label_wired(tmp_path, monkeypatch):
+    monkeypatch.delenv("META_API_KEY", raising=False)
+    monkeypatch.delenv("NEO4J_URI", raising=False)
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    dst = export_demo(tmp_path / "demo.html")
+    text = dst.read_text(encoding="utf-8")
+    assert "Paperwork check — not medical or legal advice. A person makes every decision." in text
+    assert "서류 점검 도구입니다. 의료·법률 조언이 아니며, 최종 결정은 사람이 합니다." in text
+    assert "Proposed — for a reviewer" in text
+    assert "제안 — 검토자 확인 필요" in text
+    assert "'PAID','PARTIAL','DENIED','HUMAN_REVIEW'" in text.replace(" ", "")
 
 
 def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
@@ -27,7 +68,10 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert "pre-existing open-source engine, pinned" in text
     assert "We do not have your policy, so this is not a coverage decision." in text
     assert "matches the engine" in text
-    assert "http://-onwards" not in text and "https://" not in text
+    stripped = text
+    for url in WHY_URLS:
+        stripped = stripped.replace(url, "")
+    assert "http://-onwards" not in stripped and "https://" not in stripped
     assert '<meta name="viewport" content="width=device-width, initial-scale=1"/>' in text
     assert "# Claim decision" not in text
     assert "<iframe" not in text

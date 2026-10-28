@@ -95,6 +95,11 @@ font-variant-numeric:tabular-nums}
 #person-panel input,#person-panel select{margin-left:.4rem;max-width:9rem}
 #person-presets button{margin:0 .25rem .25rem 0}
 #flow-questions ul{margin:.3rem 0;padding-left:1.2rem}
+#whyblock{margin:.4rem 0 .8rem;padding:.6rem .8rem;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+#whyblock p{margin:.3rem 0}
+#whyblock a{overflow-wrap:anywhere}
+p.scope{margin:.8rem 0 .2rem}
+small.proposed{margin-left:.4rem;font-size:.75rem;color:var(--ink-dim)}
 .pinned{font-size:.8rem;color:var(--ink-dim)}
 .pill{display:inline-block;padding:.1rem .5rem;border-radius:1rem;font-size:.85rem;
 margin:0 .25rem .25rem 0;border:1px solid var(--line)}
@@ -125,6 +130,7 @@ ul.tight li{margin:.15rem 0}
 .totag{display:inline-block;background:var(--tint-warn);color:var(--stamp-partial);
 font-size:.75rem;font-weight:700;padding:0 .4rem;border-radius:4px}
 small.dim{color:var(--ink-dim)}
+a{color:var(--accent)}a:hover{color:var(--accent-hover)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;cursor:pointer;
 border-bottom:1px dotted var(--ink-dim);border-radius:2px}
 .num:hover{background:var(--mark)}
@@ -189,6 +195,8 @@ let LANG="en";
 let currentView="flow";
 let flowTimer=null;
 let LIVE=false;
+const WHY_URL1="https://www.fnnews.com/news/202309060625012843";
+const WHY_URL2="https://v.daum.net/v/20260424060102461";
 const MMKIND={"patient_name":"patient name","birth_date":"birth date","visit_date":"visit date","visit_type":"visit type","hospital":"hospital","billed_not_described":"billed, not described","described_not_billed":"described, not billed","diagnosis_vs_department":"diagnosis vs department","prose_date":"prose date"};
 // UI chrome strings only (labels, step names, buttons). Document contents
 // stay in their own language. Every row is [en, ko].
@@ -337,7 +345,18 @@ person_yn_y:["Yes","예"],
 person_yn_n:["No","아니요"],
 person_continue:["Continue","계속하기"],
 person_q_head:["Answer to continue:","계속하려면 답하세요:"],
-person_q_blocker:["Blocking questions:","차단 질문:"]
+person_q_blocker:["Blocking questions:","차단 질문:"],
+why_who:["Built by a developer who works on hospital data systems in Korea — a problem I see first-hand.","한국에서 병원 데이터 시스템을 만드는 개발자가 직접 겪는 문제에서 시작했습니다."],
+why_before1:["Korea, 2022: an estimated ₩251.2 billion of private medical insurance went unclaimed.","한국, 2022년: 민간 의료보험금 약 ₩251.2 billion이 미청구된 것으로 추정됩니다."],
+why_src1:["Source: analysis of NHIS and insurer statistics by a National Assembly member, reported 2023-09-06","출처: 국회의원실의 건보공단·보험사 통계 분석, 2023-09-06 보도"],
+why_before2:["2.01 million foreign patients were treated in Korea in 2025.","2025년 한국에서 치료받은 외국인 환자는 2.01 million명입니다."],
+why_src2:["Source: Ministry of Health and Welfare, reported 2026-04-24","출처: 보건복지부, 2026-04-24 보도"],
+why_own:["ClaimLens works on the paperwork step.","ClaimLens는 서류 단계에 집중합니다."],
+why_after:["Bill photo → checked claim, every number traceable","청구서 사진 → 검증된 청구, 모든 숫자는 추적 가능"],
+why_theme:["Theme: Build for Your World.","테마: Build for Your World."],
+why_est:["estimate","추정치"],
+scope_foot:["Paperwork check — not medical or legal advice. A person makes every decision.","서류 점검 도구입니다. 의료·법률 조언이 아니며, 최종 결정은 사람이 합니다."],
+proposed:["Proposed — for a reviewer","제안 — 검토자 확인 필요"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -470,6 +489,20 @@ function playFlow(id){
   };
   next();
 }
+function whyHtml(){
+  return `<div id="whyblock">`
+    +`<p>${esc(t('why_who'))}</p>`
+    +`<p>${esc(t('why_before1'))} <small class="dim">(${esc(t('why_est'))})</small>`
+    +`<br/><small class="dim"><a href="${WHY_URL1}">${esc(t('why_src1'))}</a></small></p>`
+    +`<p>${esc(t('why_before2'))}`
+    +`<br/><small class="dim"><a href="${WHY_URL2}">${esc(t('why_src2'))}</a></small></p>`
+    +`<p>${esc(t('why_own'))}</p>`
+    +`<p>${esc(t('why_after'))}</p>`
+    +`<p>${esc(t('why_theme'))}</p></div>`;
+}
+function scopeFooter(){
+  return `<p class="scope"><small class="dim">${esc(t('scope_foot'))}</small></p>`;
+}
 function flowView(f){
   const picks=(f.examples||[]).map(e=>{
     const thumb=e.thumb?`<img class="thumb" src="${esc(e.thumb)}" onerror="this.remove()"/>`:'';
@@ -477,6 +510,7 @@ function flowView(f){
   }).join('');
   return `<div id="flow-view">`
     +`<p class="tagline">${esc(t('tagline'))}</p>`
+    +whyHtml()
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
@@ -488,7 +522,7 @@ function flowView(f){
     +`<div id="flow-questions"></div>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
-    +evalBlock(f.eval)+`</div>`;
+    +evalBlock(f.eval)+scopeFooter()+`</div>`;
 }
 function evalBlock(e){
   if(!e)return '';
@@ -674,7 +708,7 @@ function hideProv(){
 // MMKIND lookup is declared near the top: the first render needs it.
 function mismatchSection(s,first){
   return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
-    +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${mismatchScene(s)}</div></div></section>`;
+    +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${mismatchScene(s)}</div></div>${scopeFooter()}</section>`;
 }
 function mismatchScene(s){
   const items=s.mismatch.findings.map(f=>{
@@ -698,10 +732,10 @@ function stage(s,first){
   if(s.mismatch)return mismatchSection(s,first);
   if(s.clips)
     return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
-      +`${headline(s)}${voiceScene(s)}</section>`;
+      +`${headline(s)}${voiceScene(s)}${scopeFooter()}</section>`;
   const right=s.timeline?timeline(s):`${reading(s)}${s.recovery?recoveryPanel(s.recovery):''}${eligibility(s)}${result(s)}`;
   return `<section class="scene${first?' active':''}" id="${s.id}"><h2>${esc(titleOf(s))}</h2>`
-    +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div></section>`;
+    +`${headline(s)}<div class="scene-grid"><div>${images(s)}</div><div>${right}</div></div>${scopeFooter()}</section>`;
 }
 function headline(s){
   if(s.mismatch)return `<p class="headline">${badge('needs review')} <strong>${esc(t('mm_head'))}</strong></p>`;
@@ -810,7 +844,9 @@ function eligibility(s){
 }
 function badge(decision){
   const cls=decision==='PAID'?'paid':decision==='PARTIAL'?'partial':'none';
-  return `<span class="badge badge-${cls}">${esc(decision)}</span>`;
+  const prop=['PAID','PARTIAL','DENIED','HUMAN_REVIEW'].includes(decision)
+    ?` <small class="proposed">${esc(t('proposed'))}</small>`:'';
+  return `<span class="badge badge-${cls}">${esc(decision)}</span>${prop}`;
 }
 function deductible(d){
   if(!d)return '';

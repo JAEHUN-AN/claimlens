@@ -294,6 +294,8 @@ def test_read2_plan_and_record_use_new_keys_only(tmp_path, monkeypatch):
 
     mirror = tmp_path / "cache"
     shutil.copytree(ROOT / "cache", mirror, ignore=shutil.ignore_patterns("live"))
+    for stale in mirror.glob("*.read2.json"):
+        stale.unlink()
     monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(mirror))
     before = sorted(p.name for p in mirror.glob("*.json"))
     assert not [n for n in before if n.endswith(".read2.json")]

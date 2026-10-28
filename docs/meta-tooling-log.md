@@ -1259,3 +1259,30 @@ a stop cost of 35/66 hard + 2/30 normal. Second reads replay from new
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-28 — Backlog session: Round 8 items 44 + 45 (uncommitted)
+
+44 puts the Why block (owner-approved who line, the two sourced numbers
+with their links, the paperwork line, an N-less After sentence, the
+theme line) right under the thesis in README and on the demo's first
+screen in en/ko. N has no committed source yet (43 not done; no live-run
+step timings are committed and prose does not count), so the sentence
+ships without N and the test pins that. 45 adds "What ClaimLens is not"
+to README plus a scope footer on every scene and the live page and a
+"Proposed — for a reviewer" label next to every PAID/PARTIAL/DENIED/
+HUMAN_REVIEW badge. No API calls, no cache writes, video untouched.
+
+### Muse Code (coding agent)
+
+- Tests: full suite green (`ruff check` clean). New: Why-block exact
+  numbers/URLs test, footer/label wiring test, owner-run browser test
+  for the footer on every scene in en+ko and the label on every
+  decision badge; the stale no-https assertion now allows exactly the
+  two source URLs.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: `uv run pytest tests/test_browser_lang.py -q` (now 5
+  tests). No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
