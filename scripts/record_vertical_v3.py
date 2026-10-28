@@ -147,12 +147,19 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
         return 2
     print(f"wrote {sped}")
     mp4 = out_dir / "claimlens_vertical_v3.mp4"
+    lead = actuals[0][1] if actuals else 0.0
     try:
-        V.mux_sound(sped, mp4, final_len, music=Path(music) if music else None)
+        V.mux_sound(sped, mp4, final_len - lead, music=Path(music) if music else None, lead=lead)
     except subprocess.CalledProcessError as exc:
         print(f"ffmpeg failed:\n{(exc.stderr or '')[-800:]}", file=sys.stderr)
         return 2
     print(f"wrote {mp4}")
+    try:
+        diff = V.check_first_frame(mp4, board, out_dir, "vv3-")
+    except (subprocess.CalledProcessError, RuntimeError) as exc:
+        print(f"frame check failed: {exc}", file=sys.stderr)
+        return 2
+    print(f"frame check OK (diff {diff:.1f})")
     return 0
 
 

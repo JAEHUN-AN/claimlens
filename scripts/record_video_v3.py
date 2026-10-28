@@ -17,6 +17,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -99,6 +100,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                 print(f"live server: {exc}", file=sys.stderr)
                 server.shutdown()
                 return 2
+        actuals: list[tuple[str, float, float]] = []
         try:
             with sync_playwright() as pw:
                 try:
@@ -108,6 +110,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                         record_video_size={"width": 1280, "height": 720}
                     )
                     page = context.new_page()
+                    video_t0 = time.monotonic()
                 except PlaywrightError as exc:
                     if "ffmpeg" in str(exc).lower():
                         print("playwright's ffmpeg is missing; run: uv run playwright install ffmpeg", file=sys.stderr)
@@ -128,7 +131,8 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         dest.write_bytes(shot.read_bytes())
                     total = V.run_segments(page, board, urls, out_dir, overlays, png_prefix="v3-",
-                                           timeline="timeline_v3.txt", root=root)
+                                           timeline="timeline_v3.txt", root=root,
+                                           t0=video_t0, actuals=actuals)
                     video = Path(str(page.video.path())) if page.video else None  # path must be read while Playwright runs
                     context.close()
                 finally:
@@ -149,12 +153,19 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
     start = V.voice_at(board)
     voice = (VOICE_WAV, start if start is not None else 0.0, VOICE_LEN_S)
     mp4 = out_dir / "claimlens_demo_v3.mp4"
+    lead = actuals[0][1] if actuals else 0.0
     try:
-        V.mux_sound(webm, mp4, total, voice=voice, music=Path(music) if music else None)
+        V.mux_sound(webm, mp4, total, voice=voice, music=Path(music) if music else None, lead=lead)
     except subprocess.CalledProcessError as exc:
         print(f"ffmpeg failed:\n{(exc.stderr or '')[-800:]}", file=sys.stderr)
         return 2
     print(f"wrote {mp4}")
+    try:
+        diff = V.check_first_frame(mp4, board, out_dir, "v3-")
+    except (subprocess.CalledProcessError, RuntimeError) as exc:
+        print(f"frame check failed: {exc}", file=sys.stderr)
+        return 2
+    print(f"frame check OK (diff {diff:.1f})")
     return 0
 
 

@@ -1000,3 +1000,38 @@ results go to `cache/live/` only; nothing in `cache/` was re-recorded.
 
 - Live calls: none in the sandbox. Owner recording runs make real
   Spark calls (reading + consistency per live segment).
+
+## 2026-10-28 — Backlog session: item 40b v3 recording fixes
+
+(1) The lead trim now cuts the measured pre-roll instead of the
+`duration − total` guess (the guess ate the tail too, so 0:03 showed
+the S2 flow). Both v3 recorders measure context-creation to first
+segment start, pass it as `mux_sound(lead=...)`, and cut exactly
+that with `-t total`; without a lead the mux keeps its legacy
+full-length behavior. A frame check extracts the mp4 frame at the
+first segment's midpoint and fails the recording when it does not
+match the midpoint PNG (tolerant diff, no OCR). (2) A live drop now
+clears the flow steps and result first, so no replay leftover shows
+under "Running live…"; the live steps fill in when the run answers.
+(3) The camera zoom clamps to the focused element's box: the runner
+passes its size, the overlay shrinks the scale (never below 1) so
+the box stays inside the viewport with a margin.
+
+### Muse Code (coding agent)
+
+- Tests: 212 passed, 7 skipped (ffmpeg + listen() blocked in the
+  sandbox, node-gated where absent), browser test deselected in the
+  sandbox (`ruff check` clean). New: mux lead/-t command shape,
+  frame-diff same/different, zoom-fit clamp via node, plus
+  ffmpeg-gated lead-cut and frame-check tests for the owner run.
+  Both v3 dry runs pass (180 s / final cut 45 s).
+- Live calls: none in the sandbox (replay only).
+- Owner checks: re-record both v3 videos from a normal terminal;
+  the frame check runs at the end of each recording. Confirm frames
+  at 0:03 (thesis), the live scene (no replay steps under Running),
+  and the verify scene (no cropped text). No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. Owner re-recordings make real
+  Spark calls (reading + consistency per live segment).

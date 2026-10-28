@@ -1,4 +1,10 @@
 (()=>{ // Recording FX: camera zoom + spotlight + micro-motion. Needs overlay.js.
+window.__zoomFit=(x,y,bw,bh,s,vw,vh,m)=>{
+m=m||24;
+if(!(bw>0&&bh>0))return s;
+const roomX=Math.min(x,vw-x)-m,roomY=Math.min(y,vh-y)-m;
+const fit=Math.min(roomX/(bw/2),roomY/(bh/2));
+return Math.min(s,Math.max(1,fit));};
 const init=()=>{
 if(document.getElementById('vzoom')||!document.body)return;
 const wrap=document.createElement('div');wrap.id='vzoom';
@@ -9,7 +15,8 @@ const dim=document.createElement('div');dim.id='vdim';
 dim.style.cssText='position:fixed;inset:0;z-index:2147483646;'
 +'pointer-events:none;display:none;background:rgba(0,0,0,.55)';
 document.body.appendChild(dim);
-window.__zoom=(x,y,s,ms)=>{wrap.style.transition=`transform ${ms}ms ease`;
+window.__zoom=(x,y,s,ms,bw,bh)=>{s=window.__zoomFit(x,y,bw||0,bh||0,s,innerWidth,innerHeight,24);
+wrap.style.transition=`transform ${ms}ms ease`;
 wrap.style.transformOrigin=`${x+scrollX}px ${y+scrollY}px`;
 wrap.style.transform=`scale(${s})`;
 document.body.style.overflow='hidden';

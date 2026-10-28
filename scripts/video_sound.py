@@ -7,9 +7,12 @@ import tempfile
 from pathlib import Path
 
 __all__ = [
+    "check_first_frame",
+    "extract_frame",
     "ffmpeg_bin",
     "find_font",
     "have_ffmpeg",
+    "mean_frame_diff",
     "mux_sound",
     "speed_filter",
     "speed_spans",
@@ -25,20 +28,17 @@ def have_ffmpeg() -> bool:
     return shutil.which(ffmpeg_bin()) is not None
 
 
-def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None) -> None:
+def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None,
+              lead: float | None = None) -> None:
     """Mux voice and/or music beds onto the silent webm. Raises on failure.
 
     voice: (wav_path, start_s, len_s). music: path or None. Music bed at
     -18 dB, ducked while the voice plays, fades in/out. apad keeps the
     output at video length when a bed is short. H.264 + AAC out.
+    lead: measured pre-roll seconds (context creation to first segment);
+    cut exactly that and keep `total`. None keeps the legacy full-length mux.
     """
-    lead = _leading_excess(webm, total)
-    cmd: list[str] = [ffmpeg_bin(), "-y"]
-    if lead > 0:
-        # The recording starts when the browser context opens; page loads and server start-up
-        # come before the first segment. Cut that lead so the video is exactly `total` long.
-        cmd += ["-ss", f"{lead:.3f}"]
-    cmd += ["-i", str(webm)]
+    cmd: list[str] = [ffmpeg_bin(), "-y", "-i", str(webm)]
     filters: list[str] = []
     maps = ["-map", "0:v"]
     if voice:
@@ -74,25 +74,12 @@ def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None) -
         cmd += ["-c:a", "aac", "-b:a", "128k", "-shortest"]
     else:
         cmd += ["-an"]
-    cmd += ["-t", f"{total:.3f}"]
+    if lead is not None:
+        # Output seek: exact cut of the measured pre-roll (input -ss snaps
+        # to keyframes), then keep exactly the storyboard length.
+        cmd += ["-ss", f"{max(lead, 0.0):.3f}", "-t", f"{total:.3f}"]
     cmd.append(str(out_mp4))
     subprocess.run(cmd, check=True, capture_output=True, text=True)
-
-
-def _leading_excess(webm: Path, total: float) -> float:
-    """Seconds of the recording before the first segment (duration minus the storyboard total)."""
-    probe = shutil.which(ffmpeg_bin().replace("ffmpeg", "ffprobe")) or shutil.which("ffprobe")
-    if not probe:
-        return 0.0
-    out = subprocess.run(
-        [probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(webm)],
-        capture_output=True, text=True, check=False,
-    ).stdout.strip()
-    try:
-        excess = float(out) - total
-    except ValueError:
-        return 0.0
-    return excess if excess > 0.3 else 0.0
 
 
 def voice_at(board: dict) -> float | None:
@@ -103,6 +90,52 @@ def voice_at(board: dict) -> float | None:
             return elapsed
         elapsed += seg["duration"]
     return None
+
+
+def extract_frame(mp4: Path, at_s: float, out_png: Path) -> None:
+    """Grab one frame from the finished mp4. Raises on failure."""
+    cmd = [ffmpeg_bin(), "-y", "-ss", f"{at_s:.3f}", "-i", str(mp4),
+           "-frames:v", "1", str(out_png)]
+    subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def mean_frame_diff(a: Path, b: Path, width: int = 320) -> float:
+    """Mean absolute pixel difference (0-255) on downscaled grayscale.
+
+    Downscaling desensitizes video compression noise while keeping
+    scene-level differences (a wrong scene scores far above a right one).
+    """
+    from PIL import Image, ImageChops, ImageStat
+
+    def small(path: Path) -> Image.Image:
+        img = Image.open(path).convert("L")
+        return img.resize((width, max(1, round(width * img.height / img.width))))
+    diff = ImageChops.difference(small(a), small(b))
+    return float(ImageStat.Stat(diff).mean[0])
+
+
+def check_first_frame(mp4: Path, board: dict, out_dir: Path, png_prefix: str,
+                      tol: float = 15.0) -> float:
+    """The mp4 frame at the first segment's midpoint must match its PNG.
+
+    Catches a misaligned lead trim (the frame would show a later scene).
+    Returns the diff; raises when the reference PNG is missing or
+    the diff exceeds tol.
+    """
+    seg = board["segments"][0]
+    ref = out_dir / f"{png_prefix}{seg['id']}_mid.png"
+    if not ref.is_file():
+        raise RuntimeError(f"frame check needs the midpoint PNG: {ref}")
+    with tempfile.TemporaryDirectory() as tmp:
+        frame = Path(tmp) / "check.png"
+        extract_frame(mp4, seg["duration"] / 2, frame)
+        diff = mean_frame_diff(frame, ref)
+    if diff > tol:
+        raise RuntimeError(
+            f"frame at {seg['duration'] / 2:.1f}s does not match {ref.name}: "
+            f"diff {diff:.1f} > {tol} (lead trim misaligned?)"
+        )
+    return diff
 
 
 def find_font() -> Path:

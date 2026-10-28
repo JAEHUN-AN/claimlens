@@ -24,9 +24,12 @@ from video_run import (
 )
 from video_shots import SHOTS, build_shots
 from video_sound import (
+    check_first_frame,
+    extract_frame,
     ffmpeg_bin,
     find_font,
     have_ffmpeg,
+    mean_frame_diff,
     mux_sound,
     speed_filter,
     speed_spans,
@@ -42,9 +45,11 @@ __all__ = [
     "Clock",
     "build_shots",
     "check_assets",
+    "check_first_frame",
     "clean_out",
     "drop_payload",
     "effective_total",
+    "extract_frame",
     "ffmpeg_bin",
     "find_font",
     "fmt_time",
@@ -52,6 +57,7 @@ __all__ = [
     "have_ffmpeg",
     "live_key_present",
     "locate",
+    "mean_frame_diff",
     "mux_sound",
     "nav_texts",
     "overlay_fx_js",
@@ -74,7 +80,8 @@ CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "
             "thesis")
 OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
-FX_HOOKS = ("window.__zoom", "window.__unzoom", "vzoom", "vpop", "vplink", "vhl")
+FX_HOOKS = ("window.__zoom", "window.__unzoom", "window.__zoomFit",
+            "vzoom", "vpop", "vplink", "vhl")
 VIDEO_DIR = Path("docs/video")
 
 

@@ -3,7 +3,9 @@
 The live-server subprocess test needs listen(), like the serve tests.
 """
 
+import shutil
 import socket
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -12,6 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import video_lib as V
+import video_sound as VS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -88,6 +91,65 @@ def _can_listen() -> bool:
     except OSError:
         return False
     return True
+
+
+def test_mux_sound_cuts_measured_lead(monkeypatch, tmp_path):
+    cmds = []
+
+    def fake_run(cmd, **kwargs):
+        cmds.append(cmd)
+
+    monkeypatch.setattr(VS.subprocess, "run", fake_run)
+    webm = tmp_path / "in.webm"
+    webm.write_bytes(b"fake")
+    V.mux_sound(webm, tmp_path / "out.mp4", 180.0, lead=1.234)
+    assert cmds[0][-5:-2] == ["-ss", "1.234", "-t"]
+    assert cmds[0][-1].endswith("out.mp4")
+    assert cmds[0][-2] == "180.000"
+
+
+def test_mux_sound_legacy_without_lead(monkeypatch, tmp_path):
+    cmds = []
+
+    def fake_run(cmd, **kwargs):
+        cmds.append(cmd)
+
+    monkeypatch.setattr(VS.subprocess, "run", fake_run)
+    webm = tmp_path / "in.webm"
+    webm.write_bytes(b"fake")
+    V.mux_sound(webm, tmp_path / "out.mp4", 180.0)
+    assert "-ss" not in cmds[0]
+    assert "-t" not in cmds[0]
+
+
+def test_mean_frame_diff_same_and_different(tmp_path):
+    from PIL import Image
+
+    same_a = tmp_path / "a.png"
+    same_b = tmp_path / "b.png"
+    img = Image.new("RGB", (64, 36), (200, 30, 30))
+    img.save(same_a)
+    img.save(same_b)
+    assert V.mean_frame_diff(same_a, same_b) == 0.0
+    white = tmp_path / "w.png"
+    black = tmp_path / "k.png"
+    Image.new("RGB", (64, 36), (255, 255, 255)).save(white)
+    Image.new("RGB", (64, 36), (0, 0, 0)).save(black)
+    assert V.mean_frame_diff(white, black) == 255.0
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_zoom_fit_clamp():
+    proc = subprocess.run(
+        ["node", "tests/video_zoom_check.mjs"],
+        check=False,
+        cwd=str(ROOT).removeprefix("\\\\?\\"),
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "zoom fit: OK" in proc.stdout
 
 
 @pytest.mark.skipif(not _can_listen(), reason="sandbox blocks listen()")

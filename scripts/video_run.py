@@ -265,8 +265,9 @@ def run_action(page, act: dict, clock: Clock, urls: dict[str, str], caption: str
         loc.click(timeout=10000)
     elif op == "zoom":
         page.evaluate(
-            "([x,y,s,m])=>window.__zoom(x,y,s,m)",
-            [point[0], point[1], act.get("scale", 1.6), act.get("ms", 600)],
+            "([x,y,s,m,w,h])=>window.__zoom(x,y,s,m,w,h)",
+            [point[0], point[1], act.get("scale", 1.6), act.get("ms", 600),
+             box["width"], box["height"]],
         )
     return None, point
 

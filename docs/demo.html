@@ -501,6 +501,8 @@ function liveDrop(e){
   if(!LIVE){document.getElementById('flow-msg').textContent=t('live_msg');return;}
   const files=[...((e.dataTransfer&&e.dataTransfer.files)||[])].slice(0,2);
   if(!files.length)return;
+  document.getElementById('flow-steps').innerHTML='';
+  document.getElementById('flow-result').innerHTML='';
   document.getElementById('flow-msg').textContent=t('live_running');
   Promise.all(files.map(f=>new Promise((res,rej)=>{
     const r=new FileReader();
