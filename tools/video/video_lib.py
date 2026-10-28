@@ -89,7 +89,7 @@ OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
 FX_HOOKS = ("window.__zoom", "window.__unzoom", "window.__zoomFit",
             "vzoom", "vpop", "vplink", "vhl")
-VIDEO_DIR = Path("docs/video")
+VIDEO_DIR = Path("tools/video")
 
 
 def overlay_js(root: Path, font_px: int = 23) -> str:

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 // and __zoomFit is pure (no DOM needed).
 globalThis.window = {};
 globalThis.document = { getElementById: () => null, addEventListener: () => {} };
-const src = readFileSync(new URL("../docs/video/overlay_fx.js", import.meta.url), "utf8");
+const src = readFileSync(new URL("../tools/video/overlay_fx.js", import.meta.url), "utf8");
 eval(src);
 
 const fit = globalThis.window.__zoomFit;

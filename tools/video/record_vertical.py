@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record the 45 s vertical cut v3 from docs/video/vertical-v3.json.
+"""Record the 45 s vertical cut from tools/video/storyboard-vertical.json.
 
 Hook, a real live drop on the phone (recorded in real time, played
 back 2x with a "2x" tag), tap 22,500, mismatch quotes, link card.
@@ -8,9 +8,9 @@ out/video/: claimlens_vertical_v3.mp4 (H.264 + AAC) plus the silent
 webm, timeline_vertical_v3.txt and midpoint PNGs.
 
 Usage:
-    uv run python scripts/record_vertical_v3.py [--music track.mp3]
-    uv run python scripts/record_vertical_v3.py --dry-run
-    uv run python scripts/record_vertical_v3.py --post-only [--music track.mp3]
+    uv run python tools/video/record.py vertical [--music track.mp3]
+    uv run python tools/video/record.py vertical --dry-run
+    uv run python tools/video/record.py vertical --post-only [--music track.mp3]
 """
 
 import argparse
@@ -24,8 +24,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import video_lib as V
 import video_post as P
 
-ROOT = Path(__file__).resolve().parent.parent
-CARDS = ROOT / "docs" / "video" / "cards" / "cards.html"
+ROOT = Path(__file__).resolve().parent.parent.parent
+CARDS = ROOT / "tools" / "video" / "cards" / "cards.html"
 
 
 def dry_run(board: dict) -> int:
@@ -118,7 +118,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                 if live_base:
                     urls["live"] = f"{live_base}/docs/demo.html"
                 for cid in V.CARD_IDS:
-                    urls[f"card:{cid}"] = f"{base}/docs/video/cards/cards.html#{cid}"
+                    urls[f"card:{cid}"] = f"{base}/tools/video/cards/cards.html#{cid}"
                 V.run_segments(
                     page, board, urls, out_dir, overlays, png_prefix="vv3-",
                     timeline="timeline_vertical_v3.txt", dot0=(180.0, 320.0),
@@ -168,7 +168,7 @@ def post_only(root: Path, board_path: Path, out_dir: Path, music: str | None,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="record the vertical cut v3")
-    parser.add_argument("--storyboard", default="docs/video/vertical-v3.json")
+    parser.add_argument("--storyboard", default="tools/video/storyboard-vertical.json")
     parser.add_argument("--out", default="out/video")
     parser.add_argument("--music", default=None, help="optional music bed (rights-cleared file)")
     parser.add_argument("--dry-run", action="store_true")

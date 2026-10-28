@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record the 180 s demo video v3 from docs/video/storyboard-v3.json.
+"""Record the 180 s demo video from tools/video/storyboard-main.json.
 
 v2 plus the Round 5 product: a thesis card, a real live run (claimlens
 serve started inside the script, new photos dropped, real wait on
@@ -8,9 +8,9 @@ Output under out/video/: the silent webm, claimlens_demo_v3.mp4
 (H.264 + AAC), timeline_v3.txt and midpoint PNGs.
 
 Usage:
-    uv run python scripts/record_video_v3.py [--music track.mp3]
-    uv run python scripts/record_video_v3.py --dry-run
-    uv run python scripts/record_video_v3.py --post-only [--music track.mp3]
+    uv run python tools/video/record.py main [--music track.mp3]
+    uv run python tools/video/record.py main --dry-run
+    uv run python tools/video/record.py main --post-only [--music track.mp3]
 """
 
 import argparse
@@ -24,15 +24,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import video_lib as V
 import video_post as P
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 VOICE_WAV = ROOT / "samples" / "audio" / "W_factory_fall_en.wav"
 VOICE_LEN_S = 6.0
 
 
 def extra_texts() -> dict[str, Path]:
     return {
-        "cards": ROOT / "docs" / "video" / "cards" / "cards.html",
-        "phone": ROOT / "docs" / "video" / "phone.html",
+        "cards": ROOT / "tools" / "video" / "cards" / "cards.html",
+        "phone": ROOT / "tools" / "video" / "phone.html",
     }
 
 
@@ -126,9 +126,9 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                     if live_base:
                         urls["live"] = f"{live_base}/docs/demo.html"
                     urls.update({k: f"{base}/out/video/shots/{v.name}" for k, v in shots.items()})
-                    urls["phone"] = f"{base}/docs/video/phone.html"
+                    urls["phone"] = f"{base}/tools/video/phone.html"
                     for cid in V.CARD_IDS:
-                        urls[f"card:{cid}"] = f"{base}/docs/video/cards/cards.html#{cid}"
+                        urls[f"card:{cid}"] = f"{base}/tools/video/cards/cards.html#{cid}"
                     for shot in shots.values():
                         dest = out_dir / "shots" / shot.name
                         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -186,7 +186,7 @@ def post_only(root: Path, board_path: Path, out_dir: Path, music: str | None,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="record the demo video v3")
-    parser.add_argument("--storyboard", default="docs/video/storyboard-v3.json")
+    parser.add_argument("--storyboard", default="tools/video/storyboard-main.json")
     parser.add_argument("--out", default="out/video")
     parser.add_argument("--music", default=None, help="optional music bed (rights-cleared file)")
     parser.add_argument("--dry-run", action="store_true")

@@ -195,6 +195,11 @@ voice-intake rule asking for confirmation, not the agent loop (0 steps).
   2026-10-28). Blockers rest on the deterministic layer, which is why
   precision/recall stays 1.000.
 
+## Demo video
+
+The demo video is recorded by `uv run python tools/video/record.py main|vertical`
+from the replay caches plus one live run.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

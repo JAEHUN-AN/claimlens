@@ -1168,3 +1168,31 @@ storyboard op); intercepted clicks are never relied on.
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-28 — Backlog session: item 40c tidy video tooling
+
+Five recorders and five storyboards looked like sprawl, so everything
+video-related now lives under `tools/video/` (recorders, storyboard
+JSON, overlay JS, cards, phone frame), keeping only the main and
+vertical recorders (`record_main.py`, `record_vertical.py`) and their
+storyboards. The v1/v2 recorders, `storyboard.json`,
+`storyboard-v2.json`, `vertical.json`, and their tests are deleted (git
+history keeps them). One entry point:
+`uv run python tools/video/record.py main|vertical [--dry-run]
+[--music FILE]` (plus the 40e `--post-only` flags); README gained a
+short "Demo video" section. No behaviour change.
+
+### Muse Code (coding agent)
+
+- Tests: 234 passed, 9 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). Record tests now run through the new entry point
+  (main/vertical dry runs, unknown-cut rejection, drop-file and
+  missing-webm failures); v1/v2 tests deleted with their recorders.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: `uv run python tools/video/record.py main --post-only`
+  on the existing main `.webm` (new path after the move). No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
