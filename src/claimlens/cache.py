@@ -36,45 +36,43 @@ def cache_path(key: str) -> Path:
     return cache_dir() / f"{key}.json"
 
 
-def files_index_path(live: bool = False) -> Path:
-    """Live runs remember file ids under live/ so committed cache stays fixed."""
-    base = live_dir() if live else cache_dir()
-    return base / "files_index.json"
+def files_index_path() -> Path:
+    """File ids are runtime-only: the index always lives under live/.
+
+    Recordings are keyed by image bytes whatever the transport, so replay
+    never needs the index; losing it only costs re-uploads.
+    """
+    return live_dir() / "files_index.json"
 
 
-def load_files_index(live: bool = False) -> dict[str, str]:
+def load_files_index() -> dict[str, str]:
     """Maps prepared-image sha256 to the uploaded file id ({} when absent)."""
-    path = files_index_path(live)
+    path = files_index_path()
     if not path.exists():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     return data if isinstance(data, dict) else {}
 
 
-def store_file_id(blob_sha: str, file_id: str, live: bool = False) -> None:
-    path = files_index_path(live)
-    index = load_files_index(live)
+def store_file_id(blob_sha: str, file_id: str) -> None:
+    path = files_index_path()
+    index = load_files_index()
     index[blob_sha] = file_id
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def drop_file_id(blob_sha: str, live: bool = False) -> None:
-    index = load_files_index(live)
+def drop_file_id(blob_sha: str) -> None:
+    index = load_files_index()
     if blob_sha in index:
         del index[blob_sha]
-        files_index_path(live).write_text(
+        files_index_path().write_text(
             json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
         )
 
 
 def blob_sha(blob: bytes) -> str:
     return hashlib.sha256(blob).hexdigest()
-
-
-def file_key_bytes(file_ids: list[str]) -> list[bytes]:
-    """Cache-key input for file-referenced images (record and replay agree)."""
-    return [f"file:{file_id}".encode() for file_id in file_ids]
 
 
 def store(key: str, payload: dict[str, Any]) -> Path:

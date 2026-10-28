@@ -113,8 +113,13 @@ def test_file_path_records_ids_and_replays(monkeypatch, tmp_path):
     assert parts == [{"type": "input_image", "file_id": "file-1"}]
     index = repo_cache.load_files_index()
     assert list(index.values()) == ["file-1"]
+    assert (tmp_path / "live" / "files_index.json").is_file()
     payload = json.loads(next(tmp_path.glob("*.json")).read_text(encoding="utf-8"))
     assert payload["input_refs"] == [{"type": "file", "part": "input_image", "id": "file-1"}]
+    replayed = ReplayProvider().read_documents([_image()], "read", {"type": "object"}, _TinyResult)
+    assert replayed == {"ok": True}
+    # Keys come from image bytes, not file ids: replay survives index loss.
+    (tmp_path / "live" / "files_index.json").unlink()
     replayed = ReplayProvider().read_documents([_image()], "read", {"type": "object"}, _TinyResult)
     assert replayed == {"ok": True}
 
@@ -168,8 +173,9 @@ def test_probe_files_reports_file_path_and_stays_out_of_cache(tmp_path):
     assert summary["documents"] == 0
     assert summary["tokens"]["total_tokens"] == 12
     names = sorted(p.name for p in out.glob("*.json"))
-    assert len(names) == 3
-    assert "probe_result.json" in names and "files_index.json" in names
+    assert len(names) == 2
+    assert "probe_result.json" in names
+    assert (out / "live" / "files_index.json").is_file()
     assert os.environ.get("CLAIMLENS_CACHE_DIR") is None
 
 
@@ -232,15 +238,27 @@ def test_input_file_part_used_when_input_image_rejected(monkeypatch, tmp_path):
     assert payload["input_refs"] == [{"type": "file", "part": "input_file", "id": "file-1"}]
 
 
-def test_live_provider_remembers_file_ids_under_live_only(monkeypatch, tmp_path):
-    monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(tmp_path))
-    provider = MetaProvider(api_key="test-key", live=True)
+@pytest.mark.parametrize("live", [False, True])
+def test_file_ids_live_under_live_only(monkeypatch, tmp_path, live):
+    home = tmp_path / ("live-run" if live else "cli-run")
+    home.mkdir()
+    monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(home))
+    provider = MetaProvider(api_key="test-key", live=live)
     provider._client = _StubClient(output={"ok": True})
     out = provider.read_documents([_image()], "read", {"type": "object"}, _TinyResult)
     assert out == {"ok": True}
-    assert not (tmp_path / "files_index.json").exists()
-    assert list(tmp_path.glob("*.json")) == []
-    assert (tmp_path / "live" / "files_index.json").exists()
+    assert not (home / "files_index.json").exists()
+    assert (home / "live" / "files_index.json").exists()
+
+
+def test_no_files_index_outside_live():
+    cache = Path(__file__).resolve().parent.parent / "cache"
+    strays = (
+        [p for p in cache.rglob("files_index*") if "live" not in p.parts]
+        if cache.exists()
+        else []
+    )
+    assert strays == []
 
 
 def test_probe_files_records_failure_reason(tmp_path):

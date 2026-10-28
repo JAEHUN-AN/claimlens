@@ -1072,6 +1072,40 @@ overflow, S2 scene).
 - Live calls: none in the sandbox. Owner re-recordings make real
   Spark calls (reading + consistency per live segment).
 
+## 2026-10-28 — Backlog session: item 37b triage fixes from the live run
+
+(1) The owner's triage run dropped the S2 certificate over a
+bracketed transliteration ("NGUYEN VAN AN (…)" vs "NGUYEN VAN AN").
+Identities are now normalised before grouping: bracketed alternates
+stripped, case folded, spaces and punctuation collapsed, name tokens
+compared as a set, and dates matched on overlapping visit periods.
+Pages differing only by such normalisation are kept with the note
+"name written differently on the certificate" instead of dropped.
+The recorded response `cache/e6022bfc….json` is committed as the
+pin fixture (read directly: it is file-keyed from before the key
+change, so replay cannot address it without its deleted index):
+keep [0] and [2] with the note, drop [1] with reason, merge [3] into
+[0], missing is the itemized statement only. (2) File ids are now
+runtime-only: every index lives under `cache/live/`, also for CLI
+runs, and recordings are keyed by image bytes whatever the
+transport — replay never needs the index, and a test fails if
+anything named `files_index` appears outside `cache/live/`.
+
+### Muse Code (coding agent)
+
+- Tests: 231 passed, 7 skipped (ffmpeg + listen() blocked in the
+  sandbox), 2 browser tests deselected in the sandbox
+  (`ruff check` clean). New: recorded-bundle pin, bracket/order/
+  punctuation/overlap/drop unit cases, replay-survives-index-loss,
+  index-under-live for CLI and live runs, repo hygiene scan.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: push and tick 37b. No re-recording needed: the pin
+  reads the kept response directly. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
 ## 2026-10-28 — Backlog session: item 37 messy bundle triage
 
 New `claimlens triage <photos...>`: one Muse Spark strict-schema

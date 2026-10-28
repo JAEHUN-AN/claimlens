@@ -23,7 +23,7 @@ def probe_files(
         raise ValueError(f"Not an image file: {image}")
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    for stale in list(out.glob("*.json")) + [out / "files_index.json"]:
+    for stale in list(out.glob("*.json")) + [out / "live" / "files_index.json"]:
         if stale.is_file():
             stale.unlink()
     old_cache = os.environ.get("CLAIMLENS_CACHE_DIR")

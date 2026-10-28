@@ -26,17 +26,7 @@ class ReplayProvider:
         result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]:
         blobs = [prepare_image(p) for p in images]
-        index = replay_cache.load_files_index()
-        shas = [replay_cache.blob_sha(b) for b in blobs]
-        if blobs and all(s in index for s in shas):
-            key = replay_cache.cache_key(
-                replay_cache.file_key_bytes([index[s] for s in shas]),
-                instructions,
-                schema,
-                self.model,
-            )
-        else:
-            key = replay_cache.cache_key(blobs, instructions, schema, self.model)
+        key = replay_cache.cache_key(blobs, instructions, schema, self.model)
         payload = replay_cache.load(key)
         usage = payload.get("usage", {})
         in_tokens = int(usage.get("input_tokens", 0))

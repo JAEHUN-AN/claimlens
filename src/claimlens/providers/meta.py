@@ -134,7 +134,7 @@ class MetaProvider:
     def _resolve_file_ids(self, blobs: list[bytes]) -> list[str] | None:
         """Upload-once file ids for every blob, or None when uploads fail."""
         try:
-            index = replay_cache.load_files_index(self.live)
+            index = replay_cache.load_files_index()
             file_ids = []
             for blob in blobs:
                 sha = replay_cache.blob_sha(blob)
@@ -143,7 +143,7 @@ class MetaProvider:
                         file=(f"claimlens-{sha[:12]}.jpg", blob, "image/jpeg"),
                         purpose="user_data",
                     )
-                    replay_cache.store_file_id(sha, created.id, self.live)
+                    replay_cache.store_file_id(sha, created.id)
                     index[sha] = created.id
                 file_ids.append(index[sha])
         except Exception as exc:  # noqa: BLE001 - any upload failure means base64
@@ -191,27 +191,14 @@ class MetaProvider:
         blobs = [prepare_image(p) for p in images]
         if self.live:
             keys = [replay_cache.cache_key(blobs, instructions, schema, self.model)]
-            index = replay_cache.load_files_index(live=True)
-            shas = [replay_cache.blob_sha(b) for b in blobs]
-            if blobs and all(s in index for s in shas):
-                keys.append(
-                    replay_cache.cache_key(
-                        replay_cache.file_key_bytes([index[s] for s in shas]),
-                        instructions,
-                        schema,
-                        self.model,
-                    )
-                )
             payload = self._reuse_any(keys)
             if payload is not None:
                 return self._finish(payload, result_model, ReadingResult)
         self.last_files_error = None
         file_ids = self._resolve_file_ids(blobs) if blobs else None
         refs: list[dict[str, str]] | None = None
+        key = replay_cache.cache_key(blobs, instructions, schema, self.model)
         if file_ids is not None:
-            key = replay_cache.cache_key(
-                replay_cache.file_key_bytes(file_ids), instructions, schema, self.model
-            )
             attempts: list[dict[str, Any]] = []
             for part in ("input_image", "input_file"):
                 try:
@@ -226,10 +213,9 @@ class MetaProvider:
             else:
                 self.last_files_error = {"stage": "read", "attempts": attempts}
                 for blob in blobs:
-                    replay_cache.drop_file_id(replay_cache.blob_sha(blob), self.live)
+                    replay_cache.drop_file_id(replay_cache.blob_sha(blob))
                 file_ids = None
         if file_ids is None:
-            key = replay_cache.cache_key(blobs, instructions, schema, self.model)
             response = self._request(blobs, instructions, schema)
             refs = [{"type": "base64", "sha256": replay_cache.blob_sha(b)} for b in blobs]
         usage = response.usage
