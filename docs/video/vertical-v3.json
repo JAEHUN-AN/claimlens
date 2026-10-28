@@ -1,0 +1,148 @@
+{
+  "demo_page": "docs/demo.html",
+  "viewport": {
+    "device_scale_factor": 2,
+    "height": 640,
+    "width": 360
+  },
+  "segments": [
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 3
+        }
+      ],
+      "caption": "Hospital bills don't translate themselves.",
+      "duration": 4,
+      "id": "vhook",
+      "page": "card:vhook",
+      "title": "hook card"
+    },
+    {
+      "actions": [
+        {
+          "op": "wait_for",
+          "selector": "#replaytag.live",
+          "timeout": 15000
+        },
+        {
+          "files": [
+            "samples/live/S2_receipt_retake.jpg",
+            "samples/live/S2_medical_certificate_retake.jpg"
+          ],
+          "op": "dropfiles",
+          "selector": "#flow-drop"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#flow-view .flow-result",
+          "timeout": 180000
+        },
+        {
+          "op": "zoom",
+          "scale": 1.3,
+          "selector": "#flow-steps"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        }
+      ],
+      "caption": "Phone live drop — real wait, 2×.",
+      "duration": 24,
+      "id": "vlive",
+      "page": "live",
+      "title": "live drop",
+      "speed": 2
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene S2\")"
+        },
+        {
+          "op": "click",
+          "selector": "section#S2_seoul_worker_bronchitis .headline [data-prov=\"s2-amount\"]"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#prov-panel .plink"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.3,
+          "selector": "#prov-panel"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        }
+      ],
+      "caption": "Every number shows its source.",
+      "duration": 10,
+      "id": "vprov",
+      "page": "demo",
+      "title": "tap 22,500"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Mismatch\")"
+        },
+        {
+          "op": "scroll_to",
+          "nth": 0,
+          "selector": "section#mismatch_s2r_s3c .quotes"
+        },
+        {
+          "op": "zoom",
+          "nth": 0,
+          "scale": 1.4,
+          "selector": "section#mismatch_s2r_s3c .quotes"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "selector": "section#mismatch_s2r_s3c .claims-check"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Mismatch? Both quotes, side by side.",
+      "duration": 12,
+      "id": "vmm",
+      "page": "demo",
+      "title": "mismatch quotes"
+    },
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 5
+        }
+      ],
+      "caption": "Try it: jaehun-an.github.io/claimlens",
+      "duration": 7,
+      "id": "vlink",
+      "page": "card:vlink",
+      "title": "link card"
+    }
+  ]
+}

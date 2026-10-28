@@ -112,8 +112,10 @@ assert(stagesHtml.includes("Verification"), "verification heading");
 assert(stagesHtml.includes("Scripted walkthrough"), "walkthrough heading");
 assert(stagesHtml.includes("refuse → fix"), "walkthrough refusal");
 assert(stagesHtml.includes("Handoff"), "handoff card");
-assert(stagesHtml.includes("resume → sign-off"), "walkthrough signoff");
-assert(stagesHtml.includes("· approved<"), "signoff approved");
+assert(stagesHtml.includes("return with notes"), "reviewer return");
+assert(stagesHtml.includes("approve: approved"), "reviewer approve");
+assert(stagesHtml.includes("claims-check"), "claims check line");
+assert(stagesHtml.includes("dropped — not supported by its quotes"), "claims drop line");
 assert(stagesHtml.includes("Claim Pack ·"), "pack headline");
 assert(stagesHtml.includes("15,000,000"), "pack headline total");
 // Provenance coverage: every bare number on A/S2/S3/Agent must sit inside

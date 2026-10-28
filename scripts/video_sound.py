@@ -3,9 +3,18 @@
 import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
-__all__ = ["ffmpeg_bin", "have_ffmpeg", "mux_sound", "voice_at"]
+__all__ = [
+    "ffmpeg_bin",
+    "find_font",
+    "have_ffmpeg",
+    "mux_sound",
+    "speed_filter",
+    "speed_spans",
+    "voice_at",
+]
 
 
 def ffmpeg_bin() -> str:
@@ -71,3 +80,74 @@ def voice_at(board: dict) -> float | None:
             return elapsed
         elapsed += seg["duration"]
     return None
+
+
+def find_font() -> Path:
+    """A drawtext font file; CLAIMLENS_FONT wins, then platform guesses."""
+    override = os.environ.get("CLAIMLENS_FONT")
+    candidates = [Path(override)] if override else []
+    candidates += [
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    tried = ", ".join(str(c) for c in candidates)
+    raise RuntimeError(f"no drawtext font found (tried {tried}); set CLAIMLENS_FONT")
+
+
+def _ff_path(path: Path) -> str:
+    return str(path).replace("\\", "/").replace(":", "\\:")
+
+
+def speed_filter(spans: list[tuple[float, float]], total: float, tag: Path, font: Path) -> str:
+    """filter_complex: play spans 2x with a tag overlay, keep the rest.
+
+    spans: (start, end) seconds on the recorded timeline, non-overlapping.
+    Pure string building; raises on bad spans.
+    """
+    for start, end in spans:
+        if not 0 <= start < end <= total:
+            raise ValueError(f"bad speed span ({start}, {end}) for {total}s")
+    cuts: list[tuple[float, float, bool]] = []
+    cursor = 0.0
+    for start, end in sorted(spans):
+        if start < cursor:
+            raise ValueError(f"overlapping speed spans near {start}")
+        if start > cursor:
+            cuts.append((cursor, start, False))
+        cuts.append((start, end, True))
+        cursor = end
+    if cursor < total:
+        cuts.append((cursor, total, False))
+    font_esc = _ff_path(font)
+    tag_esc = _ff_path(tag)
+    parts = []
+    for i, (start, end, sped) in enumerate(cuts):
+        if sped:
+            parts.append(
+                f"[0:v]trim={start:.3f}:{end:.3f},setpts=(PTS-STARTPTS)/2,"
+                f"drawtext=fontfile='{font_esc}':textfile='{tag_esc}':"
+                f"fontsize=34:fontcolor=white:box=1:boxcolor=black@0.6:"
+                f"x=w-text_w-24:y=24[v{i}]"
+            )
+        else:
+            parts.append(f"[0:v]trim={start:.3f}:{end:.3f},setpts=PTS-STARTPTS[v{i}]")
+    parts.append("".join(f"[v{i}]" for i in range(len(cuts))) + f"concat=n={len(cuts)}:v=1:a=0[v]")
+    return ";".join(parts)
+
+
+def speed_spans(webm: Path, spans: list[tuple[float, float]], total: float, out: Path,
+                tag_text: str = "2×") -> float:
+    """Rebuild the video with spans at 2x plus a tag. Returns the new length."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tag = Path(tmp) / "tag.txt"
+        tag.write_text(tag_text, encoding="utf-8")
+        filt = speed_filter(spans, total, tag, find_font())
+        cmd = [ffmpeg_bin(), "-y", "-i", str(webm), "-filter_complex", filt,
+               "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+               "-crf", "20", "-preset", "veryfast", "-an", str(out)]
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    return total - sum(end - start for start, end in spans) / 2

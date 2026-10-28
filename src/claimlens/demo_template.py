@@ -312,7 +312,12 @@ v_walk:["Scripted walkthrough","스크립트 시연"],
 v_handoff:["Handoff","인계"],
 topnote_live:["All documents are synthetic. Live on this machine — committed caches untouched.","모든 문서는 합성입니다. 이 컴퓨터에서 실시간 실행 중 — 커밋된 캐시는 그대로입니다."],
 flow_note_live:["Live mode: drop receipt + certificate photos, or pick a sample to replay.","실시간 모드: 영수증+진단서 사진을 놓거나 예시를 골라 리플레이."],
-live_reused:["recording reused — no model call","기록 재사용 — 모델 호출 없음"]
+live_reused:["recording reused — no model call","기록 재사용 — 모델 호출 없음"],
+mm_claims:["Spark claims check","Spark 클레임 검사"],
+mm_dropped:["dropped — not supported by its quotes","기각 — 인용으로 뒷받침되지 않음"],
+v_reviewer:["reviewer","검토자"],
+v_returned:["return with notes","의견을 달아 반려"],
+v_approved:["approve","승인"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -476,8 +481,9 @@ function evalBlock(e){
     +`<p><small class="dim">${esc(t('eval_foot'))}</small></p>`;
 }
 function flowResult(ex){
+  const pin=ex.result.engine?`<p class="pinned">${esc(t('pinned_w'))}</p>`:'';
   return `<div class="flow-result"><p>${badge(ex.result.badge)}</p>`
-    +`<p class="amount">${esc(ex.result.title)}</p>`
+    +`<p class="amount">${esc(ex.result.title)}</p>`+pin
     +`<p><button onclick="show('${ex.result.scene}')">${esc(t('see_full'))}</button></p></div>`;
 }
 document.addEventListener('dragover',e=>{
@@ -590,7 +596,9 @@ function mismatchScene(s){
       +`<div><h5>${esc(t('mm_cert'))}</h5><p class="noprov">“${esc(f.quote_cert)}”</p></div></div>`
       +ask+`</li>`;
   }).join('');
-  return `<h3>${esc(t('mm_findings'))}</h3><ul class="tight">${items}</ul>`;
+  const cc=s.mismatch.claims_check;
+  const ccline=cc?`<p class="claims-check noprov">${esc(t('mm_claims'))}: ${esc(cc.label)} — ${esc(String(cc.dropped))} ${esc(t('mm_dropped'))}</p>`:'';
+  return `<h3>${esc(t('mm_findings'))}</h3><ul class="tight">${items}</ul>${ccline}`;
 }
 function stage(s,first){
   if(s.mismatch)return mismatchSection(s,first);
@@ -648,17 +656,17 @@ function verifyBlock(v){
     +`<span class="noprov">${esc(g.feedback||'')}</span></li>`).join('');
   const w=v.walkthrough,ho=w.handoff;
   const walk=`<li><strong class="noprov">refuse → fix</strong><br/>`
-    +`<span class="noprov">${esc(w.refusal.rule)}: ${esc(w.refusal.feedback)}</span><br/>`
+    +`<span class="noprov">${esc(w.refusal.tool)} · ${esc(w.refusal.rule)}: ${esc(w.refusal.feedback)}</span><br/>`
     +`<span class="noprov">fix recorded ${esc(JSON.stringify(w.fix.recorded))} → ${esc(w.fix.decision)} `
     +`${esc(num(w.fix.amount_krw))} KRW</span></li>`
     +`<li><strong class="noprov">${esc(t('v_handoff'))}</strong><br/>`
     +`<span class="noprov">${esc(ho.blocked_item)} · ${esc(ho.rule_fired)}</span><br/>`
     +`<span class="noprov">${esc(t('q_w'))} ${esc(ho.question)}</span></li>`
-    +`<li><strong class="noprov">resume → sign-off</strong><br/>`
-    +`<span class="noprov">${esc(w.resume.checks)} · ${esc(w.signoff.revision)} · `
-    +`${esc(w.signoff.signed)}</span></li>`;
-  return `<h3>${esc(t('h_verify'))}</h3><ul class="tight noprov">${guards}</ul>`
-    +`<h3>${esc(t('v_walk'))}</h3><ul class="tight noprov">${walk}</ul>`;
+    +`<li><strong class="noprov">${esc(t('v_reviewer'))}</strong><br/>`
+    +`<span class="noprov">${esc(t('v_returned'))}: “${esc(w.signoff.returned_notes)}”</span><br/>`
+    +`<span class="noprov">${esc(w.signoff.revision)} → ${esc(t('v_approved'))}: ${esc(w.signoff.signed)}</span></li>`;
+  return `<h3>${esc(t('h_verify'))}</h3><ul class="tight noprov vguards">${guards}</ul>`
+    +`<h3>${esc(t('v_walk'))}</h3><ul class="tight noprov vwalk">${walk}</ul>`;
 }
 function timeline(s){
   const tl=s.timeline;
@@ -676,7 +684,8 @@ function timeline(s){
       +`<p>${(e.segments||[]).map(seg).join('')}</p></li>`;
   }).join('');
   const o=tl.outcome||{};
-  const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${pv(o.amount)}</p>`:'';
+  const head=o.decision?`<p>${badge(o.decision)}</p><p class="amount">${pv(o.amount)}</p>`
+    +(o.engine?`<p class="pinned">${esc(t('pinned_w'))}</p>`:''):'';
   return `<h3>${esc(t('h_agent'))}</h3>${head}`
     +`<p class="pinned">${pv(tl.model_calls)} ${esc(t('model_turns'))} · ${pv(tl.tokens)} ${esc(t('tokens_w'))} · ${esc(t('replayed_w'))}</p>`
     +`<ol class="timeline">${items}</ol>`+(tl.verification?verifyBlock(tl.verification):'');

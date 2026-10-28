@@ -11,15 +11,27 @@ from pathlib import Path
 from video_run import (
     Clock,
     clean_out,
+    drop_payload,
     fmt_time,
     goto,
+    live_key_present,
     locate,
     run_action,
     run_segments,
     serve,
+    start_live_server,
+    uses_live,
 )
 from video_shots import SHOTS, build_shots
-from video_sound import ffmpeg_bin, have_ffmpeg, mux_sound, voice_at
+from video_sound import (
+    ffmpeg_bin,
+    find_font,
+    have_ffmpeg,
+    mux_sound,
+    speed_filter,
+    speed_spans,
+    voice_at,
+)
 
 __all__ = [
     "BASE_HOOKS",
@@ -31,10 +43,14 @@ __all__ = [
     "build_shots",
     "check_assets",
     "clean_out",
+    "drop_payload",
+    "effective_total",
     "ffmpeg_bin",
+    "find_font",
     "fmt_time",
     "goto",
     "have_ffmpeg",
+    "live_key_present",
     "locate",
     "mux_sound",
     "nav_texts",
@@ -45,13 +61,18 @@ __all__ = [
     "run_action",
     "run_segments",
     "serve",
+    "speed_filter",
+    "speed_spans",
+    "start_live_server",
     "tokens",
+    "uses_live",
     "validate",
     "voice_at",
 ]
 
-CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink")
-OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom")
+CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
+            "thesis")
+OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
 FX_HOOKS = ("window.__zoom", "window.__unzoom", "vzoom", "vpop", "vplink", "vhl")
 VIDEO_DIR = Path("docs/video")
@@ -99,6 +120,9 @@ def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -
             errors.append(f"{seg.get('id')}: caption over {caption_max} chars")
         if seg.get("duration", 0) <= 0:
             errors.append(f"{seg.get('id')}: bad duration")
+        speed = seg.get("speed")
+        if speed is not None and (not isinstance(speed, (int, float)) or speed <= 1):
+            errors.append(f"{seg.get('id')}: bad speed {speed!r}")
         if seg.get("page") not in texts:
             errors.append(f"{seg.get('id')}: unknown page {seg.get('page')!r}")
             continue
@@ -117,6 +141,12 @@ def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -
                 if act["op"] == "hold" and act.get("seconds", 0) <= 0:
                     errors.append(f"{seg['id']}: bad hold")
                 continue
+            if act["op"] == "dropfiles":
+                if not act.get("files"):
+                    errors.append(f"{seg['id']}: dropfiles needs files")
+                for name in act.get("files", []):
+                    if not (root / name).is_file():
+                        errors.append(f"{seg['id']}: drop file missing: {name}")
             sel = act.get("selector", "")
             if act.get("frame"):
                 for tok in tokens(act["frame"]):
@@ -173,6 +203,14 @@ def check_assets(root: Path, board: dict, texts: dict[str, str]) -> list[str]:
             if not src.startswith("/") or not (root / src[1:]).exists():
                 errors.append(f"{name} image missing: {src}")
     return errors
+
+
+def effective_total(board: dict) -> float:
+    """Final-cut length: sped segments count duration / speed."""
+    total = 0.0
+    for seg in board.get("segments", []):
+        total += seg["duration"] / seg["speed"] if seg.get("speed") else seg["duration"]
+    return total
 
 
 def print_plan(board: dict, limit_s: int) -> float:

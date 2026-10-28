@@ -1,0 +1,573 @@
+{
+  "demo_page": "docs/demo.html",
+  "viewport": {
+    "height": 720,
+    "width": 1280
+  },
+  "segments": [
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 5
+        }
+      ],
+      "caption": "AI reads, reasons and asks; code counts.",
+      "duration": 6,
+      "id": "thesis",
+      "page": "card:thesis",
+      "title": "thesis card"
+    },
+    {
+      "actions": [],
+      "caption": "1 · Read & verify",
+      "duration": 1,
+      "id": "ch1",
+      "page": "card:ch1",
+      "title": "chapter 1"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "button.fpick[data-ex=\"S2_seoul_worker_bronchitis\"]"
+        },
+        {
+          "op": "click",
+          "selector": "#flow-play"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.35,
+          "selector": "#flow-steps"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#flow-view .flow-result"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        }
+      ],
+      "caption": "Drop a hospital bill. Muse Spark reads every numbered cell, code re-adds them, and a rule decides which insurance applies.",
+      "duration": 14,
+      "id": "s2flow",
+      "page": "demo",
+      "title": "S2 guided flow"
+    },
+    {
+      "actions": [],
+      "caption": "2 · Show the source",
+      "duration": 1,
+      "id": "ch2",
+      "page": "card:ch2",
+      "title": "chapter 2"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene S2\")"
+        },
+        {
+          "op": "click",
+          "selector": "section#S2_seoul_worker_bronchitis .headline [data-prov=\"s2-amount\"]"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#prov-panel .plink"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.3,
+          "selector": "#prov-panel"
+        },
+        {
+          "op": "click",
+          "selector": "#prov-panel .plink[data-goto=\"s2-ded-ours\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "selector": "section#S2_seoul_worker_bronchitis .pinned"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        }
+      ],
+      "caption": "Every number can show where it came from: the receipt cells, the copay formula, the three deductible terms — and our own check matches the engine.",
+      "duration": 15,
+      "id": "prov",
+      "page": "demo",
+      "title": "provenance panel"
+    },
+    {
+      "actions": [],
+      "caption": "3 · Ask, don't guess",
+      "duration": 1,
+      "id": "ch3",
+      "page": "card:ch3",
+      "title": "chapter 3"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Agent\")"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#agent_s2_hidden_copay ol.timeline"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#agent_s2_hidden_copay .tl-q"
+        },
+        {
+          "op": "zoom",
+          "ms": 700,
+          "scale": 1.6,
+          "selector": "section#agent_s2_hidden_copay .tl-q"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        }
+      ],
+      "caption": "Hide two cells and the checks fail. The agent does not guess: it asks for exactly what is missing, and says why — then finishes the claim.",
+      "duration": 14,
+      "id": "agent",
+      "page": "demo",
+      "title": "agent timeline"
+    },
+    {
+      "actions": [],
+      "caption": "We score it: it asks when it must, stays quiet when it need not, and never invents a number.",
+      "duration": 7,
+      "id": "score",
+      "page": "agent-eval",
+      "title": "agent scorecard"
+    },
+    {
+      "actions": [],
+      "caption": "4 · No policy, no decision",
+      "duration": 1,
+      "id": "ch4",
+      "page": "card:ch4",
+      "title": "chapter 4"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene S3\")"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#S3_us_tourist_hip_fracture h3:has-text(\"Verify\")"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.5,
+          "selector": "section#S3_us_tourist_hip_fracture .rec-cols"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "selector": "section#S3_us_tourist_hip_fracture .panel p strong:has-text(\"We do not have your policy\")"
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-kcd\"]"
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-who\"]"
+        },
+        {
+          "op": "move",
+          "selector": "[data-prov=\"s3-cm\"]"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.5,
+          "selector": "section#S3_us_tourist_hip_fracture li.warn"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "unzoom"
+        }
+      ],
+      "caption": "No Korean policy, so we do not decide. A failed reading is re-read, never used — and the claim pack warns where a prefix match names a different fracture.",
+      "duration": 15,
+      "id": "s3",
+      "page": "demo",
+      "title": "S3 recovery and pack"
+    },
+    {
+      "actions": [],
+      "caption": "5 · Heard, then confirmed",
+      "duration": 1,
+      "id": "ch5",
+      "page": "card:ch5",
+      "title": "chapter 5"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Voice\")"
+        },
+        {
+          "op": "move",
+          "nth": 0,
+          "selector": "section#voice_factory_fall audio"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        },
+        {
+          "op": "zoom",
+          "nth": 0,
+          "scale": 1.6,
+          "selector": "section#voice_factory_fall .totag"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "selector": "section#voice_factory_fall .headline .badge"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        }
+      ],
+      "caption": "A factory worker describes a fall by voice. Dates heard by ear are confirmed, not trusted. Work injury: industrial-accident insurance first.",
+      "duration": 9,
+      "id": "voice",
+      "page": "demo",
+      "title": "voice intake",
+      "sound": "voice"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#langswitch button[data-lang=\"ko\"]"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "click",
+          "selector": "#langswitch button[data-lang=\"en\"]"
+        }
+      ],
+      "caption": "The same screen for staff in Korea.",
+      "duration": 5,
+      "id": "koui",
+      "page": "demo",
+      "title": "Korean UI"
+    },
+    {
+      "actions": [
+        {
+          "op": "wait_for",
+          "selector": "#replaytag.live",
+          "timeout": 15000
+        },
+        {
+          "files": [
+            "samples/live/S2_receipt_retake.jpg",
+            "samples/live/S2_medical_certificate_retake.jpg"
+          ],
+          "op": "dropfiles",
+          "selector": "#flow-drop"
+        },
+        {
+          "op": "wait_for",
+          "selector": "#flow-view .flow-result",
+          "timeout": 180000
+        },
+        {
+          "op": "zoom",
+          "scale": 1.3,
+          "selector": "#flow-steps"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        }
+      ],
+      "caption": "This run is live: new photos, a real Muse Spark call, real seconds on screen.",
+      "duration": 15,
+      "id": "live",
+      "page": "live",
+      "title": "live run"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Mismatch\")"
+        },
+        {
+          "op": "scroll_to",
+          "nth": 0,
+          "selector": "section#mismatch_s2r_s3c .quotes"
+        },
+        {
+          "op": "zoom",
+          "nth": 0,
+          "scale": 1.4,
+          "selector": "section#mismatch_s2r_s3c .quotes"
+        },
+        {
+          "op": "hold",
+          "seconds": 3
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "nth": 0,
+          "selector": "section#mismatch_s2r_s3c .ask"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        },
+        {
+          "op": "move",
+          "selector": "section#mismatch_s2r_s3c .claims-check"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Two documents disagree: both quotes side by side, and each blocker becomes a question. The claims check drops what its quotes don't support.",
+      "duration": 15,
+      "id": "mismatch",
+      "page": "demo",
+      "title": "mismatch scene"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene Agent\")"
+        },
+        {
+          "op": "scroll_to",
+          "selector": "section#agent_s2_hidden_copay ul.vwalk"
+        },
+        {
+          "op": "zoom",
+          "scale": 1.4,
+          "selector": "section#agent_s2_hidden_copay ul.vwalk"
+        },
+        {
+          "op": "hold",
+          "seconds": 6
+        },
+        {
+          "op": "unzoom"
+        },
+        {
+          "op": "move",
+          "nth": 2,
+          "selector": "section#agent_s2_hidden_copay .vwalk li"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Checks the agent cannot skip: a refused call, a handoff card, and a reviewer who approves or returns with notes.",
+      "duration": 15,
+      "id": "verify",
+      "page": "demo",
+      "title": "checks you cannot skip"
+    },
+    {
+      "actions": [],
+      "caption": "6 · On your phone",
+      "duration": 1,
+      "id": "ch6",
+      "page": "card:ch6",
+      "title": "chapter 6"
+    },
+    {
+      "actions": [
+        {
+          "frame": "#vp-frame",
+          "op": "wait_for",
+          "selector": "button.fpick[data-ex=\"S2_seoul_worker_bronchitis\"]"
+        },
+        {
+          "frame": "#vp-frame",
+          "op": "click",
+          "selector": "button.fpick[data-ex=\"S2_seoul_worker_bronchitis\"]"
+        },
+        {
+          "frame": "#vp-frame",
+          "op": "click",
+          "selector": "#flow-play"
+        },
+        {
+          "frame": "#vp-frame",
+          "op": "wait_for",
+          "selector": "#flow-view .flow-result"
+        },
+        {
+          "frame": "#vp-frame",
+          "op": "scroll_to",
+          "selector": "#flow-view .flow-result"
+        },
+        {
+          "op": "hold",
+          "seconds": 1
+        }
+      ],
+      "caption": "On your phone: same demo, same proof.",
+      "duration": 10,
+      "id": "phone",
+      "page": "phone",
+      "title": "on your phone"
+    },
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 4
+        }
+      ],
+      "caption": "Muse Code wrote the code. Spark reads and runs the agent, SAM masks seals, Voice Transcribe takes the call, Spark Open is measured side by side, and MCP opens it to other agents.",
+      "duration": 6,
+      "id": "tools",
+      "page": "card:meta",
+      "title": "Meta tools card"
+    },
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 3
+        }
+      ],
+      "caption": "Built in this hackathon: reading, checks, eligibility, agent, codes, claim pack, voice. Pre-existing: our open-source policy engine, pinned.",
+      "duration": 5,
+      "id": "builtvs",
+      "page": "readme",
+      "title": "built vs pre-existing"
+    },
+    {
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 4
+        }
+      ],
+      "caption": "Hosted and open weights, measured side by side.",
+      "duration": 6,
+      "id": "eval",
+      "page": "eval",
+      "title": "hosted vs open eval"
+    },
+    {
+      "actions": [
+        {
+          "op": "scroll_to",
+          "selector": "#shot-end"
+        },
+        {
+          "op": "hold",
+          "seconds": 2
+        }
+      ],
+      "caption": "Muse Code wrote the code; the log shows how.",
+      "duration": 5,
+      "id": "tooling",
+      "page": "tooling",
+      "title": "tooling log"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Scene A —\")"
+        },
+        {
+          "op": "move",
+          "selector": "section#A_niseko_wrist .pinned"
+        }
+      ],
+      "caption": "And the other direction: a Korean skier in Japan, paid in full under the travel policy.",
+      "duration": 4,
+      "id": "sceneA",
+      "page": "demo",
+      "title": "scene A paid"
+    },
+    {
+      "actions": [
+        {
+          "op": "click",
+          "selector": "#scenes button:has-text(\"Guided flow\")"
+        },
+        {
+          "op": "hold",
+          "seconds": 4
+        }
+      ],
+      "caption": "All documents are synthetic. Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
+      "duration": 8,
+      "id": "closing",
+      "page": "demo",
+      "title": "closing screen"
+    }
+  ]
+}

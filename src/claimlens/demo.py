@@ -502,7 +502,12 @@ def _scene_flow(sample_id: str, payload: dict[str, Any]) -> dict[str, Any]:
                 "meta": _tokens_meta(tokens.get("card")),
             }
         )
-        result = {"badge": card["decision"], "title": amount_v, "scene": sample_id}
+        result = {
+            "badge": card["decision"],
+            "title": amount_v,
+            "scene": sample_id,
+            "engine": True,
+        }
     else:
         pack = payload["pack"]
         total_v = pack["total_krw"]["v"]
@@ -518,6 +523,7 @@ def _scene_flow(sample_id: str, payload: dict[str, Any]) -> dict[str, Any]:
             "badge": "not adjudicated",
             "title": f"Claim Pack · {total_v} KRW",
             "scene": sample_id,
+            "engine": False,
         }
     return {
         "id": sample_id,
@@ -667,6 +673,8 @@ def agent_scene_payload(dst: Path) -> dict[str, Any]:
     )
     outcome = dict(recorded.get("outcome", {}))
     if outcome.get("decision"):
+        trace_tools = {item.get("tool") for item in recorded.get("trace", [])}
+        outcome["engine"] = "adjudicate" in trace_tools
         amount_pid = prov.add(
             f"{prefix}-amount",
             "clausegraph",
@@ -734,6 +742,7 @@ def _agent_flow(payload: dict[str, Any]) -> dict[str, Any]:
                 {"key": tool, "label": FLOW_LABELS.get(tool, tool), "detail": detail, "meta": meta}
             )
     outcome = recorded.get("outcome", {})
+    used_tools = {item.get("tool") for item in trace}
     return {
         "id": payload["id"],
         "title": payload["title"],
@@ -744,6 +753,7 @@ def _agent_flow(payload: dict[str, Any]) -> dict[str, Any]:
             "badge": outcome.get("decision", "?"),
             "title": f"{outcome.get('amount_krw', 0):,} KRW",
             "scene": payload["id"],
+            "engine": "adjudicate" in used_tools,
         },
     }
 
@@ -828,6 +838,7 @@ def _voice_flow(payload: dict[str, Any]) -> dict[str, Any]:
             "badge": payload["eligibility"]["outcome"],
             "title": payload["next_step"],
             "scene": payload["id"],
+            "engine": False,
         },
     }
 
@@ -887,6 +898,8 @@ def mismatch_scene_payload(dst: Path) -> dict[str, Any]:
     scene_id, title, bundle = MISMATCH_SCENE
     provider = ReplayProvider()
     result = check_consistency(bundle, provider)
+    cross = check_consistency("Ar-Cc", provider)
+    cross = check_consistency("Ar-Cc", provider)
     base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples"))
     receipt_img = resolve_sample_images(base / "S2_seoul_worker_bronchitis", "photo")[0]
     masked = Path("docs/masking") / "S3_cert_after.png"
@@ -914,6 +927,10 @@ def mismatch_scene_payload(dst: Path) -> dict[str, Any]:
             "receipt_sample": "S2_seoul_worker_bronchitis",
             "cert_sample": "S3_us_tourist_hip_fracture",
             "stopped": result["stopped"],
+            "claims_check": {
+                "label": "A receipt + C certificate",
+                "dropped": cross["dropped_quotes"] + cross["unverified_dropped"],
+            },
             "dropped_quotes": result["dropped_quotes"],
             "findings": [{k: f.get(k) for k in keys} for f in result["findings"]],
         },

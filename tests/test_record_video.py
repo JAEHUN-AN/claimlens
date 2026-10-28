@@ -36,6 +36,57 @@ def test_storyboard_v2_dry_run():
     assert "total 180s / 180s" in proc.stdout
 
 
+def test_storyboard_v3_dry_run():
+    root = Path(__file__).resolve().parent.parent
+    proc = subprocess.run(
+        [sys.executable, "scripts/record_video_v3.py", "--dry-run"],
+        check=False,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "DRY RUN: OK" in proc.stdout
+    assert "total 180s / 180s" in proc.stdout
+
+
+def test_vertical_v3_dry_run():
+    root = Path(__file__).resolve().parent.parent
+    proc = subprocess.run(
+        [sys.executable, "scripts/record_vertical_v3.py", "--dry-run"],
+        check=False,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "DRY RUN: OK" in proc.stdout
+    assert "final cut 45s / 45s" in proc.stdout
+
+
+def test_v3_dry_run_catches_missing_drop_file(tmp_path):
+    root = Path(__file__).resolve().parent.parent
+    storyboard = json.loads((root / "docs" / "video" / "storyboard-v3.json").read_text(encoding="utf-8"))
+    for seg in storyboard["segments"]:
+        for act in seg.get("actions", []):
+            if act.get("op") == "dropfiles":
+                act["files"] = ["samples/live/nope.jpg"]
+    bad = tmp_path / "bad_v3.json"
+    bad.write_text(json.dumps(storyboard), encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "scripts/record_video_v3.py", "--dry-run", "--storyboard", str(bad)],
+        check=False,
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert proc.returncode == 1
+    assert "drop file missing" in proc.stdout
+
+
 def test_vertical_dry_run():
     root = Path(__file__).resolve().parent.parent
     proc = subprocess.run(

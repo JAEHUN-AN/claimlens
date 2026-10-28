@@ -101,6 +101,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     ]
     assert all(f["quote_receipt"] and f["quote_cert"] and f["reason"] for f in mismatch["findings"])
     assert all(f["question"] and f["why_needed"] for f in ruled if f["severity"] == "blocker")
+    assert mismatch["claims_check"] == {"label": "A receipt + C certificate", "dropped": 1}
     flow = payload["flow"]["examples"]
     assert [e["id"] for e in flow] == [
         "A_niseko_wrist",
@@ -113,6 +114,8 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         assert len(example["steps"]) >= 3
         assert all(s["label"] and s["detail"] and s["meta"] for s in example["steps"])
         assert example["result"]["badge"]
+    assert [e["result"]["engine"] for e in flow] == [True, True, False, True, False]
+    assert timeline["outcome"]["engine"] is True
     assert [s["key"] for s in flow[3]["steps"]].count("ask_user") == 1
     assert flow[4]["result"]["badge"] == "work_injury"
     evaluation = payload["flow"]["eval"]

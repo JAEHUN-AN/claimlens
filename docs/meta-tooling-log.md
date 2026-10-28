@@ -958,3 +958,45 @@ this result.
 ### Model APIs
 
 - Live calls: one owner probe call 2026-10-28 (~$0.007).
+
+## 2026-10-28 — Backlog session: item 40 storyboard v3 for both videos
+
+The v3 storyboards show the Round 5 product: both open from the
+thesis ("AI reads, reasons and asks; code counts." card on the main
+cut), then a real live run, the Mismatch scene, and the checks the
+agent cannot skip. The main cut (180 s) trims voice, scene A and the
+holds, and drops the masking shot; the vertical cut (45 s final) is
+hook, live drop on the phone, tap 22,500, mismatch quotes, link card.
+The recording scripts start `claimlens serve` themselves, drop the
+two `samples/live/` retakes (bytes match no recording, so the Spark
+calls are real), keep the real wait on screen with the LIVE badge,
+and fail the recording if the live call fails. The vertical live
+beat is recorded in real time and played back 2× with a "2×" tag.
+Demo additions, all replay-honest: the Mismatch scene shows the
+Spark claims check line (A receipt + C certificate: 1 dropped — not
+supported by its quotes), the walkthrough names the refused
+`adjudicate` tool and renders the reviewer (return with notes, then
+approve), and every engine result carries the "pre-existing
+open-source engine, pinned" label, including flow results. Live
+results go to `cache/live/` only; nothing in `cache/` was re-recorded.
+
+### Muse Code (coding agent)
+
+- Tests: 208 passed, 5 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: v3 + vertical-v3 dry runs (180 s / final cut 45 s),
+  drop-file/speed validation, speedup filter, drop payload, live
+  page use, live-server health (runs where listen() works), and
+  demo payload pins (claims check, engine flags).
+- Live calls: none in the sandbox (replay only).
+- Owner checks: run both v3 recordings from a normal terminal
+  (`record_video_v3.py`, `record_vertical_v3.py`, each needs
+  META_API_KEY and makes real Spark calls); confirm both .mp4 files
+  and midpoint PNGs. If the live wait exceeds its storyboard budget
+  the cut overruns — report the real wait and the budget moves.
+  No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. Owner recording runs make real
+  Spark calls (reading + consistency per live segment).
