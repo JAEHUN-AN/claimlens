@@ -259,6 +259,24 @@ def cmd_consistency(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_triage(args: argparse.Namespace) -> int:
+    from claimlens.rationale import rationale_provider_default
+    from claimlens.triage import EXPECTED, render_report, triage_bundle
+
+    try:
+        result = triage_bundle(
+            args.images, rationale_provider_default(), tuple(args.expect or EXPECTED)
+        )
+    except (FileNotFoundError, RuntimeError, LookupError, ValueError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        _emit(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        _emit(render_report(result))
+    return 0
+
+
 def cmd_consistency_eval(args: argparse.Namespace) -> int:
     from claimlens.consistency import eval_all, format_markdown
     from claimlens.rationale import rationale_provider_default
@@ -336,6 +354,17 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("image", help="Image file to upload and read.")
     probe.add_argument("--out", default="out/probe", help="Output dir (never cache/).")
     probe.set_defaults(func=cmd_probe_files)
+    triage = sub.add_parser("triage", help="Sort a shuffled pile of claim photos.")
+    triage.add_argument("images", nargs="+", help="Photos in any order.")
+    triage.add_argument(
+        "--expect",
+        nargs="+",
+        choices=["receipt", "itemized_statement", "medical_certificate"],
+        default=None,
+        help="Checklist to name missing documents from.",
+    )
+    triage.add_argument("--json", action="store_true", help="Print the raw result.")
+    triage.set_defaults(func=cmd_triage)
     return parser
 
 

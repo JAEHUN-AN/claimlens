@@ -1035,3 +1035,34 @@ the box stays inside the viewport with a margin.
 
 - Live calls: none in the sandbox. Owner re-recordings make real
   Spark calls (reading + consistency per live segment).
+
+## 2026-10-28 — Backlog session: item 37 messy bundle triage
+
+New `claimlens triage <photos...>`: one Muse Spark strict-schema
+call classifies every page in input order (kind + patient, date,
+total copied from the page), then code groups pages into the claim
+(majority identity), drops unrelated pages with a reason, merges
+duplicates (same kind, identity, total), and names missing documents
+from the expected checklist (receipt, itemized statement, medical
+certificate; `--expect` overrides). Totals are compared as copied
+strings, never computed. No demo or video changes (video frozen;
+40c untouched while the owner records).
+
+### Muse Code (coding agent)
+
+- Tests: 217 passed, 7 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: stub-provider tests over a bundle built from existing
+  sample images (shuffled S2 pages + duplicate receipt + other-claim
+  page) pin keep/merge/drop-with-reason/"itemized statement
+  missing", plus CLI report, tie determinism, and length mismatch.
+- Live calls: none in the sandbox (replay only). No new recordings:
+  replay honestly reports a cache miss until the owner records one
+  triage call (~$0.009).
+- Owner checks: optionally record once
+  (`claimlens triage <photos...>` without CLAIMLENS_PROVIDER=replay)
+  to get a real classification. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
