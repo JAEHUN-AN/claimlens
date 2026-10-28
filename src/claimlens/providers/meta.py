@@ -187,17 +187,25 @@ class MetaProvider:
         instructions: str,
         schema: dict[str, Any],
         result_model: type[BaseModel] | None = None,
+        cache_tag: str = "",
     ) -> dict[str, Any]:
+        """Read documents; cache_tag keys an independent recording (e.g. read2).
+
+        The tag suffixes the cache key for both reuse lookup and store, so
+        a second read never overwrites (or mistakes itself for) the first.
+        File ids stay keyed by image bytes and are shared across tags.
+        """
         blobs = [prepare_image(p) for p in images]
         if self.live:
-            keys = [replay_cache.cache_key(blobs, instructions, schema, self.model)]
+            keys = [replay_cache.cache_key(blobs, instructions, schema, self.model)
+                    + cache_tag]
             payload = self._reuse_any(keys)
             if payload is not None:
                 return self._finish(payload, result_model, ReadingResult)
         self.last_files_error = None
         file_ids = self._resolve_file_ids(blobs) if blobs else None
         refs: list[dict[str, str]] | None = None
-        key = replay_cache.cache_key(blobs, instructions, schema, self.model)
+        key = replay_cache.cache_key(blobs, instructions, schema, self.model) + cache_tag
         if file_ids is not None:
             attempts: list[dict[str, Any]] = []
             for part in ("input_image", "input_file"):

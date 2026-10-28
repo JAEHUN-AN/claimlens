@@ -190,7 +190,7 @@ class _LiveStub:
                        total_tokens=total, cost_usd=None)
         )
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
         self.reads += 1
         self._log(100)
         return copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
@@ -248,7 +248,7 @@ def test_live_preset_run_reaches_partial_in_browser(browser, monkeypatch):
         page.locator("#flow-view .flow-result").wait_for(timeout=60000)
         assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
         assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
-        assert stub.reads == 1
+        assert stub.reads == 2
         assert errors == []
         page.close()
     finally:
@@ -275,13 +275,13 @@ def test_live_questions_continue_in_browser(browser, monkeypatch):
         assert page.locator("#flow-questions li").count() == 4
         assert page.locator("#flow-result .badge").inner_text() == "need_facts"
         assert page.locator("#flow-result .amount").count() == 0
-        assert stub.reads == 1
+        assert stub.reads == 2
         page.locator(S2_PRESET).click()
         page.locator("#flow-questions button").click()
         page.locator("#flow-result .amount").wait_for(timeout=60000)
         assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
         assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
-        assert stub.reads == 1
+        assert stub.reads == 2
         assert errors == []
         page.close()
     finally:

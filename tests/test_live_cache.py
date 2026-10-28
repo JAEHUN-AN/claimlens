@@ -71,23 +71,39 @@ def test_live_miss_stores_under_live_dir_only(monkeypatch, tmp_path):
     assert len(stored) == 1
 
 
-def test_sample_bytes_leave_git_diff_empty(monkeypatch):
+def test_sample_bytes_leave_git_diff_empty(monkeypatch, tmp_path):
+    import shutil
+
+    from claimlens import cache as replay_cache
     from claimlens import serve
+    from claimlens.providers.meta import MODEL, prepare_image
 
     monkeypatch.setattr(serve, "live_provider", _offline_live)
     monkeypatch.setattr(serve, "neo4j_up", lambda: False)
+    mirror = tmp_path / "cache"
+    shutil.copytree(ROOT / "cache", mirror, ignore=shutil.ignore_patterns("live"))
+    (mirror / "live").mkdir(exist_ok=True)
+    monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(mirror))
+    images = _s2_images()
+    blobs = [prepare_image(p) for p in images]
+    key = replay_cache.cache_key(blobs, READING_INSTRUCTIONS, reading_schema(), MODEL)
+    (mirror / f"{key}.read2.json").write_text(
+        (mirror / f"{key}.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
     live_dir = ROOT / "cache" / "live"
     before = {p for p in live_dir.rglob("*")} if live_dir.exists() else set()
-    images = []
-    for path in _s2_images():
-        images.append({"name": path.name, "data": base64.b64encode(path.read_bytes()).decode("ascii")})
-    raw = json.dumps({"images": images}).encode("utf-8")
+    payload = []
+    for path in images:
+        payload.append({"name": path.name,
+                        "data": base64.b64encode(path.read_bytes()).decode("ascii")})
+    raw = json.dumps({"images": payload}).encode("utf-8")
     headers = {"host": "127.0.0.1:8000", "content_type": "application/json", "origin": ""}
     status, result = serve.route_post("/api/run", raw, len(raw), headers, 8000)
     assert status == 200
     assert result["matched_sample"] == "S2_seoul_worker_bronchitis"
     after = {p for p in live_dir.rglob("*")} if live_dir.exists() else set()
     assert after == before
+    assert list((mirror / "live").glob("*.json")) == []
     proc = subprocess.run(
         ["git", "-c", f"safe.directory={ROOT.as_posix()}", "diff", "--exit-code", "--", "cache/"],
         cwd=ROOT,

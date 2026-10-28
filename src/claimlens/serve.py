@@ -16,6 +16,7 @@ import secrets
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -127,6 +128,69 @@ FACT_QUESTIONS = {
 _RUNS: dict[str, dict[str, Any]] = {}
 _MAX_RUNS = 20
 
+READ2_TAG = ".read2"
+
+
+def _fmt_value(value: Any) -> str:
+    if value is None or isinstance(value, bool):
+        return "unreadable"
+    if isinstance(value, float):
+        return f"{value:,.0f}" if value.is_integer() else str(value)
+    if isinstance(value, int):
+        return f"{value:,}"
+    return str(value)
+
+
+def _numbers_differ(left: Any, right: Any) -> bool:
+    if left is None or right is None:
+        return (left is None) != (right is None)
+    try:
+        return abs(float(left) - float(right)) >= 0.01
+    except (TypeError, ValueError):
+        return left != right
+
+
+def gate_diffs(first: dict[str, Any], second: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """Differing number fields between two verified receipts.
+
+    Returns (label, first value, second value) for the total, each line
+    amount, and each KR cell that disagrees.
+    """
+    from claimlens.checks import cell_value
+
+    diffs = []
+    if _numbers_differ(first.get("total_amount"), second.get("total_amount")):
+        diffs.append(("total", _fmt_value(first.get("total_amount")),
+                      _fmt_value(second.get("total_amount"))))
+    first_lines = first.get("line_items") or []
+    second_lines = second.get("line_items") or []
+    if len(first_lines) != len(second_lines):
+        diffs.append(("line count", str(len(first_lines)), str(len(second_lines))))
+    for pos, (left, right) in enumerate(zip(first_lines, second_lines), start=1):
+        if _numbers_differ(left.get("amount"), right.get("amount")):
+            diffs.append((f"line {pos} amount", _fmt_value(left.get("amount")),
+                          _fmt_value(right.get("amount"))))
+    first_bill = first.get("kr_bill")
+    second_bill = second.get("kr_bill")
+    if (first_bill is None) != (second_bill is None):
+        diffs.append(("KR bill", "read" if first_bill else "unreadable",
+                      "read" if second_bill else "unreadable"))
+    elif first_bill and second_bill:
+        for n in range(1, 11):
+            if cell_value(first_bill, n) != cell_value(second_bill, n):
+                diffs.append((f"KR cell {n}", _fmt_value(cell_value(first_bill, n)),
+                              _fmt_value(cell_value(second_bill, n))))
+    return diffs
+
+
+def gate_questions(diffs: list[tuple[str, str, str]]) -> list[dict[str, str]]:
+    """One ask_user question per differing field, both values side by side."""
+    return [
+        {"question": f"{label}: first read {left}, second read {right} — which is printed?",
+         "why_needed": "Two independent reads disagreed; a person must pick the printed value."}
+        for label, left, right in diffs
+    ]
+
 
 def missing_facts(person: dict[str, Any] | None) -> list[str]:
     """Panel fields with no answer yet. False is an answer; blank is not."""
@@ -223,7 +287,7 @@ def run_live(
 
     steps: list[dict[str, Any]] = []
     tokens_total = 0
-    provider = live_provider()
+    providers = [live_provider(), live_provider()]
     with tempfile.TemporaryDirectory(prefix="claimlens-live-") as tmp:
         paths = []
         for item, blob in zip(images, blobs, strict=True):
@@ -231,38 +295,89 @@ def run_live(
             path = Path(tmp) / f"upload_{len(paths)}{suffix}"
             path.write_bytes(blob)
             paths.append(path)
-        started = time.monotonic()
-        mark = len(provider.calls)
-        reading = provider.read_documents(paths, READING_INSTRUCTIONS, reading_schema())
-        meta, tokens = _live_meta(provider, mark)
-        tokens_total += tokens
-        _step(steps, "reading", "Reading", "2 documents read by Muse Spark",
-              meta, time.monotonic() - started, tokens)
-        reading = order_docs(reading)
-        receipt = reading["documents"][0]
+
+        def _read_twice() -> list[dict[str, Any]]:
+            tags = ["", READ2_TAG]
+
+            def _one(pos: int) -> dict[str, Any]:
+                return providers[pos].read_documents(
+                    paths, READING_INSTRUCTIONS, reading_schema(), cache_tag=tags[pos])
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                return list(pool.map(_one, (0, 1)))
 
         started = time.monotonic()
-        mark = len(provider.calls)
-        bill = receipt.get("kr_bill")
-        if bill:
-            checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
-            names = f"{sum(c.passed for c in checks)}/{len(checks)} pass"
-            verified = verify_receipt(receipt, paths[0], provider)
-            receipt = verified["receipt"]
-            reading["documents"][0] = receipt
-            detail = f"{names}; re-read: {verified['status']}"
-        else:
-            detail = "no bill checks for non-Korean receipts"
-        tokens, made, _ = _step_usage(provider, mark)
-        tokens_total += tokens
+        marks = [len(p.calls) for p in providers]
+        raws = _read_twice()
+        tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
+        reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
+        meta = REUSED_LABEL if reused_only else f"{tokens} tokens (live)"
+        tokens_total += 0 if reused_only else tokens
+        _step(steps, "reading", "Reading", "2 documents read twice by Muse Spark",
+              meta, time.monotonic() - started, 0 if reused_only else tokens)
+        readings: list[dict[str, Any]] = []
+        order_failed = False
+        for raw in raws:
+            try:
+                readings.append(order_docs(raw))
+            except ValueError:
+                order_failed = True
+        receipts = [r["documents"][0] for r in readings]
+
+        started = time.monotonic()
+        marks = [len(p.calls) for p in providers]
+        details = []
+        for pos, receipt in enumerate(receipts):
+            bill = receipt.get("kr_bill")
+            if bill:
+                checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
+                names = f"{sum(c.passed for c in checks)}/{len(checks)} pass"
+                verified = verify_receipt(receipt, paths[0], providers[pos])
+                receipts[pos] = verified["receipt"]
+                readings[pos]["documents"][0] = verified["receipt"]
+                details.append(f"{names}; re-read: {verified['status']}")
+            else:
+                details.append("no bill checks for non-Korean receipts")
+        tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
+        made = any(_step_usage(p, mark)[1] for p, mark in zip(providers, marks))
+        reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
+        tokens_total += 0 if reused_only else tokens
         if made:
-            meta, _ = _live_meta(provider, mark)
-            meta = f"deterministic + {meta}"
+            meta = ("deterministic + " + REUSED_LABEL) if reused_only else (
+                f"deterministic + {tokens} tokens (live)")
         else:
             meta = "deterministic"
-        _step(steps, "checks", "Checks", detail, meta, time.monotonic() - started, tokens)
+        detail = details[0] if details and all(d == details[0] for d in details) else (
+            "read 1: " + details[0] + "; read 2: " + details[1] if len(details) == 2
+            else "; ".join(details))
+        _step(steps, "checks", "Checks", detail, meta, time.monotonic() - started,
+              0 if reused_only else tokens)
 
         matched = match_sample(blobs)
+        started = time.monotonic()
+        if order_failed or len(receipts) != 2:
+            diffs: list[tuple[str, str, str]] = [
+                ("documents", "receipt + certificate", "unreadable")]
+        else:
+            diffs = gate_diffs(receipts[0], receipts[1])
+        if diffs:
+            plural = "s" if len(diffs) != 1 else ""
+            _step(steps, "double_read", "Double read", f"{len(diffs)} field{plural} differ",
+                  "deterministic", time.monotonic() - started)
+            return {
+                "steps": steps,
+                "result": {"badge": "needs_manual_check",
+                           "title": "Human review: two reads disagreed.", "note": ""},
+                "tokens_total": tokens_total,
+                "matched_sample": matched,
+                "scenario": declared,
+                "questions": gate_questions(diffs),
+            }
+        _step(steps, "double_read", "Double read", "agree",
+              "deterministic", time.monotonic() - started)
+
+        reading = readings[0]
+        provider = providers[0]
         run = {
             "reading": reading,
             "steps": steps,

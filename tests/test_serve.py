@@ -28,7 +28,7 @@ class StubProvider:
                        total_tokens=total, cost_usd=None, reused=self._reused)
         )
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
         self._log(100)
         return copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
 
@@ -102,13 +102,14 @@ def test_run_live_end_to_end_with_stub(stubbed):
     status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     assert [s["key"] for s in result["steps"]] == [
-        "reading", "checks", "eligibility", "consistency", "decision",
+        "reading", "checks", "double_read", "eligibility", "consistency", "decision",
     ]
     assert all(s["seconds"] >= 0 for s in result["steps"])
-    assert result["steps"][0]["tokens"] == 100
+    assert result["steps"][0]["tokens"] == 200
+    assert result["steps"][2]["detail"] == "agree"
     assert result["matched_sample"] == "S2_seoul_worker_bronchitis"
     assert result["result"]["badge"] == "engine_unreachable"
-    assert result["tokens_total"] == 150
+    assert result["tokens_total"] == 250
     assert result["questions"] == []
     assert "run_id" not in result
 
@@ -127,14 +128,17 @@ def test_reused_recordings_say_so_with_zero_new_tokens(monkeypatch):
 
 
 class _FailThenFixStub(StubProvider):
+    """Both parallel base reads break identically; later re-reads are clean."""
+
     def __init__(self, reused: bool):
         super().__init__(reused=reused)
         self._reads = 0
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
         self._reads += 1
-        reading = super().read_documents(images, instructions, schema, result_model)
-        if self._reads == 1:
+        reading = super().read_documents(images, instructions, schema, result_model,
+                                         cache_tag=cache_tag)
+        if result_model is None and self._reads <= 2:
             reading["documents"][0]["kr_bill"]["cell_1"] = 0
         return reading
 
@@ -142,12 +146,12 @@ class _FailThenFixStub(StubProvider):
 def test_reread_labels_honest_in_both_cases(monkeypatch):
     monkeypatch.setattr(serve, "neo4j_up", lambda: False)
     monkeypatch.setattr(serve, "live_provider", lambda: _FailThenFixStub(reused=False))
-    _, fresh = _run(serve, {"images": _sample_images()})
+    _, fresh = _run(serve, {"images": _sample_images(), "person": _s2_person()})
     checks = {s["key"]: s for s in fresh["steps"]}["checks"]
-    assert checks["tokens"] == 100
-    assert checks["meta"] == "deterministic + 100 tokens (live)"
+    assert checks["tokens"] == 200
+    assert checks["meta"] == "deterministic + 200 tokens (live)"
     monkeypatch.setattr(serve, "live_provider", lambda: _FailThenFixStub(reused=True))
-    _, reused = _run(serve, {"images": _sample_images()})
+    _, reused = _run(serve, {"images": _sample_images(), "person": _s2_person()})
     checks = {s["key"]: s for s in reused["steps"]}["checks"]
     assert checks["tokens"] == 0
     assert checks["meta"] == f"deterministic + {serve.REUSED_LABEL}"
@@ -174,7 +178,7 @@ def test_no_person_facts_pauses_with_questions(stubbed):
     status, result = _run(stubbed, {"images": _sample_images()})
     assert status == 200
     assert result["result"]["badge"] == "need_facts"
-    assert [s["key"] for s in result["steps"]] == ["reading", "checks"]
+    assert [s["key"] for s in result["steps"]] == ["reading", "checks", "double_read"]
     assert len(result["questions"]) == 4
     assert all(set(q) == {"question", "why_needed"} for q in result["questions"])
     assert all(q["question"] and q["why_needed"] for q in result["questions"])
@@ -195,17 +199,17 @@ def test_continue_finishes_with_no_new_reading(stubbed, monkeypatch):
     monkeypatch.setattr(serve, "live_provider", lambda: stub)
     _, paused = _run(stubbed, {"images": _sample_images()})
     reads = [c for c in stub.calls if c.total_tokens == 100]
-    assert len(reads) == 1
+    assert len(reads) == 2
     status, result = _run(
         stubbed, {"run_id": paused["run_id"], "person": _s2_person()}
     )
     assert status == 200
     assert [s["key"] for s in result["steps"]] == [
-        "reading", "checks", "eligibility", "consistency", "decision",
+        "reading", "checks", "double_read", "eligibility", "consistency", "decision",
     ]
     assert result["result"]["badge"] == "engine_unreachable"
     assert "run_id" not in result
-    assert len([c for c in stub.calls if c.total_tokens == 100]) == 1
+    assert len([c for c in stub.calls if c.total_tokens == 100]) == 2
     status, result = _run(stubbed, {"run_id": paused["run_id"], "person": _s2_person()})
     assert status == 400
     assert "drop the photos again" in result["error"]
@@ -240,6 +244,67 @@ def test_continue_rejects_bad_run_id_person_and_scenario(stubbed):
     )
     assert status == 400
     assert "Unknown scenario" in result["error"]
+
+
+class _SplitStub(StubProvider):
+    """Second read disagrees on the total; everything else identical."""
+
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
+        reading = super().read_documents(images, instructions, schema, result_model,
+                                         cache_tag=cache_tag)
+        if result_model is None and cache_tag:
+            reading["documents"][0]["total_amount"] = 1.0
+        return reading
+
+
+class _UnorderableStub(StubProvider):
+    """Second read loses the certificate."""
+
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
+        reading = super().read_documents(images, instructions, schema, result_model,
+                                         cache_tag=cache_tag)
+        if result_model is None and cache_tag:
+            reading["documents"] = reading["documents"][:1]
+        return reading
+
+
+def test_gate_disagreement_stops_with_side_by_side_questions(stubbed, monkeypatch):
+    monkeypatch.setattr(serve, "live_provider", lambda: _SplitStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    assert status == 200
+    assert [s["key"] for s in result["steps"]] == ["reading", "checks", "double_read"]
+    assert result["steps"][2]["detail"] == "1 field differ"
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert len(result["questions"]) == 1
+    question = result["questions"][0]
+    assert set(question) == {"question", "why_needed"}
+    assert "45,000" in question["question"] and "1" in question["question"]
+    assert "run_id" not in result
+
+
+def test_gate_unorderable_read_stops(stubbed, monkeypatch):
+    monkeypatch.setattr(serve, "live_provider", lambda: _UnorderableStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert result["questions"][0]["question"].startswith("documents:")
+
+
+def test_gate_diffs_pure():
+    left = {"total_amount": 45000.0,
+            "line_items": [{"amount": 18000.0}, {"amount": 9000.0}],
+            "kr_bill": {"cell_1": 45000, "cell_6": 90000}}
+    same = {"total_amount": 45000, "line_items": [{"amount": 18000}, {"amount": 9000}],
+            "kr_bill": {"cell_1": 45000, "cell_6": 90000}}
+    assert serve.gate_diffs(left, same) == []
+    right = {"total_amount": None, "line_items": [{"amount": 18000.0}],
+             "kr_bill": {"cell_1": 45000, "cell_6": 1}}
+    diffs = serve.gate_diffs(left, right)
+    assert [d[0] for d in diffs] == ["total", "line count", "KR cell 6"]
+    assert diffs[0][1:] == ("45,000", "unreadable")
+    questions = serve.gate_questions(diffs)
+    assert len(questions) == 3
+    assert all(set(q) == {"question", "why_needed"} for q in questions)
 
 
 def test_run_rejects_non_images_and_wrong_counts(stubbed):

@@ -1,0 +1,22 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"documents\": [{\"country\": \"TH\", \"currency\": \"THB\", \"diagnoses\": [], \"doc_type\": \"receipt\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [{\"amount\": 1500.0, \"category\": \"emergency_fee\", \"description\": \"ER Facility Fee\"}, {\"amount\": 1200.0, \"category\": \"consultation\", \"description\": \"Doctor Fee - Emergency Physician\"}, {\"amount\": 3800.0, \"category\": \"procedure\", \"description\": \"Wound Cleaning & Suture (5 stitches)\"}, {\"amount\": 2400.0, \"category\": \"vaccination\", \"description\": \"Rabies Vaccine (PCEC - Dose 1\"}, {\"amount\": 9800.0, \"category\": \"vaccination\", \"description\": \"Rabies Immunoglobulin (ERIG)\"}, {\"amount\": 600.0, \"category\": \"vaccination\", \"description\": \"Tetanus Toxoid Injection\"}, {\"amount\": 1100.0, \"category\": \"medication\", \"description\": \"Medicine (antibiotic, analgesic)\"}], \"pii\": [{\"kind\": \"patient_id\", \"value\": \"HN 0098-1234\"}, {\"kind\": \"name\", \"value\": \"Minseo PARK\"}, {\"kind\": \"date_of_birth\", \"value\": \"1993-11-02\"}, {\"kind\": \"passport\", \"value\": \"M19931102\"}], \"provider_name\": \"Chiang Mai Riverside Hospital\", \"service_date\": \"2026-08-12\", \"total_amount\": 20400.0}, {\"country\": \"TH\", \"currency\": \"\", \"diagnoses\": [{\"code\": \"S61.9\", \"external_cause\": \"Bitten by dog\", \"final\": null, \"label\": \"Open wound of hand, part unspecified\", \"system\": \"ICD-10\"}, {\"code\": \"W54\", \"external_cause\": \"\", \"final\": null, \"label\": \"External cause: Bitten by dog\", \"system\": \"ICD-10\"}], \"doc_type\": \"medical_certificate\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Minseo PARK\"}, {\"kind\": \"date_of_birth\", \"value\": \"1993-11-02\"}, {\"kind\": \"passport\", \"value\": \"M19931102\"}, {\"kind\": \"patient_id\", \"value\": \"HN 0098-1234\"}], \"provider_name\": \"Chiang Mai Riverside Hospital\", \"service_date\": \"2026-08-12\", \"total_amount\": null}]}",
+  "usage": {
+    "input_tokens": 3939,
+    "output_tokens": 2301,
+    "total_tokens": 6240
+  },
+  "input_refs": [
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1113666174963160"
+    },
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1386031656944654"
+    }
+  ],
+  "recorded_at": "2026-10-28T13:37:38.954762+00:00"
+}

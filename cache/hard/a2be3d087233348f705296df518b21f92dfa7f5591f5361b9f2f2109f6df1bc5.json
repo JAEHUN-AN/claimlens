@@ -1,0 +1,22 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"documents\": [{\"country\": \"KR\", \"currency\": \"KRW\", \"diagnoses\": [], \"doc_type\": \"receipt\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": {\"cell_1\": null, \"cell_10\": null, \"cell_2\": null, \"cell_3\": null, \"cell_4\": null, \"cell_5\": null, \"cell_6\": null, \"cell_7\": null, \"cell_8\": null, \"cell_9\": null, \"charge_rows\": [], \"institution_type\": null, \"patient_type\": null, \"period_from\": null, \"period_to\": null, \"visit\": null}, \"line_items\": [], \"pii\": [], \"provider_name\": \"\", \"service_date\": null, \"total_amount\": null}, {\"country\": \"KR\", \"currency\": \"\", \"diagnoses\": [{\"code\": \"S72.120\", \"external_cause\": \"\", \"final\": true, \"label\": \"Intertrochanteric fracture of the right femur, closed\", \"system\": \"KCD\"}], \"doc_type\": \"medical_certificate\", \"hospital_days\": 6, \"inpatient\": true, \"kr_bill\": null, \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Michael J. CARTER\"}, {\"kind\": \"date_of_birth\", \"value\": \"1995-04-23\"}, {\"kind\": \"passport\", \"value\": \"A0000000\"}], \"provider_name\": \"\", \"service_date\": \"2025-05-01\", \"total_amount\": null}]}",
+  "usage": {
+    "input_tokens": 3994,
+    "output_tokens": 1789,
+    "total_tokens": 5783
+  },
+  "input_refs": [
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1129419289970340"
+    },
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1628116595481887"
+    }
+  ],
+  "recorded_at": "2026-10-28T12:51:59.362681+00:00"
+}

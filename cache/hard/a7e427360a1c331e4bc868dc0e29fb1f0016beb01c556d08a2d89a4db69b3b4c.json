@@ -1,0 +1,22 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"documents\": [{\"country\": \"KR\", \"currency\": \"KRW\", \"diagnoses\": [], \"doc_type\": \"receipt\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": {\"cell_1\": null, \"cell_10\": null, \"cell_2\": null, \"cell_3\": null, \"cell_4\": null, \"cell_5\": null, \"cell_6\": null, \"cell_7\": null, \"cell_8\": null, \"cell_9\": null, \"charge_rows\": [], \"institution_type\": null, \"patient_type\": null, \"period_from\": null, \"period_to\": null, \"visit\": \"외래\"}, \"line_items\": [], \"pii\": [], \"provider_name\": \"\", \"service_date\": null, \"total_amount\": null}, {\"country\": \"KR\", \"currency\": \"\", \"diagnoses\": [], \"doc_type\": \"medical_certificate\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [], \"pii\": [], \"provider_name\": \"\", \"service_date\": null, \"total_amount\": null}]}",
+  "usage": {
+    "input_tokens": 1144,
+    "output_tokens": 1478,
+    "total_tokens": 2622
+  },
+  "input_refs": [
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1430973075681099"
+    },
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-4715303202023111"
+    }
+  ],
+  "recorded_at": "2026-10-28T12:43:43.496220+00:00"
+}

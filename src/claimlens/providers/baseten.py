@@ -85,6 +85,7 @@ class BasetenProvider:
         instructions: str,
         schema: dict[str, Any],
         result_model: Any = None,
+        cache_tag: str = "",
     ) -> dict[str, Any]:
         from openai import OpenAI
         from pydantic import TypeAdapter
@@ -132,7 +133,7 @@ class BasetenProvider:
             },
         }
         key = model_cache.cache_key(blobs, instructions, reading_tool_schema(schema), MODEL)
-        model_cache.store(key, payload)
+        model_cache.store(key + cache_tag, payload)
         self.calls.append(
             {
                 "model": MODEL,

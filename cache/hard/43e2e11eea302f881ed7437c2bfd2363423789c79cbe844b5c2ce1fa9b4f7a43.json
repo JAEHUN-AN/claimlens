@@ -1,0 +1,22 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"documents\": [{\"country\": \"KR\", \"currency\": \"KRW\", \"diagnoses\": [], \"doc_type\": \"receipt\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": {\"cell_1\": 45000, \"cell_10\": 0, \"cell_2\": 0, \"cell_3\": 0, \"cell_4\": 0, \"cell_5\": 0, \"cell_6\": 45000, \"cell_7\": 0, \"cell_8\": 45000, \"cell_9\": 45000, \"charge_rows\": [{\"col_1\": 9000, \"col_2\": 0, \"col_3\": 0, \"col_4\": 0, \"label\": \"\\uc9c4\\ucc30\\ub8cc\"}, {\"col_1\": 18000, \"col_2\": 0, \"col_3\": 0, \"col_4\": 0, \"label\": \"\\uc785\\uc6d0\\ub8cc\"}, {\"col_1\": 12000, \"col_2\": 0, \"col_3\": 0, \"col_4\": 0, \"label\": \"\\ud22c\\uc57d\\ubc0f\\uc870\\uc81c\\ub8cc\"}, {\"col_1\": 3000, \"col_2\": 0, \"col_3\": 0, \"col_4\": 0, \"label\": \"\\uc8fc\\uc0ac\\ub8cc\"}, {\"col_1\": 3000, \"col_2\": 0, \"col_3\": 0, \"col_4\": 0, \"label\": \"\\uac80\\uc0ac\\ub8cc\"}], \"institution_type\": null, \"patient_type\": \"\", \"period_from\": \"2026-08-10\", \"period_to\": \"2026-08-10\", \"visit\": null}, \"line_items\": [{\"amount\": 9000, \"category\": \"consultation\", \"description\": \"\\uc9c4\\ucc30\\ub8cc\"}, {\"amount\": 18000, \"category\": \"room\", \"description\": \"\\uc785\\uc6d0\\ub8cc\"}, {\"amount\": 12000, \"category\": \"medication\", \"description\": \"\\ud22c\\uc57d\\ubc0f\\uc870\\uc81c\\ub8cc\"}, {\"amount\": 3000, \"category\": \"procedure\", \"description\": \"\\uc8fc\\uc0ac\\ub8cc\"}, {\"amount\": 3000, \"category\": \"lab\", \"description\": \"\\uac80\\uc0ac\\ub8cc\"}], \"pii\": [{\"kind\": \"name\", \"value\": \"NGUYEN VAN AN\"}, {\"kind\": \"patient_id\", \"value\": \"20260731\"}], \"provider_name\": \"\", \"service_date\": \"2026-08-10\", \"total_amount\": 45000}, {\"country\": \"KR\", \"currency\": \"\", \"diagnoses\": [], \"doc_type\": \"medical_certificate\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"NGUYEN VAN AN (\\uc751\\uc6b0\\uc608 \\ubc18 \\uc548)\"}, {\"kind\": \"patient_id\", \"value\": \"990000-5000001\"}], \"provider_name\": \"\", \"service_date\": \"2026-08-10\", \"total_amount\": null}]}",
+  "usage": {
+    "input_tokens": 3689,
+    "output_tokens": 5159,
+    "total_tokens": 8848
+  },
+  "input_refs": [
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1138957355272744"
+    },
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1684961269627303"
+    }
+  ],
+  "recorded_at": "2026-10-28T12:47:30.187189+00:00"
+}

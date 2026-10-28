@@ -300,6 +300,7 @@ live_drop:["Drop receipt + certificate photos here — runs live on your machine
 live_running:["Running live…","실시간 실행 중…"],
 live_failed:["Live run failed: ","실시간 실행 실패: "],
 live_tokens:["tokens (live)","토큰 (실시간)"],
+step_doubleread:["Double read","이중 읽기"],
 step_consistency:["Consistency","일관성"],
 mm_head:["Resolve the blocking questions first.","차단 질문부터 해결하세요."],
 mm_findings:["Cross-document findings","문서 간 대조 결과"],
@@ -337,7 +338,7 @@ function t(k){
 function titleOf(o){return (o.titles&&o.titles[LANG])||o.title;}
 const STEPLABEL={"Reading":"step_reading","Checks":"step_checks","Eligibility":"step_eligibility",
 "Decision":"step_decision","Claim Pack":"step_pack","Question":"step_question","Codes":"step_codes",
-"Re-read":"step_reread","Consistency":"step_consistency","Fact extraction":"step_facts"};
+"Re-read":"step_reread","Consistency":"step_consistency","Double read":"step_doubleread","Fact extraction":"step_facts"};
 function stepLabel(s){
   const k=STEPLABEL[s.label];
   if(k)return t(k);

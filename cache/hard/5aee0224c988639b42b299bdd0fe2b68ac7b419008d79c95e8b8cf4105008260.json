@@ -1,0 +1,22 @@
+{
+  "model": "muse-spark-1.3",
+  "output_text": "{\"documents\": [{\"country\": \"JP\", \"currency\": \"JPY\", \"diagnoses\": [], \"doc_type\": \"receipt\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [{\"amount\": 3000, \"category\": \"consultation\", \"description\": \"First aid fee\"}, {\"amount\": 12000, \"category\": \"emergency_fee\", \"description\": \"Emergency / after-hours surcharge\"}, {\"amount\": 18500, \"category\": \"imaging\", \"description\": \"Diagnostic imaging (X-ray, wrist 2 views)\"}, {\"amount\": 147000, \"category\": \"procedure\", \"description\": \"Treatment - closed reduction\"}, {\"amount\": 46000, \"category\": \"procedure\", \"description\": \"Treatment - splint immobilization\"}, {\"amount\": 6500, \"category\": \"medication\", \"description\": \"Medication (analgesic, 7 days)\"}], \"pii\": [{\"kind\": \"patient_id\", \"value\": \"SMA-2026-08813\"}, {\"kind\": \"name\", \"value\": \"Hana IMV\"}, {\"kind\": \"date_of_birth\", \"value\": \"1994-03-15\"}, {\"kind\": \"passport\", \"value\": \"MV5940055\"}], \"provider_name\": \"Sapporo Minami General Hospital\", \"service_date\": \"2026-03-12\", \"total_amount\": 233000}, {\"country\": \"JP\", \"currency\": \"\", \"diagnoses\": [{\"code\": \"S620\", \"external_cause\": \"\", \"final\": null, \"label\": \"Fracture of scaphoid bone, left wrist\", \"system\": \"ICD-10\"}], \"doc_type\": \"medical_certificate\", \"hospital_days\": 0, \"inpatient\": false, \"kr_bill\": null, \"line_items\": [], \"pii\": [{\"kind\": \"name\", \"value\": \"Hana IMV\"}, {\"kind\": \"date_of_birth\", \"value\": \"1994-03-15\"}, {\"kind\": \"passport\", \"value\": \"MV5940055\"}, {\"kind\": \"patient_id\", \"value\": \"SMA-2026-08813\"}], \"provider_name\": \"Sapporo Minami General Hospital\", \"service_date\": \"2026-03-12\", \"total_amount\": null}]}",
+  "usage": {
+    "input_tokens": 3907,
+    "output_tokens": 1947,
+    "total_tokens": 5854
+  },
+  "input_refs": [
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-976361488327259"
+    },
+    {
+      "type": "file",
+      "part": "input_image",
+      "id": "file-1135464395622271"
+    }
+  ],
+  "recorded_at": "2026-10-28T12:36:30.126476+00:00"
+}

@@ -1230,3 +1230,32 @@ tests and re-records first, then one single commit.
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-28 — Backlog session: item 41b double-read gate (uncommitted)
+
+Item 41's run ($1.51, 23/24 hard cases before the cap tripped) showed 47
+hard + 1 normal wrong numbers leaving the single-read pipeline: checks
+pass when Spark puts the right numbers in the wrong cells or "fixes"
+blurred lines so they still add up. The fix is a double-read gate: two
+independent verified reads in parallel, stopping on any disagreement in
+total/line amounts/KR cells with both values side by side and one
+ask_user question per differing field ("Double read: agree" row on the
+page). Replaying the recorded runs as pairs gives 0 leaks in 96 pairs at
+a stop cost of 35/66 hard + 2/30 normal. Second reads replay from new
+`.read2` cache keys that never overwrite existing files; recording them
+(~10 calls, ~$0.13) waits for owner approval. NOT committed.
+
+### Muse Code (coding agent)
+
+- Tests: full suite green (`ruff check` clean). New: gate agree/stop
+  route tests, gate sim + KR-only denominator + read2 key tests,
+  offline live-cache test with a seeded read2 copy; `eval-report`
+  recomputes the tables from the recorded log with per-set spend and
+  the simulated gated column.
+- Live calls: none in the sandbox (replay only). No new recordings.
+- Owner checks: approve `claimlens record-read2 --execute` (~10 calls,
+  ~$0.13) to record the second reads, then commit once. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
