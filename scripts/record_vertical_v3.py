@@ -44,10 +44,14 @@ def dry_run(board: dict) -> int:
         if hook not in V.overlay_fx_js(ROOT):
             errors.append(f"overlay_fx missing {hook}")
     V.print_plan(board, 45)
+    # Storyboard `speed` is the planning budget; at record time the rush
+    # window adapts (1x when the wait fits, else the smallest of 2x/4x).
     effective = V.effective_total(board)
     print(f"final cut {effective:g}s / 45s")
     if round(effective) != 45:
         errors.append(f"want exactly 45 s of final cut, got {effective:g} s")
+    if not board.get("segments") or board["segments"][-1]["id"] != "vlink":
+        errors.append("last segment must be the link card")
     if errors:
         print("DRY RUN: FAIL")
         for error in errors:
@@ -136,20 +140,22 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
     if not V.have_ffmpeg():
         print("ffmpeg not found; .webm kept, .mp4 skipped", file=sys.stderr)
         return 2
-    sped_ids = {seg["id"] for seg in board["segments"] if seg.get("speed")}
-    spans = [(start, end) for sid, start, end in actuals if sid in sped_ids]
-    recorded_total = actuals[-1][2] if actuals else 0.0
-    sped = out_dir / "claimlens_vertical_v3_sped.mp4"
-    try:
-        final_len = V.speed_spans(webm, spans, recorded_total, sped)
-    except (subprocess.CalledProcessError, RuntimeError, ValueError) as exc:
-        print(f"speedup failed: {exc}", file=sys.stderr)
-        return 2
-    print(f"wrote {sped}")
     mp4 = out_dir / "claimlens_vertical_v3.mp4"
     lead = actuals[0][1] if actuals else 0.0
     try:
-        V.mux_sound(sped, mp4, final_len - lead, music=Path(music) if music else None, lead=lead)
+        video_src, spans, final_len = V.apply_rush(
+            board, actuals, lead, 45, webm, out_dir / "claimlens_vertical_v3_sped.mp4"
+        )
+    except (subprocess.CalledProcessError, RuntimeError, ValueError) as exc:
+        print(f"rush failed: {exc}", file=sys.stderr)
+        return 2
+    V.append_final_cut(out_dir / "timeline_vertical_v3.txt", board, actuals, lead, spans)
+    if V.final_times(actuals, lead, spans)[-1][2] > 45.05:
+        print("final cut exceeds 45 s; failing instead of cutting the ending", file=sys.stderr)
+        return 2
+    try:
+        V.mux_sound(video_src, mp4, final_len - lead, music=Path(music) if music else None,
+                    lead=lead)
     except subprocess.CalledProcessError as exc:
         print(f"ffmpeg failed:\n{(exc.stderr or '')[-800:]}", file=sys.stderr)
         return 2

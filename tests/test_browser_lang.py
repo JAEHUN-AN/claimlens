@@ -152,3 +152,20 @@ def test_language_switch_in_browser(browser, lang):
 
     assert errors == []
     page.close()
+
+
+def test_phone_layout_in_browser(browser):
+    context = browser.new_context(viewport={"width": 375, "height": 812}, is_mobile=True)
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(DEMO.as_uri())
+    assert page.locator('meta[name="viewport"]').count() == 1
+    assert page.locator("#flow-view").is_visible() is True
+    assert page.evaluate("document.documentElement.scrollWidth") <= 375
+    page.locator("#scenes button", has_text="Scene S2").click()
+    assert page.locator("section#S2_seoul_worker_bronchitis").is_visible() is True
+    assert page.evaluate("document.documentElement.scrollWidth") <= 375
+    assert errors == []
+    page.close()
+    context.close()

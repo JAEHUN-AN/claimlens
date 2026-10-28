@@ -40,6 +40,64 @@ def test_speed_filter_rejects_bad_spans():
         V.speed_filter([(5.0, 15.0), (10.0, 20.0)], 45.0, Path("t"), Path("f"))
 
 
+def test_speed_filter_honours_speed():
+    filt = V.speed_filter([(10.0, 20.0)], 45.0, Path("t"), Path("f"), speed=4)
+    assert "setpts=(PTS-STARTPTS)/4" in filt
+    with pytest.raises(ValueError, match="bad speed"):
+        V.speed_filter([(10.0, 20.0)], 45.0, Path("t"), Path("f"), speed=1)
+
+
+def _rush_board():
+    return {"segments": [{"id": "live", "duration": 15, "rush": {"first": 3, "last": 2}}]}
+
+
+def _rush_actuals():
+    return [("a", 2.0, 8.0), ("live", 8.0, 48.0), ("b", 48.0, 58.0)]
+
+
+def test_pick_rush_skips_fitting_cut():
+    assert V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 56.0) is None
+    assert V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 55.6) is None
+
+
+def test_pick_rush_prefers_2x_then_4x():
+    plan = V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 50.0)
+    assert (plan["speed"], plan["tag"]) == (2, "2×")
+    assert plan["span"] == (11.0, 46.0)
+    plan = V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 36.0)
+    assert (plan["speed"], plan["tag"]) == (4, "4×")
+
+
+def test_pick_rush_fails_when_4x_cannot_fit():
+    with pytest.raises(RuntimeError, match="even 4x cannot fit"):
+        V.pick_rush(_rush_board(), _rush_actuals(), 2.0, 20.0)
+    with pytest.raises(RuntimeError, match="no rush window"):
+        V.pick_rush({"segments": []}, _rush_actuals(), 2.0, 20.0)
+
+
+def test_final_times_trims_lead_and_rush():
+    spans = [(11.0, 46.0, 4)]
+    assert V.final_times(_rush_actuals(), 2.0, spans) == [
+        ("a", 0.0, 6.0),
+        ("live", 6.0, 19.75),
+        ("b", 19.75, 29.75),
+    ]
+    assert V.final_times(_rush_actuals(), 2.0, []) == [
+        ("a", 0.0, 6.0),
+        ("live", 6.0, 46.0),
+        ("b", 46.0, 56.0),
+    ]
+
+
+def test_validate_catches_bad_rush(tmp_path):
+    good = {"segments": [{"id": "s", "caption": "x", "duration": 15, "page": "demo",
+                                   "rush": {"first": 3, "last": 2}}]}
+    assert V.validate(tmp_path, good, {"demo": ""}, 190) == []
+    bad = {"segments": [{"id": "s", "caption": "x", "duration": 15, "page": "demo",
+                                  "rush": {"first": 10, "last": 10}}]}
+    assert any("bad rush" in e for e in V.validate(tmp_path, bad, {"demo": ""}, 190))
+
+
 def test_drop_payload_encodes_images(tmp_path):
     img = tmp_path / "shot.jpg"
     img.write_bytes(b"\xff\xd8\xffdata")
@@ -80,6 +138,50 @@ def test_validate_catches_bad_speed(tmp_path):
     board = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo", "speed": 1}]}
     errors = V.validate(tmp_path, board, {"demo": ""}, 190)
     assert any("bad speed" in e for e in errors)
+
+
+class _FakePage:
+    def __init__(self):
+        self.shots: list[str] = []
+
+    def goto(self, url):
+        pass
+
+    def wait_for_load_state(self, state):
+        pass
+
+    def evaluate(self, expr, arg=None):
+        return True
+
+    def screenshot(self, path):
+        self.shots.append(path)
+        Path(path).write_bytes(b"png")
+
+
+def _end_seconds(line: str) -> float:
+    end = line.split(" --> ")[1].split()[0]
+    hours, minutes, seconds = end.split(":")
+    return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+
+
+def test_timeline_shows_actual_starts(tmp_path):
+    board = {
+        "segments": [
+            {"id": "a", "caption": "Cap a", "duration": 0.2, "page": "demo",
+             "actions": [{"op": "hold", "seconds": 0.5}]},
+            {"id": "b", "caption": "Cap b", "duration": 0.2, "page": "demo", "actions": []},
+        ]
+    }
+    V.run_segments(_FakePage(), board, {"demo": "http://x/"}, tmp_path, [""])
+    lines = (tmp_path / "timeline.txt").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2
+    assert lines[0].startswith("00:00:00.000 --> ")
+    assert _end_seconds(lines[0]) >= 0.45
+    assert "(planned 00:00:00.000 --> 00:00:00.200)" in lines[0]
+    next_start = lines[1].split(" --> ")[0]
+    hours, minutes, seconds = next_start.split(":")
+    start_b = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    assert abs(start_b - _end_seconds(lines[0])) < 0.05
 
 
 def _can_listen() -> bool:

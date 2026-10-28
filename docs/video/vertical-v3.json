@@ -57,7 +57,11 @@
       "id": "vlive",
       "page": "live",
       "title": "live drop",
-      "speed": 2
+      "speed": 2,
+      "rush": {
+        "first": 2,
+        "last": 2
+      }
     },
     {
       "actions": [

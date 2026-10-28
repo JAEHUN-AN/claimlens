@@ -277,7 +277,7 @@ def run_segments(page, board: dict, urls, out_dir: Path, overlays, png_prefix=""
                  actuals=None):
     current: str | None = None
     dot = [dot0[0], dot0[1]]
-    lines = []
+    rows = []
     elapsed = 0.0
     origin = t0
     for seg in board["segments"]:
@@ -297,10 +297,18 @@ def run_segments(page, board: dict, urls, out_dir: Path, overlays, png_prefix=""
             if moved:
                 current = moved
         clock.finish()
+        seg_end = time.monotonic()
         if actuals is not None:
-            actuals.append((seg["id"], seg_start - origin, time.monotonic() - origin))
-        one_line = " ".join(seg["caption"].split())
-        lines.append(f"{fmt_time(elapsed)} --> {fmt_time(elapsed + seg['duration'])} {seg['id']} {one_line}")
+            actuals.append((seg["id"], seg_start - origin, seg_end - origin))
+        rows.append((seg, seg_start - origin, seg_end - origin, elapsed))
         elapsed += seg["duration"]
+    lead = rows[0][1] if rows else 0.0
+    lines = []
+    for seg, start, end, planned in rows:
+        one_line = " ".join(seg["caption"].split())
+        lines.append(
+            f"{fmt_time(start - lead)} --> {fmt_time(end - lead)} {seg['id']} {one_line} "
+            f"(planned {fmt_time(planned)} --> {fmt_time(planned + seg['duration'])})"
+        )
     (out_dir / timeline).write_text("\n".join(lines) + "\n", encoding="utf-8")
     return elapsed

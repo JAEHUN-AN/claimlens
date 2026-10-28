@@ -84,6 +84,7 @@ assert(stagesHtml.includes("Verify &amp; re-read"), "recovery panel");
 assert(stagesHtml.includes("Corrected: line_items"), "recovery corrected");
 assert(stagesHtml.includes("0/12"), "recovery before lines");
 assert(html.includes("<title>ClaimLens</title>"), "tab title");
+assert(html.includes('name="viewport"'), "viewport meta");
 assert(html.includes('class="topbar"'), "topbar header");
 assert(!stagesHtml.includes('class="brand"'), "no duplicate brand");
 assert(html.includes('<svg class="mark"'), "own svg mark");

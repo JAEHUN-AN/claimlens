@@ -28,6 +28,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert "We do not have your policy, so this is not a coverage decision." in text
     assert "matches the engine" in text
     assert "http://-onwards" not in text and "https://" not in text
+    assert '<meta name="viewport" content="width=device-width, initial-scale=1"/>' in text
     assert "# Claim decision" not in text
     assert "<iframe" not in text
     raw = re.search(r'<script id="demo-data"[^>]*>(.*?)</script>', text, re.DOTALL)[1]

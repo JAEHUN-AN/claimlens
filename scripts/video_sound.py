@@ -158,12 +158,15 @@ def _ff_path(path: Path) -> str:
     return str(path).replace("\\", "/").replace(":", "\\:")
 
 
-def speed_filter(spans: list[tuple[float, float]], total: float, tag: Path, font: Path) -> str:
-    """filter_complex: play spans 2x with a tag overlay, keep the rest.
+def speed_filter(spans: list[tuple[float, float]], total: float, tag: Path, font: Path,
+                 speed: int = 2) -> str:
+    """filter_complex: play spans faster with a tag overlay, keep the rest.
 
     spans: (start, end) seconds on the recorded timeline, non-overlapping.
     Pure string building; raises on bad spans.
     """
+    if speed < 2:
+        raise ValueError(f"bad speed {speed}")
     for start, end in spans:
         if not 0 <= start < end <= total:
             raise ValueError(f"bad speed span ({start}, {end}) for {total}s")
@@ -184,7 +187,7 @@ def speed_filter(spans: list[tuple[float, float]], total: float, tag: Path, font
     for i, (start, end, sped) in enumerate(cuts):
         if sped:
             parts.append(
-                f"[0:v]trim={start:.3f}:{end:.3f},setpts=(PTS-STARTPTS)/2,"
+                f"[0:v]trim={start:.3f}:{end:.3f},setpts=(PTS-STARTPTS)/{speed},"
                 f"drawtext=fontfile='{font_esc}':textfile='{tag_esc}':"
                 f"fontsize=34:fontcolor=white:box=1:boxcolor=black@0.6:"
                 f"x=w-text_w-24:y=24[v{i}]"
@@ -196,14 +199,14 @@ def speed_filter(spans: list[tuple[float, float]], total: float, tag: Path, font
 
 
 def speed_spans(webm: Path, spans: list[tuple[float, float]], total: float, out: Path,
-                tag_text: str = "2×") -> float:
-    """Rebuild the video with spans at 2x plus a tag. Returns the new length."""
+                tag_text: str = "2×", speed: int = 2) -> float:
+    """Rebuild the video with spans sped up plus a tag. Returns the new length."""
     with tempfile.TemporaryDirectory() as tmp:
         tag = Path(tmp) / "tag.txt"
         tag.write_text(tag_text, encoding="utf-8")
-        filt = speed_filter(spans, total, tag, find_font())
+        filt = speed_filter(spans, total, tag, find_font(), speed)
         cmd = [ffmpeg_bin(), "-y", "-i", str(webm), "-filter_complex", filt,
                "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
                "-crf", "20", "-preset", "veryfast", "-an", str(out)]
         subprocess.run(cmd, check=True, capture_output=True, text=True)
-    return total - sum(end - start for start, end in spans) / 2
+    return total - sum(end - start for start, end in spans) * (1 - 1 / speed)

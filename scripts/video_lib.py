@@ -43,6 +43,8 @@ __all__ = [
     "OPS",
     "SHOTS",
     "Clock",
+    "append_final_cut",
+    "apply_rush",
     "build_shots",
     "check_assets",
     "check_first_frame",
@@ -51,6 +53,7 @@ __all__ = [
     "effective_total",
     "extract_frame",
     "ffmpeg_bin",
+    "final_times",
     "find_font",
     "fmt_time",
     "goto",
@@ -63,6 +66,7 @@ __all__ = [
     "overlay_fx_js",
     "overlay_js",
     "page_texts_for",
+    "pick_rush",
     "print_plan",
     "run_action",
     "run_segments",
@@ -130,6 +134,16 @@ def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -
         speed = seg.get("speed")
         if speed is not None and (not isinstance(speed, (int, float)) or speed <= 1):
             errors.append(f"{seg.get('id')}: bad speed {speed!r}")
+        rush = seg.get("rush")
+        if rush is not None:
+            first = rush.get("first", 0) if isinstance(rush, dict) else None
+            last = rush.get("last", 0) if isinstance(rush, dict) else None
+            ok = (
+                isinstance(first, (int, float)) and isinstance(last, (int, float))
+                and first >= 0 and last >= 0 and first + last < seg.get("duration", 0)
+            )
+            if not ok:
+                errors.append(f"{seg.get('id')}: bad rush {rush!r}")
         if seg.get("page") not in texts:
             errors.append(f"{seg.get('id')}: unknown page {seg.get('page')!r}")
             continue
@@ -218,6 +232,85 @@ def effective_total(board: dict) -> float:
     for seg in board.get("segments", []):
         total += seg["duration"] / seg["speed"] if seg.get("speed") else seg["duration"]
     return total
+
+
+def pick_rush(board: dict, actuals: list[tuple[str, float, float]], lead: float,
+              limit: float) -> dict | None:
+    """Adaptive live-wait rush so the final cut fits the limit.
+
+    actuals: (seg id, start, end) on the recorded timeline. Returns None
+    when the cut already fits (0.5 s grace: rushing a whole wait to save
+    a blink would shrink the video for nothing). Else the smallest speed
+    in (2, 4) whose span saves the excess, as {"seg", "span", "speed",
+    "tag"}. Raises RuntimeError when even 4x cannot fit the limit.
+    """
+    if not actuals:
+        raise RuntimeError("no recorded segments; cannot plan a rush")
+    excess = (actuals[-1][2] - lead) - limit
+    if excess <= 0.5:
+        return None
+    rushed = [seg for seg in board.get("segments", []) if seg.get("rush")]
+    if not rushed:
+        raise RuntimeError(f"cut overruns by {excess:.1f}s with no rush window to absorb it")
+    seg = rushed[0]
+    bounds = {sid: (start, end) for sid, start, end in actuals}
+    start, end = bounds[seg["id"]]
+    first = seg["rush"].get("first", 0)
+    last = seg["rush"].get("last", 0)
+    span = (start + first, end - last)
+    if span[1] - span[0] <= 0.5:
+        raise RuntimeError(f"rush window on {seg['id']} is empty; cannot fit {limit:g}s")
+    for speed in (2, 4):
+        if (span[1] - span[0]) * (1 - 1 / speed) >= excess - 0.05:
+            return {"seg": seg["id"], "span": span, "speed": speed, "tag": f"{speed}×"}
+    raise RuntimeError(
+        f"live wait overruns by {excess:.1f}s; even 4x cannot fit {limit:g}s"
+    )
+
+
+def final_times(actuals: list[tuple[str, float, float]], lead: float,
+                spans: list[tuple[float, float, int]]) -> list[tuple[str, float, float]]:
+    """Per-segment times on the final cut (lead trimmed, spans rushed)."""
+
+    def at(moment: float) -> float:
+        saved = 0.0
+        for start, end, speed in spans:
+            low, high = max(start, lead), min(end, moment)
+            if high > low:
+                saved += (high - low) * (1 - 1 / speed)
+        return moment - lead - saved
+
+    return [(sid, at(start), at(end)) for sid, start, end in actuals]
+
+
+def apply_rush(board: dict, actuals: list[tuple[str, float, float]], lead: float,
+               limit: float, webm: Path, sped_path: Path):
+    """Pick and apply the live-wait rush. Returns (video_src, spans, final_len).
+
+    No rush when the cut already fits. Raises RuntimeError when even 4x
+    cannot fit the limit, and CalledProcessError when ffmpeg fails.
+    """
+    rush = pick_rush(board, actuals, lead, limit)
+    if rush is None:
+        return webm, [], actuals[-1][2]
+    start, end = rush["span"]
+    final_len = speed_spans(webm, [(start, end)], actuals[-1][2], sped_path,
+                            rush["tag"], rush["speed"])
+    saved = (end - start) * (1 - 1 / rush["speed"])
+    print(f"rushed {rush['seg']} wait at {rush['tag']} (saved {saved:.1f}s)")
+    return sped_path, [(start, end, rush["speed"])], final_len
+
+
+def append_final_cut(timeline_path: Path, board: dict,
+                     actuals: list[tuple[str, float, float]], lead: float,
+                     spans: list[tuple[float, float, int]]) -> None:
+    """Append per-segment times on the final cut to the timeline file."""
+    titles = {seg["id"]: " ".join(seg["caption"].split()) for seg in board["segments"]}
+    lines = ["# final cut (lead trimmed, live wait rushed)"]
+    for sid, start, end in final_times(actuals, lead, spans):
+        lines.append(f"{fmt_time(start)} --> {fmt_time(end)} {sid} {titles.get(sid, '')}")
+    with open(timeline_path, "a", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
 
 
 def print_plan(board: dict, limit_s: int) -> float:

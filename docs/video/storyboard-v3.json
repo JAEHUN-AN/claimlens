@@ -345,7 +345,11 @@
       "duration": 15,
       "id": "live",
       "page": "live",
-      "title": "live run"
+      "title": "live run",
+      "rush": {
+        "first": 3,
+        "last": 2
+      }
     },
     {
       "actions": [

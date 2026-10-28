@@ -1036,6 +1036,42 @@ the box stays inside the viewport with a margin.
 - Live calls: none in the sandbox. Owner re-recordings make real
   Spark calls (reading + consistency per live segment).
 
+## 2026-10-28 — Backlog session: item 40d live overrun + phone layout
+
+(1) The live wait can no longer push the ending off the cut. The
+timeline now prints actual per-segment times (planned in parens),
+and both v3 recorders rush the live wait adaptively: the first
+seconds stay 1×, the rest of the wait plays at the smallest of 2×/4×
+that fits the limit, with a visible tag — no rush when the wait
+fits (0.5 s grace). The recording fails instead of cutting the
+ending when even 4× cannot fit, when the final cut exceeds the
+limit, or when the last segment is not the closing card; the
+timeline gains a final-cut section with post-rush times. (2) The
+demo and index pages carry a viewport meta tag; small screens stack
+the grids and scroll wide tables inside their panels; the browser
+test checks the 375 px phone layout in Edge (meta tag, no sideways
+overflow, S2 scene).
+
+### Muse Code (coding agent)
+
+- Tests: 224 passed, 7 skipped (ffmpeg + listen() blocked in the
+  sandbox), 2 browser tests deselected in the sandbox
+  (`ruff check` clean). New: rush pick (2×/4×/fail), final-cut
+  times, rush validation, actual-timeline via a fake page, 4×
+  filter shape, viewport asserts. Both v3 dry runs pass (180 s /
+  final cut 45 s).
+- Live calls: none in the sandbox (replay only).
+- Owner checks: re-record both v3 videos from a normal terminal;
+  confirm each ends on its closing card at ≤180 s / ≤45 s, the rush
+  tag shows when the wait runs long, and the vertical frames show
+  the phone layout. Run the browser tests including the new phone
+  check. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. Owner re-recordings make real
+  Spark calls (reading + consistency per live segment).
+
 ## 2026-10-28 — Backlog session: item 37 messy bundle triage
 
 New `claimlens triage <photos...>`: one Muse Spark strict-schema

@@ -164,7 +164,8 @@ transition:background .2s ease}
 .rec-cols{grid-template-columns:1fr}
 .topnote{margin-left:0}
 #prov-panel{left:.6rem;right:.6rem;max-width:none}
-table.bill{font-size:.85rem}}
+table.bill{font-size:.85rem}
+.panel{overflow-x:auto}}
 @media print{
 :root{--paper:#fff;--paper-2:#fff;--ink:#000;--ink-dim:#333;--line:#999}
 body{background:#fff}
@@ -823,7 +824,7 @@ def render_page(payload: dict[str, Any]) -> str:
     )
     return f"""<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"/>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>ClaimLens</title>
 <link rel="icon" href="{FAVICON}"/>
 <style>{CSS}</style></head>
