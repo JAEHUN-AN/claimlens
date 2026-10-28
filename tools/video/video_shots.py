@@ -8,7 +8,7 @@ import html
 import re
 from pathlib import Path
 
-SHOTS = ("readme", "agent-eval", "masking", "eval", "tooling")
+SHOTS = ("readme", "agent-eval", "masking", "eval", "tooling", "measured")
 
 SHOT_CSS = (
     "body{font:16px/1.5 system-ui,sans-serif;color:#111;max-width:1120px;"
@@ -166,4 +166,18 @@ def build_shots(root: Path, shots_dir: Path) -> dict[str, Path]:
         shots_dir, "tooling", "Tooling log", "Source: docs/meta-tooling-log.md",
         _blocks(_drop_title(log)),
     )
+    paths["measured"] = _write(
+        shots_dir, "measured", "Measured", "Source: data/*.json via claimlens headline",
+        _measured_block(root),
+    )
     return paths
+
+
+def _measured_block(root: Path) -> str:
+    from claimlens import headline
+
+    items = []
+    for entry in headline.lines(root):
+        mark = " class=\"gate-line\"" if "double-read gate" in entry["en"] else ""
+        items.append(f"<li{mark}>{_inline(entry['en'])}</li>")
+    return "<ul>" + "".join(items) + "</ul>"

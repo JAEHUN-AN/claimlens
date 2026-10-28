@@ -399,6 +399,116 @@ def cmd_triage(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_load(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens import load as load_mod
+
+    _emit(load_mod.plan_text(args.runs, args.max_cost))
+    if not args.execute:
+        _emit("Stopped before any API call. Re-run with --execute to run it.")
+        return 0
+    try:
+        report = load_mod.execute(args.runs, args.max_cost, Path(args.output),
+                                  Path("samples") / "live")
+    except RuntimeError as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 2
+    _emit(f"wrote {report['path']}: p50 {report['p50_s']} s, p95 {report['p95_s']} s, "
+          f"${report['mean_cost_usd']:.4f} per claim, "
+          f"coherent {report['all_coherent']}.")
+    return 0
+
+
+def cmd_gate_eval(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens import gate_eval, hard_eval
+    from claimlens.eval import ground_truth, load_scenarios
+    from claimlens.hard_images import HARD_SAMPLES, TRANSFORMS
+    from claimlens.reader import resolve_sample_images
+
+    samples_dir = Path("samples")
+    out_dir = Path("out") / "hard"
+    scenarios = load_scenarios()
+    picked_samples = tuple(s.strip() for s in args.samples.split(",")) if args.samples else None
+    picked_transforms = (
+        tuple(s.strip() for s in args.transforms.split(",")) if args.transforms else TRANSFORMS
+    )
+    for name in picked_transforms:
+        if name not in TRANSFORMS:
+            print(f"claimlens: unknown transform {name!r}.", file=sys.stderr)
+            return 2
+    plans = {}
+    if args.set in ("both", "normal"):
+        wanted = picked_samples or hard_eval.NORMAL_SAMPLES
+        plans["normal"] = hard_eval.plan_normal(samples_dir, args.repeat, wanted)
+    if args.set in ("both", "hard"):
+        wanted = picked_samples or HARD_SAMPLES
+        unknown = [s for s in wanted if s not in HARD_SAMPLES]
+        if unknown:
+            print(f"claimlens: hard set starts with {', '.join(HARD_SAMPLES)}; "
+                  f"unknown: {', '.join(unknown)}.", file=sys.stderr)
+            return 2
+        plans["hard"] = hard_eval.plan_hard(args.seed, out_dir, samples_dir, args.repeat,
+                                             wanted, picked_transforms)
+    lines = ["Live double-read gate eval (no network calls made):",
+             "fresh live reads only, unique cache tags, temp cache dir;",
+             "committed cache/ stays untouched.",
+             f"git status cache/: {hard_eval.git_cache_status()}"]
+    total_reads = total_re = 0
+    for name, plan in plans.items():
+        cases = plan["cases"]
+        kr = sum(1 for c in cases if c["sample"].startswith(("S2", "S3")))
+        lines.append(gate_eval.estimate_text(name, len(cases), kr, args.repeat))
+        total_reads += len(cases) * args.repeat * 2
+        total_re += kr * args.repeat * 2
+    lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_re} re-reads; "
+                 f"estimate ${total_reads * hard_eval.BASE_EST:.2f}"
+                 f"-${total_reads * hard_eval.BASE_EST + total_re * hard_eval.REREAD_EST:.2f}.")
+    if not args.execute:
+        lines.append("Stopped before any API call. Re-run with --execute to run it.")
+        _emit("\n".join(lines))
+        return 0
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    for name, plan in plans.items():
+        for case in plan["cases"]:
+            truth = ground_truth(scenarios[case["sample"]])
+            if name == "hard":
+                images = [out_dir / case["receipt"], out_dir / case["cert"]]
+                unreadable = case["unreadable"]
+                case["key"] = f"{case['sample']}-{case['transform']}"
+            else:
+                images = resolve_sample_images(samples_dir / case["sample"], case["variant"])
+                unreadable = {"total": False, "line_amounts": False, "kr_cells": []}
+                case["key"] = f"{case['sample']}-{case['variant']}"
+            case["images"] = images
+            case["truth"] = truth
+            case["unreadable"] = unreadable
+    results = gate_eval.execute(plans, args.repeat, args.max_cost,
+                                gate_eval.default_provider_factory(), Path(args.output))
+    text = "\n".join(lines) + "\n\n" + gate_eval.format_summary(results)
+    text += f"\nwrote {results['path']}"
+    _emit(text, end="")
+    return 0
+
+
+def cmd_headline(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens import headline
+
+    root = Path(".")
+    for entry in headline.lines(root):
+        _emit(f"- {entry['en']}")
+    changed = headline.regen(root)
+    done = ", ".join(name for name, was in changed.items() if was) or "nothing"
+    _emit(f"regenerated: {done}.")
+    return 0
+
+
 def cmd_consistency_eval(args: argparse.Namespace) -> int:
     from claimlens.consistency import eval_all, format_markdown
     from claimlens.rationale import rationale_provider_default
@@ -510,6 +620,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     triage.add_argument("--json", action="store_true", help="Print the raw result.")
     triage.set_defaults(func=cmd_triage)
+    load = sub.add_parser("load", help="Light load check: N concurrent live runs.")
+    load.add_argument("--runs", type=int, default=5, help="Concurrent runs (default 5).")
+    load.add_argument("--max-cost", type=float, default=2.00,
+                      help="Refuse to launch past this spend in USD.")
+    load.add_argument("--output", default="data", help="Data dir for the run JSON.")
+    load.add_argument("--execute", action="store_true",
+                      help="Actually run; without it only the plan prints.")
+    load.set_defaults(func=cmd_load)
+    gate = sub.add_parser("gate-eval", help="Live double-read gate over hard/normal sets.")
+    gate.add_argument("--set", choices=["normal", "hard", "both"], default="both")
+    gate.add_argument("--repeat", type=int, default=3)
+    gate.add_argument("--execute", action="store_true",
+                      help="Actually run; without it only the plan prints.")
+    gate.add_argument("--samples", default=None, help="Comma-separated sample ids.")
+    gate.add_argument("--transforms", default=None, help="Comma-separated hard transforms.")
+    gate.add_argument("--seed", type=int, default=41)
+    gate.add_argument("--max-cost", type=float, default=4.00,
+                      help="Abort the run past this spend in USD.")
+    gate.add_argument("--output", default="data", help="Data dir for the run JSON.")
+    gate.set_defaults(func=cmd_gate_eval)
+    headline = sub.add_parser("headline", help="Measured block; regenerates README + demo.")
+    headline.set_defaults(func=cmd_headline)
     return parser
 
 

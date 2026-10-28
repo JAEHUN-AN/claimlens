@@ -83,7 +83,7 @@ __all__ = [
 ]
 
 CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
-            "thesis")
+            "thesis", "why")
 OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles",
        "press")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")

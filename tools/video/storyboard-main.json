@@ -19,6 +19,19 @@
       "title": "thesis card"
     },
     {
+      "id": "why",
+      "page": "card:why",
+      "title": "why card",
+      "caption": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022, 2.01 million foreign patients in 2025 — we work on the paperwork step.",
+      "duration": 7,
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 6
+        }
+      ]
+    },
+    {
       "actions": [],
       "caption": "1 · Read & verify",
       "duration": 1,
@@ -290,27 +303,6 @@
     {
       "actions": [
         {
-          "op": "click",
-          "selector": "#langswitch button[data-lang=\"ko\"]"
-        },
-        {
-          "op": "hold",
-          "seconds": 3
-        },
-        {
-          "op": "click",
-          "selector": "#langswitch button[data-lang=\"en\"]"
-        }
-      ],
-      "caption": "The same screen for staff in Korea.",
-      "duration": 5,
-      "id": "koui",
-      "page": "demo",
-      "title": "Korean UI"
-    },
-    {
-      "actions": [
-        {
           "op": "wait_for",
           "selector": "#replaytag.live",
           "timeout": 15000
@@ -491,11 +483,11 @@
       "actions": [
         {
           "op": "hold",
-          "seconds": 4
+          "seconds": 5
         }
       ],
-      "caption": "Muse Code wrote the code. Spark reads and runs the agent, SAM masks seals, Voice Transcribe takes the call, Spark Open is measured side by side, and MCP opens it to other agents.",
-      "duration": 6,
+      "caption": "Muse Code wrote the code — the log shows how. Spark reads and runs the agent, files ride by id, SAM masks seals, Voice takes the call, Spark Open is measured side by side.",
+      "duration": 7,
       "id": "tools",
       "page": "card:meta",
       "title": "Meta tools card"
@@ -516,32 +508,23 @@
     {
       "actions": [
         {
-          "op": "hold",
-          "seconds": 4
-        }
-      ],
-      "caption": "Hosted and open weights, measured side by side.",
-      "duration": 6,
-      "id": "eval",
-      "page": "eval",
-      "title": "hosted vs open eval"
-    },
-    {
-      "actions": [
-        {
-          "op": "scroll_to",
-          "selector": "#shot-end"
+          "op": "zoom",
+          "scale": 1.4,
+          "selector": ".gate-line"
         },
         {
           "op": "hold",
-          "seconds": 2
+          "seconds": 5
+        },
+        {
+          "op": "unzoom"
         }
       ],
-      "caption": "Muse Code wrote the code; the log shows how.",
-      "duration": 5,
-      "id": "tooling",
-      "page": "tooling",
-      "title": "tooling log"
+      "caption": "Single read let 47 wrong numbers leave; the double-read gate leaves 2 (live gate).",
+      "duration": 8,
+      "id": "eval",
+      "page": "measured",
+      "title": "single vs double read"
     },
     {
       "actions": [

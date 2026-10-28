@@ -5,14 +5,15 @@ import html
 import io
 import json
 import os
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI
+from openai import APIError, OpenAI
 from PIL import Image
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from claimlens import cache as replay_cache
 from claimlens.schema import ReadingResult
@@ -21,6 +22,29 @@ MODEL = "muse-spark-1.3"
 BASE_URL = "https://api.meta.ai/v1"
 SCHEMA_NAME = "claimlens_reading"
 IMAGE_LONG_SIDE = 1280
+
+MAX_ATTEMPTS = 3
+RETRY_SLEEPS = (1.0, 2.0)
+
+
+def _backoff_sleep(seconds: float) -> None:
+    time.sleep(seconds)
+
+
+def _parse_json(output_text: str) -> Any:
+    """Parse model output; malformed, truncated, or empty output is an error."""
+    try:
+        return unescape_json(json.loads(output_text))
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError(f"Spark returned unusable output: {exc}") from exc
+
+
+def _validate_output(output_text: str, model: type[BaseModel]) -> dict[str, Any]:
+    """Parse and strict-validate model output against the reading schema."""
+    try:
+        return TypeAdapter(model).validate_python(_parse_json(output_text)).model_dump(mode="json")
+    except ValidationError as exc:
+        raise RuntimeError(f"Spark output broke the schema: {exc}") from exc
 
 
 @dataclass
@@ -84,6 +108,7 @@ class MetaProvider:
         self.model = model
         self.live = live
         self.calls: list[CallRecord] = []
+        self.retries_429 = 0
         self.last_files_error: dict[str, Any] | None = None
         self._client = OpenAI(base_url=BASE_URL, api_key=key)
 
@@ -167,10 +192,10 @@ class MetaProvider:
             for blob in blobs:
                 b64 = base64.b64encode(blob).decode("ascii")
                 content.append({"type": "input_image", "image_url": f"data:image/jpeg;base64,{b64}"})
-        return self._client.responses.create(
-            model=self.model,
-            input=[{"role": "user", "content": content}],
-            text={
+        body = {
+            "model": self.model,
+            "input": [{"role": "user", "content": content}],
+            "text": {
                 "format": {
                     "type": "json_schema",
                     "name": SCHEMA_NAME,
@@ -178,8 +203,17 @@ class MetaProvider:
                     "strict": True,
                 }
             },
-            reasoning={"effort": "low"},
-        )
+            "reasoning": {"effort": "low"},
+        }
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                return self._client.responses.create(**body)
+            except APIError as exc:
+                if getattr(exc, "status_code", None) == 429 and attempt < MAX_ATTEMPTS:
+                    self.retries_429 += 1
+                    _backoff_sleep(RETRY_SLEEPS[attempt - 1])
+                    continue
+                raise RuntimeError(f"Spark request failed: {exc}") from exc
 
     def read_documents(
         self,
@@ -230,6 +264,8 @@ class MetaProvider:
         in_tokens = getattr(usage, "input_tokens", 0) or 0
         out_tokens = getattr(usage, "output_tokens", 0) or 0
         total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
+        # Validate before storing: a broken output is never a recording.
+        result = _validate_output(response.output_text, result_model or ReadingResult)
         self._store(
             key,
             {
@@ -253,9 +289,7 @@ class MetaProvider:
                 cost_usd=cost_usd(in_tokens, out_tokens),
             )
         )
-        data = unescape_json(json.loads(response.output_text))
-        model = result_model or ReadingResult
-        return TypeAdapter(model).validate_python(data).model_dump(mode="json")
+        return result
 
     def write(
         self,
@@ -273,6 +307,10 @@ class MetaProvider:
         in_tokens = getattr(usage, "input_tokens", 0) or 0
         out_tokens = getattr(usage, "output_tokens", 0) or 0
         total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
+        # Validate before storing: a broken output is never a recording.
+        data = _parse_json(response.output_text)
+        result = data if result_model is None else _validate_output(
+            response.output_text, result_model)
         self._store(
             key,
             {
@@ -295,7 +333,4 @@ class MetaProvider:
                 cost_usd=cost_usd(in_tokens, out_tokens),
             )
         )
-        data = unescape_json(json.loads(response.output_text))
-        if result_model is None:
-            return data
-        return TypeAdapter(result_model).validate_python(data).model_dump(mode="json")
+        return result

@@ -11,8 +11,16 @@ see first-hand. Korea, 2022: an estimated ₩251.2 billion of private medical in
 went unclaimed ([estimate from NHIS and insurer statistics](https://www.fnnews.com/news/202309060625012843)).
 2.01 million foreign patients were treated in Korea in 2025
 ([Ministry of Health and Welfare](https://v.daum.net/v/20260424060102461)).
-ClaimLens works on the paperwork step. Bill photo → checked claim, every number traceable.
+ClaimLens works on the paperwork step. Bill photo → checked claim in about 22.97 s, every number traceable.
 Theme: Build for Your World.
+
+<!-- measured:start -->
+**Measured:**
+- Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the double-read gate (38/72 pairs stopped, live gate); clean documents: 2 left, 1/30 stopped
+- Agent scorecard: 8/8 (asks when it must, never invents a number)
+- 15 fault cases injected, no wrong number
+- Per claim: p50 22.97 s, p95 30.32 s, $0.0355 (5 concurrent live runs)
+<!-- measured:end -->
 
 **Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
 
@@ -87,20 +95,21 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 ## Which Meta model does which step
 
-| Step | Model | How |
-|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) |
-| Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images |
-| Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked |
-| Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Decides label wording; amounts copied by code |
-| Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | Decides labels + sentences; amounts, codes, dates copied by code |
-| Clarifying agent loop | `muse-spark-1.3` (hosted) | Decides the next tool and when to ask; numbers only from tools, step cap 12 |
-| Transcribe spoken intake | `muse-voice-transcribe-1.0` (hosted) | Decides the transcript; dates/codes marked to confirm, never certain |
-| Extract facts from transcript | `muse-spark-1.3` (hosted) | Decides facts + supporting quotes; uncertain ones routed to confirm |
-| Compare documents (consistency) | `muse-spark-1.3` (hosted) | Decides mismatch findings from quoted evidence; code drops unquoted claims |
-| Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same labels for comparison; forced `submit_labels` tool call |
-| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call |
-| Mask seals and signatures | `sam-3.1` (hosted) | Decides seal/signature boxes; painted on a copy |
+| Step | Model | How | Measured |
+|---|---|---|---|
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 87 commits |
+| Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
+| Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3, 86% run-to-run agreement |
+| Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |
+| Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Decides label wording; amounts copied by code | — |
+| Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | Decides labels + sentences; amounts, codes, dates copied by code | — |
+| Clarifying agent loop | `muse-spark-1.3` (hosted) | Decides the next tool and when to ask; numbers only from tools, step cap 12 | — |
+| Transcribe spoken intake | `muse-voice-transcribe-1.0` (hosted) | Decides the transcript; dates/codes marked to confirm, never certain | 2 fact types need confirmation |
+| Extract facts from transcript | `muse-spark-1.3` (hosted) | Decides facts + supporting quotes; uncertain ones routed to confirm | 2 fact types need confirmation |
+| Compare documents (consistency) | `muse-spark-1.3` (hosted) | Decides mismatch findings from quoted evidence; code drops unquoted claims | — |
+| Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same labels for comparison; forced `submit_labels` tool call | — |
+| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call | 12/15 fields match hosted |
+| Mask seals and signatures | `sam-3.1` (hosted) | Decides seal/signature boxes; painted on a copy | 2 masked copies |
 
 Every number shown to a user comes from a document reading, a deterministic check,
 or the engine — never from model arithmetic. The tooling log linked above is the
@@ -188,7 +197,30 @@ regenerated by `claimlens agent-eval`. Two honest notes: each case is one
 recorded dialogue replayed, not repeated runs; and `confirm-voice-date` is the
 voice-intake rule asking for confirmation, not the agent loop (0 steps).
 Hard-document eval (23/24 harsh variants ×3, cap tripped at $1.51): single read let 47 wrong numbers leave;
-the double-read gate leaves 0, stopping 35/66 hard + 2/30 normal pairs ([tables](docs/eval.md)).
+on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 2/30 normal pairs
+(simulated, [tables](docs/eval.md)). The live gate run is in the Measured block above.
+
+## What happens when something fails
+
+15 fault cases, each pinned by a test — no case ever returns a wrong number.
+
+| fault | expected | test |
+|---|---|---|
+| Spark call times out | RuntimeError; serve answers 503 with the error, no result | `test_fault_spark_timeout` |
+| HTTP 429, then success | retries with 1s/2s backoff, returns the reading | `test_fault_429_recovers` |
+| HTTP 429 three times | stops after 3 attempts, RuntimeError | `test_fault_429_stops` |
+| HTTP 500 | no retry, RuntimeError on the first failure | `test_fault_500_stops` |
+| malformed or truncated JSON output | RuntimeError, nothing stored or returned | `test_fault_bad_json` |
+| JSON breaks the strict schema | RuntimeError, nothing stored or returned | `test_fault_schema_violation` |
+| empty model output | RuntimeError, nothing stored or returned | `test_fault_empty_output` |
+| Files API upload fails | base64 fallback, files_error recorded, reading returned | `test_fault_files_fallback` |
+| Neo4j unreachable, member claim | engine_unreachable badge stating the reason | `test_fault_neo4j_engine` |
+| Neo4j unreachable, visitor claim | Claim Pack still built, no engine call | `test_fault_pack_without_neo4j` |
+| network down in claimlens serve | page shows the error, never a stale result | `test_fault_serve_offline` |
+| upload over the 10 MB limit | 400 naming the limit, nothing read | `test_fault_oversized_upload` |
+| non-image upload | 400 naming the file, nothing read | `test_fault_non_image_upload` |
+| one of two reads fails or times out | needs_manual_check; the single read never passes alone | `test_fault_gate_single_failure` |
+| reads disagree on document count | needs_manual_check with a documents question | `test_fault_gate_doc_count` |
 
 ## Limitations
 

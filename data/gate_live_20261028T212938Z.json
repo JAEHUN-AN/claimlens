@@ -1,0 +1,165 @@
+{
+  "tool": "gate-eval",
+  "repeat": 3,
+  "sets": {
+    "normal": {
+      "pairs": 30,
+      "stops": 1,
+      "leaks": 2,
+      "spent": 0.761016,
+      "per_claim": 0.025367,
+      "cases": [
+        {
+          "sample": "A_niseko_wrist",
+          "variant": "photo"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "variant": "clean"
+        },
+        {
+          "sample": "B_chiangmai_dogbite",
+          "variant": "photo"
+        },
+        {
+          "sample": "B_chiangmai_dogbite",
+          "variant": "clean"
+        },
+        {
+          "sample": "C_newyork_panic",
+          "variant": "photo"
+        },
+        {
+          "sample": "C_newyork_panic",
+          "variant": "clean"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "variant": "photo"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "variant": "clean"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "variant": "photo"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "variant": "clean"
+        }
+      ]
+    },
+    "hard": {
+      "pairs": 72,
+      "stops": 38,
+      "leaks": 2,
+      "spent": 2.687345,
+      "per_claim": 0.037324,
+      "cases": [
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "perspective"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "motion"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "lowlight"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "lowres"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "rot90"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "rot180"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "glare"
+        },
+        {
+          "sample": "A_niseko_wrist",
+          "transform": "crop"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "perspective"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "motion"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "lowlight"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "lowres"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "rot90"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "rot180"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "glare"
+        },
+        {
+          "sample": "S2_seoul_worker_bronchitis",
+          "transform": "crop"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "perspective"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "motion"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "lowlight"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "lowres"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "rot90"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "rot180"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "glare"
+        },
+        {
+          "sample": "S3_us_tourist_hip_fracture",
+          "transform": "crop"
+        }
+      ]
+    }
+  },
+  "spent": 3.448361,
+  "aborted": false,
+  "cache_before": "(clean)",
+  "cache_after": "(clean)",
+  "recorded_at": "2026-10-28T21:29:38.068037+00:00"
+}

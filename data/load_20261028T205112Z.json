@@ -1,0 +1,68 @@
+{
+  "tool": "load",
+  "runs": 5,
+  "photos": [
+    "samples/live/S2_receipt_retake.jpg",
+    "samples/live/S2_medical_certificate_retake.jpg"
+  ],
+  "scenario": "S2_seoul_worker_bronchitis",
+  "results": [
+    {
+      "status": 200,
+      "seconds": 24.275,
+      "badge": "needs_manual_check",
+      "tokens": 14655,
+      "cost_usd": 0.034696,
+      "retries_429": 0,
+      "coherent": true,
+      "run": 0
+    },
+    {
+      "status": 200,
+      "seconds": 31.827,
+      "badge": "PARTIAL",
+      "tokens": 17279,
+      "cost_usd": 0.042911,
+      "retries_429": 0,
+      "coherent": true,
+      "run": 1
+    },
+    {
+      "status": 200,
+      "seconds": 20.566,
+      "badge": "PARTIAL",
+      "tokens": 13463,
+      "cost_usd": 0.03168,
+      "retries_429": 0,
+      "coherent": true,
+      "run": 2
+    },
+    {
+      "status": 200,
+      "seconds": 19.222,
+      "badge": "PARTIAL",
+      "tokens": 13630,
+      "cost_usd": 0.032385000000000004,
+      "retries_429": 0,
+      "coherent": true,
+      "run": 3
+    },
+    {
+      "status": 200,
+      "seconds": 22.97,
+      "badge": "needs_manual_check",
+      "tokens": 14874,
+      "cost_usd": 0.035627,
+      "retries_429": 0,
+      "coherent": true,
+      "run": 4
+    }
+  ],
+  "p50_s": 22.97,
+  "p95_s": 30.32,
+  "mean_cost_usd": 0.03546,
+  "total_cost_usd": 0.177299,
+  "total_retries_429": 0,
+  "all_coherent": true,
+  "recorded_at": "2026-10-28T20:51:12.187694+00:00"
+}

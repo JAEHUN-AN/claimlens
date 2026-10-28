@@ -152,6 +152,10 @@ ol.strip3 li{background:var(--paper);border-radius:999px;padding:.25rem .8rem;
 font-size:.85rem;font-weight:600;color:var(--ink-dim)}
 ol.strip3 li:not(:last-child)::after{content:"→";margin-left:.7rem;color:var(--ink-dim)}
 .flow-pick{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.5rem;margin:.4rem 0}
+.tile{background:var(--paper);border-radius:12px;padding:.5rem .7rem;box-shadow:var(--shadow)}
+.tile b{display:block}
+.tile .fact{display:block;color:var(--ink-dim);font-size:.85rem}
 .fpick{display:flex;align-items:center;gap:.5rem;padding:.4rem .8rem .4rem .4rem;
 cursor:pointer;font-size:.85rem;border-radius:8px}
 .fpick.active{background:var(--tab-active-bg);box-shadow:inset 0 0 0 2px var(--accent)}
@@ -347,12 +351,15 @@ person_continue:["Continue","계속하기"],
 person_q_head:["Answer to continue:","계속하려면 답하세요:"],
 person_q_blocker:["Blocking questions:","차단 질문:"],
 why_who:["Built by a developer who works on hospital data systems in Korea — a problem I see first-hand.","한국에서 병원 데이터 시스템을 만드는 개발자가 직접 겪는 문제에서 시작했습니다."],
-why_before1:["Korea, 2022: an estimated ₩251.2 billion of private medical insurance went unclaimed.","한국, 2022년: 민간 의료보험금 약 ₩251.2 billion이 미청구된 것으로 추정됩니다."],
+why_before1:["Korea, 2022: an estimated ₩251.2 billion of private medical insurance went unclaimed.","한국, 2022년: 민간 의료보험금 약 2,512억 원이 미청구된 것으로 추정됩니다."],
 why_src1:["Source: analysis of NHIS and insurer statistics by a National Assembly member, reported 2023-09-06","출처: 국회의원실의 건보공단·보험사 통계 분석, 2023-09-06 보도"],
-why_before2:["2.01 million foreign patients were treated in Korea in 2025.","2025년 한국에서 치료받은 외국인 환자는 2.01 million명입니다."],
+why_before2:["2.01 million foreign patients were treated in Korea in 2025.","2025년 한국에서 치료받은 외국인 환자는 201만 명입니다."],
 why_src2:["Source: Ministry of Health and Welfare, reported 2026-04-24","출처: 보건복지부, 2026-04-24 보도"],
 why_own:["ClaimLens works on the paperwork step.","ClaimLens는 서류 단계에 집중합니다."],
 why_after:["Bill photo → checked claim, every number traceable","청구서 사진 → 검증된 청구, 모든 숫자는 추적 가능"],
+why_after_n:["Bill photo → checked claim in about {n} s, every number traceable","청구서 사진 → 약 {n}초 만에 검증된 청구, 모든 숫자는 추적 가능"],
+h_measured:["Measured","측정 결과"],
+h_metatools:["Built with Meta","Built with Meta"],
 why_theme:["Theme: Build for Your World.","테마: Build for Your World."],
 why_est:["estimate","추정치"],
 scope_foot:["Paperwork check — not medical or legal advice. A person makes every decision.","서류 점검 도구입니다. 의료·법률 조언이 아니며, 최종 결정은 사람이 합니다."],
@@ -497,8 +504,27 @@ function whyHtml(){
     +`<p>${esc(t('why_before2'))}`
     +`<br/><small class="dim"><a href="${WHY_URL2}">${esc(t('why_src2'))}</a></small></p>`
     +`<p>${esc(t('why_own'))}</p>`
-    +`<p>${esc(t('why_after'))}</p>`
+    +`<p>${esc(afterLine())}</p>`
     +`<p>${esc(t('why_theme'))}</p></div>`;
+}
+function afterLine(){
+  const n=data.flow&&data.flow.after_n;
+  if(n)return t('why_after_n').replace('{n}',n);
+  return t('why_after');
+}
+function measuredHtml(f){
+  const items=(f.measured||[]).map(m=>`<li>${esc(m[LANG]||m.en)}</li>`).join('');
+  if(!items)return '';
+  return `<h3>${esc(t('h_measured'))}</h3><ul class="measured">${items}</ul>`;
+}
+function metaToolsHtml(f){
+  const tiles=(f.meta_tools||[]).map(m=>{
+    const fact=m.fact?`<span class="fact">${esc(m.fact[LANG]||m.fact.en)}</span>`:'';
+    return `<div class="tile"><b>${esc(m.tool)}</b>`
+      +`<span>${esc(m.step[LANG]||m.step.en)}</span>${fact}</div>`;
+  }).join('');
+  if(!tiles)return '';
+  return `<h3>${esc(t('h_metatools'))}</h3><div class="tiles">${tiles}</div>`;
 }
 function scopeFooter(){
   return `<p class="scope"><small class="dim">${esc(t('scope_foot'))}</small></p>`;
@@ -511,6 +537,7 @@ function flowView(f){
   return `<div id="flow-view">`
     +`<p class="tagline">${esc(t('tagline'))}</p>`
     +whyHtml()
+    +measuredHtml(f)
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
@@ -522,7 +549,7 @@ function flowView(f){
     +`<div id="flow-questions"></div>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
-    +evalBlock(f.eval)+scopeFooter()+`</div>`;
+    +evalBlock(f.eval)+metaToolsHtml(f)+scopeFooter()+`</div>`;
 }
 function evalBlock(e){
   if(!e)return '';

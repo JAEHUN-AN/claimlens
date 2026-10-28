@@ -1,0 +1,16 @@
+{
+  "files_api": "works",
+  "input": "file",
+  "file_part": "input_image",
+  "files_error": null,
+  "tokens": {
+    "model": "muse-spark-1.3",
+    "input_tokens": 2157,
+    "output_tokens": 1866,
+    "total_tokens": 4023,
+    "cost_usd": 0.010627,
+    "reused": false
+  },
+  "documents": 1,
+  "wrote": "out\\probe"
+}

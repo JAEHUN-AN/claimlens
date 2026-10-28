@@ -250,6 +250,26 @@ def _live_meta(provider: Any, since: int) -> tuple[str, int]:
     return f"{tokens} tokens (live)", tokens
 
 
+def _fresh_spend(calls: list[Any]) -> float:
+    """Fresh-call spend; reused recordings and unpriced calls cost nothing."""
+    total = 0.0
+    for call in calls:
+        if getattr(call, "reused", False):
+            continue
+        total += getattr(call, "cost_usd", None) or 0.0
+    return total
+
+
+def _run_spend(providers: list[Any]) -> float:
+    """Fresh-call spend across providers; reused recordings cost nothing."""
+    return sum(_fresh_spend(getattr(p, "calls", [])) for p in providers)
+
+
+def _run_retries(providers: list[Any]) -> int:
+    """HTTP 429 backoff retries across providers (stubs report 0)."""
+    return sum(getattr(p, "retries_429", 0) for p in providers)
+
+
 def run_live(
     images: list[dict[str, str]],
     person: dict[str, Any] | None = None,
@@ -296,12 +316,15 @@ def run_live(
             path.write_bytes(blob)
             paths.append(path)
 
-        def _read_twice() -> list[dict[str, Any]]:
+        def _read_twice() -> list[dict[str, Any] | None]:
             tags = ["", READ2_TAG]
 
-            def _one(pos: int) -> dict[str, Any]:
-                return providers[pos].read_documents(
-                    paths, READING_INSTRUCTIONS, reading_schema(), cache_tag=tags[pos])
+            def _one(pos: int) -> dict[str, Any] | None:
+                try:
+                    return providers[pos].read_documents(
+                        paths, READING_INSTRUCTIONS, reading_schema(), cache_tag=tags[pos])
+                except RuntimeError:
+                    return None
 
             with ThreadPoolExecutor(max_workers=2) as pool:
                 return list(pool.map(_one, (0, 1)))
@@ -309,6 +332,8 @@ def run_live(
         started = time.monotonic()
         marks = [len(p.calls) for p in providers]
         raws = _read_twice()
+        if all(raw is None for raw in raws):
+            raise RuntimeError("Both reads failed; nothing to compare.")
         tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
         reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
         meta = REUSED_LABEL if reused_only else f"{tokens} tokens (live)"
@@ -317,7 +342,15 @@ def run_live(
               meta, time.monotonic() - started, 0 if reused_only else tokens)
         readings: list[dict[str, Any]] = []
         order_failed = False
-        for raw in raws:
+        read_failed: int | None = None
+        raw_counts: list[int] = []
+        for pos, raw in enumerate(raws):
+            if raw is None:
+                read_failed = pos + 1
+                continue
+            # Count before order_docs normalizes: a dropped third document
+            # must still stop the gate, never pass on the ordered pair.
+            raw_counts.append(len(raw.get("documents", [])) if isinstance(raw, dict) else -1)
             try:
                 readings.append(order_docs(raw))
             except ValueError:
@@ -355,11 +388,23 @@ def run_live(
 
         matched = match_sample(blobs)
         started = time.monotonic()
-        if order_failed or len(receipts) != 2:
-            diffs: list[tuple[str, str, str]] = [
-                ("documents", "receipt + certificate", "unreadable")]
+        read_questions: list[dict[str, str]] | None = None
+        if read_failed is not None:
+            read_questions = [{
+                "question": f"Read {read_failed} of 2 failed; "
+                            "the other read alone cannot pass.",
+                "why_needed": "Two independent reads are required; "
+                              "a person must re-run.",
+            }]
+            diffs = [("read 2" if read_failed == 2 else "read 1", "2 documents", "failed")]
+        elif order_failed or len(receipts) != 2:
+            diffs = [("documents", "receipt + certificate", "unreadable")]
         else:
-            diffs = gate_diffs(receipts[0], receipts[1])
+            if len(raw_counts) == 2 and raw_counts[0] != raw_counts[1]:
+                diffs = [("documents", f"{raw_counts[0]} documents",
+                          f"{raw_counts[1]} documents")]
+            else:
+                diffs = gate_diffs(receipts[0], receipts[1])
         if diffs:
             plural = "s" if len(diffs) != 1 else ""
             _step(steps, "double_read", "Double read", f"{len(diffs)} field{plural} differ",
@@ -369,9 +414,11 @@ def run_live(
                 "result": {"badge": "needs_manual_check",
                            "title": "Human review: two reads disagreed.", "note": ""},
                 "tokens_total": tokens_total,
+                "cost_usd": _run_spend(providers),
+                "retries_429": _run_retries(providers),
                 "matched_sample": matched,
                 "scenario": declared,
-                "questions": gate_questions(diffs),
+                "questions": read_questions or gate_questions(diffs),
             }
         _step(steps, "double_read", "Double read", "agree",
               "deterministic", time.monotonic() - started)
@@ -382,6 +429,8 @@ def run_live(
             "reading": reading,
             "steps": steps,
             "tokens_total": tokens_total,
+            "cost_usd": _run_spend(providers),
+            "retries_429": _run_retries(providers),
             "matched": matched,
             "scenario": declared,
             "person": person,
@@ -411,6 +460,8 @@ def _pause_run(run: dict[str, Any], run_id: str | None = None) -> dict[str, Any]
             "note": "",
         },
         "tokens_total": run["tokens_total"],
+        "cost_usd": run.get("cost_usd", 0.0),
+        "retries_429": run.get("retries_429", 0),
         "matched_sample": run["matched"],
         "scenario": run["scenario"],
         "questions": fact_questions(missing),
@@ -434,6 +485,8 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
     receipt, cert = reading["documents"]
     _, inbound = load_scenarios()
     context = matched or declared
+    mark_calls = len(provider.calls)
+    mark_retries = getattr(provider, "retries_429", 0)
     started = time.monotonic()
     if context and context not in inbound:
         eligibility = {"outcome": "traveller_abroad", "rule": "engine_path",
@@ -488,11 +541,15 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
         meta = "deterministic"
     decision["note"] = note
     _step(steps, "decision", "Decision", detail, meta, time.monotonic() - started)
+    finish_spend = _fresh_spend(provider.calls[mark_calls:])
+    finish_retries = getattr(provider, "retries_429", 0) - mark_retries
 
     return {
         "steps": steps,
         "result": decision,
         "tokens_total": tokens_total,
+        "cost_usd": run.get("cost_usd", 0.0) + finish_spend,
+        "retries_429": run.get("retries_429", 0) + finish_retries,
         "matched_sample": matched,
         "scenario": declared,
         "questions": [

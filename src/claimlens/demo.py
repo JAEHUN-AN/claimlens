@@ -25,6 +25,8 @@ from claimlens.rationale import build_rationale
 from claimlens.reader import resolve_sample_images
 from claimlens.supervision import build_walkthrough, replay_trace_guards
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 SCENES = [
     ("A_niseko_wrist", "Scene A — Korean traveller treated in Japan"),
     ("S2_seoul_worker_bronchitis", "Scene S2 — insured worker treated in Seoul"),
@@ -957,7 +959,10 @@ def mismatch_scene_payload(dst: Path) -> dict[str, Any]:
     }
 
 
-def export_demo(dst: Path | str = "docs/demo.html") -> Path:
+def export_demo(dst: Path | str = "docs/demo.html", root: Path | None = None) -> Path:
+    from claimlens import headline, meta_tiles
+
+    repo = Path(root) if root else REPO_ROOT
     dst = Path(dst)
     scenes = [scene_payload(sample_id, title, dst) for sample_id, title in SCENES]
     scenes.append(agent_scene_payload(dst))
@@ -973,6 +978,9 @@ def export_demo(dst: Path | str = "docs/demo.html") -> Path:
         ],
         "eval": _eval_section(),
         "person_presets": _person_presets(),
+        "measured": headline.lines(repo),
+        "after_n": headline.after_n(repo),
+        "meta_tools": meta_tiles.tiles(repo),
     }
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_page({"scenes": scenes, "flow": flow}), encoding="utf-8")

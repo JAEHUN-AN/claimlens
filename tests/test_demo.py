@@ -30,6 +30,8 @@ def test_why_block_numbers_are_exact(tmp_path, monkeypatch):
         assert url in text
     assert "₩251.2 billion" in text
     assert "2.01 million" in text
+    assert "2,512억 원" in text
+    assert "201만 명" in text
     assert "Bill photo → checked claim, every number traceable" in text
     assert "Theme: Build for Your World." in text
     why_lines = [line for line in text.splitlines()
@@ -37,8 +39,8 @@ def test_why_block_numbers_are_exact(tmp_path, monkeypatch):
     assert len(why_lines) >= 12
     block = "\n".join(why_lines)
     block = re.sub(r"WHY_URL\d|why_\w+", "", block)
-    for allowed in (*WHY_URLS, "₩251.2 billion", "2.01 million", "2022", "2025",
-                    "2023-09-06", "2026-04-24"):
+    for allowed in (*WHY_URLS, "₩251.2 billion", "2.01 million", "2,512억 원", "201만 명",
+                    "2022", "2025", "2023-09-06", "2026-04-24"):
         block = block.replace(allowed, "")
     assert not re.search(r"\d", block)
 

@@ -1,0 +1,95 @@
+{
+  "tool": "agent-eval",
+  "live": false,
+  "rows": [
+    {
+      "case": "ask-hidden-copay",
+      "must_ask": true,
+      "asked": true,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 8,
+      "cost": 0.028609,
+      "notes": "PARTIAL 22500"
+    },
+    {
+      "case": "noask-s2-complete",
+      "must_ask": false,
+      "asked": false,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 6,
+      "cost": 0.015364,
+      "notes": "PARTIAL 22500"
+    },
+    {
+      "case": "ask-enrolment",
+      "must_ask": true,
+      "asked": true,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 8,
+      "cost": 0.025265,
+      "notes": "PAID 2216050"
+    },
+    {
+      "case": "noask-a-complete",
+      "must_ask": false,
+      "asked": false,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 6,
+      "cost": 0.017727,
+      "notes": "PAID 2216050"
+    },
+    {
+      "case": "ask-side",
+      "must_ask": true,
+      "asked": true,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 8,
+      "cost": 0.025361,
+      "notes": "CM S72.141A"
+    },
+    {
+      "case": "noask-s3-complete",
+      "must_ask": false,
+      "asked": false,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 6,
+      "cost": 0.017912,
+      "notes": "CM S72.141A"
+    },
+    {
+      "case": "confirm-voice-date",
+      "must_ask": true,
+      "asked": true,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 0,
+      "cost": 0.0,
+      "notes": "confirm: incident_date,visa"
+    },
+    {
+      "case": "reject-contradiction",
+      "must_ask": true,
+      "asked": true,
+      "asked_when_needed": true,
+      "no_needless": true,
+      "no_invented": true,
+      "steps": 8,
+      "cost": 0.027696,
+      "notes": "PARTIAL 22500"
+    }
+  ],
+  "note": "one recorded dialogue replayed per case, not repeated runs"
+}
