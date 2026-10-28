@@ -43,6 +43,7 @@ def probe_files(
     summary = {
         "files_api": "works" if method == "file" else "unavailable",
         "input": method,
+        "files_error": getattr(provider, "last_files_error", None),
         "tokens": calls[-1] if calls else {},
         "documents": len(result.get("documents", [])),
         "wrote": str(out),

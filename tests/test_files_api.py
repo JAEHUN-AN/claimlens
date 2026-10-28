@@ -14,13 +14,22 @@ from claimlens.providers.meta import MetaProvider
 from claimlens.providers.replay import ReplayProvider
 
 
+class _StatusError(Exception):
+    def __init__(self, status_code: int | None, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 class _StubFiles:
-    def __init__(self, fail: bool = False):
+    def __init__(self, fail: bool = False, error: Exception | None = None):
         self.fail = fail
+        self.error = error
         self.uploads: list[bytes] = []
 
     def create(self, file: Any, purpose: str):
         assert purpose == "vision"
+        if self.error is not None:
+            raise self.error
         if self.fail:
             raise RuntimeError("files api rejects images")
         self.uploads.append(file[1])
@@ -48,10 +57,11 @@ class _StubClient:
     def __init__(
         self,
         files_fail: bool = False,
+        files_error: Exception | None = None,
         responses_fail_on_file_ids: bool = False,
         output: Any = None,
     ):
-        self.files = _StubFiles(fail=files_fail)
+        self.files = _StubFiles(fail=files_fail, error=files_error)
         self.responses = _StubResponses(
             fail_on_file_ids=responses_fail_on_file_ids, output=output
         )
@@ -162,3 +172,42 @@ def test_probe_files_rejects_missing_image(tmp_path):
 
     with pytest.raises(ValueError, match="Not an image file"):
         probe_files(tmp_path / "nope.jpg", tmp_path / "probe", lambda: _probe_provider())
+
+
+def test_upload_failure_records_status_and_message(monkeypatch, tmp_path):
+    err = _StatusError(400, "purpose vision does not accept images")
+    provider = _provider(monkeypatch, tmp_path, files_error=err)
+    out = provider.read_documents([_image()], "read", {"type": "object"}, _TinyResult)
+    assert out == {"ok": True}
+    assert provider.last_files_error == {
+        "stage": "upload",
+        "status": 400,
+        "message": "purpose vision does not accept images",
+    }
+
+
+def test_file_id_rejection_records_read_error(monkeypatch, tmp_path):
+    provider = _provider(monkeypatch, tmp_path, responses_fail_on_file_ids=True)
+    out = provider.read_documents([_image()], "read", {"type": "object"}, _TinyResult)
+    assert out == {"ok": True}
+    assert provider.last_files_error == {
+        "stage": "read",
+        "status": None,
+        "message": "file_id image parts rejected",
+    }
+
+
+def test_probe_files_records_failure_reason(tmp_path):
+    from claimlens.probe import probe_files
+
+    err = _StatusError(400, "purpose vision does not accept images")
+    out = tmp_path / "probe"
+    summary = probe_files(_image(), out, lambda: _probe_provider(files_error=err))
+    assert summary["files_api"] == "unavailable"
+    assert summary["files_error"] == {
+        "stage": "upload",
+        "status": 400,
+        "message": "purpose vision does not accept images",
+    }
+    saved = json.loads((out / "probe_result.json").read_text(encoding="utf-8"))
+    assert saved["files_error"]["status"] == 400

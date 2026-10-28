@@ -211,9 +211,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def cmd_probe_files(args: argparse.Namespace) -> int:
+    from dotenv import load_dotenv
+
     from claimlens.probe import probe_files
     from claimlens.providers.meta import MetaProvider
 
+    load_dotenv()
     try:
         summary = probe_files(args.image, args.out, MetaProvider)
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
@@ -221,6 +224,9 @@ def cmd_probe_files(args: argparse.Namespace) -> int:
         return 1
     _emit(f"files_api: {summary['files_api']}")
     _emit(f"input: {summary['input']}")
+    if summary.get("files_error"):
+        err = summary["files_error"]
+        _emit(f"files_error: {err['stage']} status={err['status']} {err['message']}")
     tokens = summary["tokens"]
     _emit(
         f"tokens: {tokens.get('total_tokens', 0)} "

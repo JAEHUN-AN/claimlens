@@ -900,3 +900,31 @@ deterministic layer, which is why precision/recall stays 1.000.
 
 - Live calls: none in the sandbox. One probe call by the owner
   pending (~$0.007).
+
+## 2026-10-28 — Backlog session: item 35d probe-files follow-ups
+
+(1) `claimlens probe-files` now loads `.env` like every other
+command, so `META_API_KEY` is found. (2) When the Files API path
+fails, the provider keeps the failure (`stage` upload/read, HTTP
+status, message); the probe writes it to
+`out/probe/probe_result.json` as `files_error` and prints it, so the
+owner's re-run will show why it fell back to base64. The README note
+("documents are sent as base64 because ...") waits for that recorded
+reason.
+
+### Muse Code (coding agent)
+
+- Tests: 196 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: upload failure records status + message, file-id
+  rejection records a read error, probe summary and JSON carry the
+  reason.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: re-run `claimlens probe-files <image>` once from a
+  normal terminal and paste the `files_error` line; the README note
+  follows from it. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. One probe call by the owner
+  pending (~$0.007).

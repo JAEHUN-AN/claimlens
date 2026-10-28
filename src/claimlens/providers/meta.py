@@ -54,6 +54,14 @@ def unescape_json(node: Any) -> Any:
     return node
 
 
+def files_error_details(exc: Exception) -> dict[str, Any]:
+    """HTTP status + message from an SDK error; status None when unknown."""
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return {"status": status, "message": str(exc)[:300]}
+
+
 def cost_usd(input_tokens: int, output_tokens: int) -> float | None:
     """Cost from CLAIMLENS_USD_PER_1K_* rates; None when rates are not configured."""
     try:
@@ -76,6 +84,7 @@ class MetaProvider:
         self.model = model
         self.live = live
         self.calls: list[CallRecord] = []
+        self.last_files_error: dict[str, Any] | None = None
         self._client = OpenAI(base_url=BASE_URL, api_key=key)
 
     def _store(self, key: str, payload: dict[str, Any]) -> None:
@@ -137,7 +146,8 @@ class MetaProvider:
                     replay_cache.store_file_id(sha, created.id)
                     index[sha] = created.id
                 file_ids.append(index[sha])
-        except Exception:  # noqa: BLE001 - any upload failure means base64 fallback
+        except Exception as exc:  # noqa: BLE001 - any upload failure means base64
+            self.last_files_error = {"stage": "upload", **files_error_details(exc)}
             return None
         return file_ids
 
@@ -194,6 +204,7 @@ class MetaProvider:
             payload = self._reuse_any(keys)
             if payload is not None:
                 return self._finish(payload, result_model, ReadingResult)
+        self.last_files_error = None
         file_ids = self._resolve_file_ids(blobs) if blobs else None
         refs: list[dict[str, str]] | None = None
         if file_ids is not None:
@@ -202,7 +213,8 @@ class MetaProvider:
             )
             try:
                 response = self._request(blobs, instructions, schema, file_ids=file_ids)
-            except Exception:  # noqa: BLE001 - file refs rejected; retry once as base64
+            except Exception as exc:  # noqa: BLE001 - file refs rejected; retry as base64
+                self.last_files_error = {"stage": "read", **files_error_details(exc)}
                 for blob in blobs:
                     replay_cache.drop_file_id(replay_cache.blob_sha(blob))
                 file_ids = None
