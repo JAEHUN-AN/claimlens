@@ -92,6 +92,12 @@ Every number shown to a user comes from a document reading, a deterministic chec
 or the engine — never from model arithmetic. The tooling log linked above is the
 main evidence for "Use of Meta AI Tooling".
 
+Documents reach hosted Spark through the Files API: each image is uploaded once
+(`purpose="user_data"`) and referenced by file id as `input_image` — verified
+live 2026-10-28 via `claimlens probe-files` (4,023 tokens for one S2 receipt).
+If an upload or file-id read fails, the provider retries as `input_file` and
+then falls back to base64.
+
 ## Verification
 
 Checks the agent cannot skip, after Meta's

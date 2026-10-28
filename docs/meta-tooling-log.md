@@ -938,8 +938,10 @@ uploads with `purpose="user_data"` and reads by file id trying
 worked (`file_part`) or each read error (`attempts`). Live runs keep
 uploading once per document (keyed by image sha256) and remember
 file ids under `cache/live/` only, so committed `cache/` recordings
-stay untouched; base64 remains the fallback. The README line waits
-for the owner's next probe result.
+stay untouched; base64 remains the fallback. The owner's probe then
+recorded `files_api: works`, `file_part: input_image`, 4,023 tokens
+for one S2 receipt — the README line above the model table states
+this result.
 
 ### Muse Code (coding agent)
 
@@ -949,11 +951,10 @@ for the owner's next probe result.
   read error recorded, live file ids under `live/` only, probe
   reports the working part.
 - Live calls: none in the sandbox (replay only).
-- Owner checks: run `claimlens probe-files <image>` once more from
-  a normal terminal and paste the `file_part` / `files_error`
-  lines; the README line follows from them. No push.
+- Owner checks: probe re-run done 2026-10-28 (`files_api: works`,
+  `file_part: input_image`, 4,023 tokens); README line written from
+  it. No push.
 
 ### Model APIs
 
-- Live calls: none in the sandbox. One probe call by the owner
-  pending (~$0.007).
+- Live calls: one owner probe call 2026-10-28 (~$0.007).
