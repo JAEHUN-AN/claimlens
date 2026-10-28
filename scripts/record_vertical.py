@@ -73,7 +73,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
     try:
         with sync_playwright() as pw:
             try:
-                browser = pw.chromium.launch(headless=True)
+                browser = pw.chromium.launch(channel="msedge", headless=True)
                 context = browser.new_context(
                     viewport={"width": 360, "height": 640},
                     device_scale_factor=2,

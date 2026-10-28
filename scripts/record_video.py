@@ -64,7 +64,7 @@ def record(root: Path, board_path: Path, out_dir: Path) -> int:
         try:
             with sync_playwright() as pw:
                 try:
-                    browser = pw.chromium.launch(headless=True)
+                    browser = pw.chromium.launch(channel="msedge", headless=True)
                     context = browser.new_context(
                         viewport={"width": 1280, "height": 720}, record_video_dir=str(out_dir)
                     )
