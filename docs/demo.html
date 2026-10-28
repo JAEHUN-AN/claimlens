@@ -300,7 +300,9 @@ sev_blocker:["blocker","차단"],
 sev_check:["note","참고"],
 h_verify:["Verification","검증"],
 v_walk:["Scripted walkthrough","스크립트 시연"],
-v_handoff:["Handoff","인계"]
+v_handoff:["Handoff","인계"],
+topnote_live:["All documents are synthetic. Live on this machine — committed caches untouched.","모든 문서는 합성입니다. 이 컴퓨터에서 실시간 실행 중 — 커밋된 캐시는 그대로입니다."],
+flow_note_live:["Live mode: drop receipt + certificate photos, or pick a sample to replay.","실시간 모드: 영수증+진단서 사진을 놓거나 예시를 골라 리플레이."]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -352,7 +354,7 @@ function render(){
   const root=document.documentElement;
   if(root)root.lang=LANG;
   const tn=document.getElementById('topnote');
-  if(tn)tn.textContent=t('topnote');
+  if(tn)tn.textContent=t(LIVE?'topnote_live':'topnote');
   const rt=document.getElementById('replaytag');
   if(rt){if(LIVE){rt.textContent=t('live_tag');if(rt.classList)rt.classList.add('live');}else rt.textContent=t('replay_tag');}
   const pp=document.getElementById('prov-panel');
@@ -440,7 +442,7 @@ function flowView(f){
     +`<p class="tagline">${esc(t('tagline'))}</p>`
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
-    +`<p><small class="dim">${esc(t('flow_note'))}</small></p>`
+    +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
     +`<p id="flow-tip"><small class="dim">${esc(t('tip_numbers'))}</small></p>`
     +`<div class="flow-pick">${picks}</div>`
     +`<div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}</div>`
@@ -482,10 +484,7 @@ function liveProbe(){
     fetch('/api/health').then(r=>r.json()).then(j=>{
       if(!j||j.mode!=='live')return;
       LIVE=true;
-      const rt=document.getElementById('replaytag');
-      if(rt){rt.textContent=t('live_tag');if(rt.classList)rt.classList.add('live');}
-      const dz=document.getElementById('flow-drop');
-      if(dz)dz.textContent=t('live_drop');
+      render();
     }).catch(()=>{});
   }catch(e){}
 }
@@ -510,7 +509,8 @@ function liveDrop(e){
       +`<span>${esc(s.detail)}</span><small class="dim">${esc(String(s.seconds))}s · ${esc(liveMeta(s))}</small></div>`
     ).join('');
     document.getElementById('flow-result').innerHTML=`<div class="flow-result"><p>${badge(j.result.badge)}</p>`
-      +`<p class="amount">${esc(j.result.title)}</p></div>`;
+      +`<p class="amount">${esc(j.result.title)}</p>`
+      +(j.result.note?`<p><small class="dim">${esc(j.result.note)}</small></p>`:'')+`</div>`;
   }).catch(err=>{document.getElementById('flow-msg').textContent=t('live_failed')+err;});
 }
 function liveMeta(s){

@@ -21,6 +21,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_BODY_BYTES = 14 * 1024 * 1024
 
 JPEG_MAGIC = b"\xff\xd8\xff"
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -31,13 +32,13 @@ def repo_root() -> Path:
 
 
 def live_provider() -> Any:
-    """Live Spark provider; raises when the server has no API key."""
+    """Live Spark provider; reuses caches, never overwrites committed ones."""
     from dotenv import load_dotenv
 
     from claimlens.providers.meta import MetaProvider
 
     load_dotenv()
-    return MetaProvider()
+    return MetaProvider(live=True)
 
 
 def neo4j_up() -> bool:
@@ -197,6 +198,7 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
              f"{tokens} tokens (live)", time.monotonic() - started, tokens)
 
         started = time.monotonic()
+        note = ""
         if blockers:
             decision = {"badge": "blocked", "title": "Resolve the blocking questions first."}
             detail = f"{len(blockers)} blocking questions asked"
@@ -205,8 +207,8 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
             if neo4j_up():
                 inputs = build_inputs(matched, "photo", reading)
                 output = live_adjudicate(inputs)
-                decision = {"badge": output["decision"],
-                            "title": f"{output['amount']:,} KRW (live engine call, not cached)"}
+                decision = {"badge": output["decision"], "title": f"{output['amount']:,} KRW"}
+                note = "live engine call, not cached"
                 detail = f"{output['decision']} {output['amount']:,} KRW"
                 meta = "live engine call, not cached"
             else:
@@ -222,6 +224,7 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
             decision = {"badge": "needs_review", "title": "Human review: no decision path."}
             detail = eligibility["basis"]
             meta = "deterministic"
+        decision["note"] = note
         step("decision", "Decision", detail, meta, time.monotonic() - started)
 
     return {
@@ -265,11 +268,26 @@ def route_get(path: str) -> tuple[int, bytes, str]:
     return 200, resolved.read_bytes(), media
 
 
-def route_post(path: str, raw: bytes, declared: int) -> tuple[int, dict[str, Any]]:
-    """Pure POST routing: status plus JSON payload. No sockets."""
+def route_post(
+    path: str, raw: bytes, declared: int, headers: dict[str, str], port: int
+) -> tuple[int, dict[str, Any]]:
+    """Pure POST routing: status plus JSON payload. No sockets.
+
+    Spend guard: only same-origin JSON posts from this machine reach
+    the pipeline. The Host check also blocks DNS rebinding.
+    """
     if path != "/api/run":
         return 404, {"error": "not found"}
-    if declared > MAX_UPLOAD_BYTES + 1024:
+    hosts = (f"127.0.0.1:{port}", f"localhost:{port}")
+    if headers.get("host", "").strip().lower() not in hosts:
+        return 403, {"error": "forbidden host"}
+    media = headers.get("content_type", "").split(";")[0].strip().lower()
+    if media != "application/json":
+        return 415, {"error": "Content-Type must be application/json."}
+    origin = (headers.get("origin") or "").strip().lower()
+    if origin and origin not in (f"http://{h}" for h in hosts):
+        return 403, {"error": "cross-origin posts are forbidden"}
+    if declared > MAX_BODY_BYTES:
         return 413, {"error": "Uploads exceed the 10 MB limit."}
     try:
         body = json.loads(raw.decode("utf-8"))
@@ -310,11 +328,16 @@ class Handler(BaseHTTPRequestHandler):
             declared = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             declared = 0
-        if path == "/api/run" and declared <= MAX_UPLOAD_BYTES + 1024:
+        if path == "/api/run" and declared <= MAX_BODY_BYTES:
             raw = self.rfile.read(declared) if declared else b""
         else:
             raw = b""
-        status, payload = route_post(path, raw, declared)
+        headers = {
+            "host": self.headers.get("Host") or "",
+            "content_type": self.headers.get("Content-Type") or "",
+            "origin": self.headers.get("Origin") or "",
+        }
+        status, payload = route_post(path, raw, declared, headers, self.server.server_port)
         self._send_json(status, payload)
 
 

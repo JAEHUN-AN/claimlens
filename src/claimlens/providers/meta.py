@@ -66,15 +66,59 @@ def cost_usd(input_tokens: int, output_tokens: int) -> float | None:
 class MetaProvider:
     name = "meta"
 
-    def __init__(self, api_key: str | None = None, model: str = MODEL):
+    def __init__(self, api_key: str | None = None, model: str = MODEL, live: bool = False):
         key = api_key or os.environ.get("META_API_KEY")
         if not key:
             raise RuntimeError(
                 "META_API_KEY is not set. Put it in .env or use CLAIMLENS_PROVIDER=replay."
             )
         self.model = model
+        self.live = live
         self.calls: list[CallRecord] = []
         self._client = OpenAI(base_url=BASE_URL, api_key=key)
+
+    def _store(self, key: str, payload: dict[str, Any]) -> None:
+        if self.live:
+            replay_cache.store_live(key, payload)
+        else:
+            replay_cache.store(key, payload)
+
+    def _reuse_any(self, keys: list[str]) -> dict[str, Any] | None:
+        """Committed recording first, then live results; None when missing."""
+        for key in keys:
+            if replay_cache.exists(key):
+                return replay_cache.load(key)
+        for key in keys:
+            try:
+                return replay_cache.load_live(key)
+            except replay_cache.CacheMissError:
+                continue
+        return None
+
+    def _finish(
+        self,
+        payload: dict[str, Any],
+        result_model: type[BaseModel] | None,
+        default_model: type[BaseModel] | None,
+    ) -> dict[str, Any]:
+        usage = payload.get("usage", {})
+        in_tokens = int(usage.get("input_tokens", 0))
+        out_tokens = int(usage.get("output_tokens", 0))
+        total = int(usage.get("total_tokens", in_tokens + out_tokens))
+        self.calls.append(
+            CallRecord(
+                model=payload.get("model", self.model),
+                input_tokens=in_tokens,
+                output_tokens=out_tokens,
+                total_tokens=total,
+                cost_usd=cost_usd(in_tokens, out_tokens),
+            )
+        )
+        data = unescape_json(json.loads(payload["output_text"]))
+        model = result_model or default_model
+        if model is None:
+            return data
+        return TypeAdapter(model).validate_python(data).model_dump(mode="json")
 
     def _resolve_file_ids(self, blobs: list[bytes]) -> list[str] | None:
         """Upload-once file ids for every blob, or None when uploads fail."""
@@ -132,6 +176,22 @@ class MetaProvider:
         result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]:
         blobs = [prepare_image(p) for p in images]
+        if self.live:
+            keys = [replay_cache.cache_key(blobs, instructions, schema, self.model)]
+            index = replay_cache.load_files_index()
+            shas = [replay_cache.blob_sha(b) for b in blobs]
+            if blobs and all(s in index for s in shas):
+                keys.append(
+                    replay_cache.cache_key(
+                        replay_cache.file_key_bytes([index[s] for s in shas]),
+                        instructions,
+                        schema,
+                        self.model,
+                    )
+                )
+            payload = self._reuse_any(keys)
+            if payload is not None:
+                return self._finish(payload, result_model, ReadingResult)
         file_ids = self._resolve_file_ids(blobs) if blobs else None
         refs: list[dict[str, str]] | None = None
         if file_ids is not None:
@@ -154,7 +214,7 @@ class MetaProvider:
         in_tokens = getattr(usage, "input_tokens", 0) or 0
         out_tokens = getattr(usage, "output_tokens", 0) or 0
         total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
-        replay_cache.store(
+        self._store(
             key,
             {
                 "model": self.model,
@@ -187,13 +247,17 @@ class MetaProvider:
         schema: dict[str, Any],
         result_model: type[BaseModel] | None = None,
     ) -> dict[str, Any]:
+        key = replay_cache.cache_key([], instructions, schema, self.model)
+        if self.live:
+            payload = self._reuse_any([key])
+            if payload is not None:
+                return self._finish(payload, result_model, None)
         response = self._request([], instructions, schema)
         usage = response.usage
         in_tokens = getattr(usage, "input_tokens", 0) or 0
         out_tokens = getattr(usage, "output_tokens", 0) or 0
         total = getattr(usage, "total_tokens", in_tokens + out_tokens) or 0
-        key = replay_cache.cache_key([], instructions, schema, self.model)
-        replay_cache.store(
+        self._store(
             key,
             {
                 "model": self.model,

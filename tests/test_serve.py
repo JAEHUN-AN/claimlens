@@ -52,9 +52,18 @@ def _sample_images() -> list[dict[str, str]]:
     return out
 
 
-def _run(stubbed, payload: dict) -> tuple[int, dict]:
+PORT = 8000
+
+
+def _headers(**overrides: str) -> dict[str, str]:
+    headers = {"host": f"127.0.0.1:{PORT}", "content_type": "application/json", "origin": ""}
+    headers.update(overrides)
+    return headers
+
+
+def _run(stubbed, payload: dict, headers: dict[str, str] | None = None) -> tuple[int, dict]:
     raw = json.dumps(payload).encode("utf-8")
-    return stubbed.route_post("/api/run", raw, len(raw))
+    return stubbed.route_post("/api/run", raw, len(raw), headers or _headers(), PORT)
 
 
 def test_health(stubbed):
@@ -100,7 +109,8 @@ def test_run_live_engine_path_never_overwrites_recordings(stubbed, monkeypatch):
     status, result = _run(stubbed, {"images": _sample_images()})
     assert status == 200
     assert result["result"]["badge"] == "PARTIAL"
-    assert "not cached" in result["result"]["title"]
+    assert result["result"]["title"] == "22,500 KRW"
+    assert result["result"]["note"] == "live engine call, not cached"
 
 
 def test_run_rejects_non_images_and_wrong_counts(stubbed):
@@ -115,12 +125,42 @@ def test_run_rejects_non_images_and_wrong_counts(stubbed):
 
 
 def test_run_rejects_oversized_uploads(stubbed):
-    status, _ = stubbed.route_post("/api/run", b"{}", serve.MAX_UPLOAD_BYTES + 2048)
+    status, _ = stubbed.route_post("/api/run", b"{}", serve.MAX_BODY_BYTES + 1, _headers(), PORT)
     assert status == 413
 
 
 def test_unknown_routes_404(stubbed):
-    assert stubbed.route_post("/api/nope", b"{}", 2)[0] == 404
+    assert stubbed.route_post("/api/nope", b"{}", 2, _headers(), PORT)[0] == 404
+
+
+def test_rejects_foreign_host(stubbed):
+    status, result = _run(stubbed, {"images": []}, _headers(host="evil.example:8000"))
+    assert status == 403
+    assert result["error"] == "forbidden host"
+    status, _ = _run(stubbed, {"images": []}, _headers(host=""))
+    assert status == 403
+    status, _ = _run(stubbed, {"images": []}, _headers(host="localhost:8000"))
+    assert status == 400  # host ok; body invalid (proves the check passed)
+
+
+def test_rejects_non_json_content_type(stubbed):
+    status, result = _run(stubbed, {"images": []}, _headers(content_type="text/plain"))
+    assert status == 415
+    assert "application/json" in result["error"]
+    status, _ = _run(stubbed, {"images": []}, _headers(content_type=""))
+    assert status == 415
+
+
+def test_rejects_cross_origin_only(stubbed):
+    status, result = _run(
+        stubbed, {"images": []}, _headers(origin="http://evil.example")
+    )
+    assert status == 403
+    assert "cross-origin" in result["error"]
+    status, _ = _run(
+        stubbed, {"images": []}, _headers(origin="http://127.0.0.1:8000")
+    )
+    assert status == 400  # origin ok; body invalid (proves the check passed)
 
 
 def _can_listen() -> bool:

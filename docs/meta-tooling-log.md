@@ -838,3 +838,34 @@ scripted walkthrough (refuse-fix, handoff, resume, sign-off).
 ### Model APIs
 
 - Live calls: 4 verifier recordings by the owner (~$0.03).
+
+## 2026-10-28 — Backlog session: item 35b live server fixes
+
+Owner review fixes. (1) Live mode no longer overwrites committed
+recordings: `MetaProvider(live=True)` reuses a committed (or live)
+entry when the key exists and otherwise stores fresh results under
+`cache/live/` (git-ignored), so the demo's replay source stays
+fixed; `claimlens serve` uses the live provider. (2) Spend guard on
+`POST /api/run`: the Host must be this machine's loopback with the
+server port, Content-Type must be application/json, and a present
+Origin must match (blocks cross-site POSTs and DNS rebinding).
+(3) Body cap raised to ~14 MB for base64 inflation; the 10 MB check
+stays on decoded bytes. (4) LIVE UI: the engine note moved under
+the big amount, and the topbar source note plus the flow note
+switch to live wordings in en and ko.
+
+### Muse Code (coding agent)
+
+- Tests: 188 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: live-reuse without network (reading + write),
+  live-miss stores under `cache/live/` only, sample bytes leave
+  `git diff -- cache/` empty, and one refusal test per spend
+  guard (host, content-type, origin).
+- Live calls: none (replay only).
+- Owner checks: live S2 drop in a real browser, `git status` shows
+  no cache changes. No push.
+
+### Model APIs
+
+- Live calls: none (replay only).

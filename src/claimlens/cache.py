@@ -82,6 +82,34 @@ def store(key: str, payload: dict[str, Any]) -> Path:
     return path
 
 
+def exists(key: str) -> bool:
+    """True when a committed recording exists for the key."""
+    return cache_path(key).exists()
+
+
+def live_dir() -> Path:
+    return cache_dir() / "live"
+
+
+def live_path(key: str) -> Path:
+    return live_dir() / f"{key}.json"
+
+
+def store_live(key: str, payload: dict[str, Any]) -> Path:
+    """Store a live-mode result beside (never over) committed recordings."""
+    path = live_path(key)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def load_live(key: str) -> dict[str, Any]:
+    path = live_path(key)
+    if not path.exists():
+        raise CacheMissError(f"No live result for key {key} ({path}).")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load(key: str) -> dict[str, Any]:
     path = cache_path(key)
     if not path.exists():

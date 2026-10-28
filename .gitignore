@@ -22,6 +22,9 @@ data/external/
 out/
 *.log
 
+# Live server results (never committed; replay reads cache/ only)
+cache/live/
+
 # uv cache for the Muse Code sandbox user
 .uv-cache/
 .tmp/
