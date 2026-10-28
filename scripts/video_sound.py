@@ -32,7 +32,13 @@ def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None) -
     -18 dB, ducked while the voice plays, fades in/out. apad keeps the
     output at video length when a bed is short. H.264 + AAC out.
     """
-    cmd: list[str] = [ffmpeg_bin(), "-y", "-i", str(webm)]
+    lead = _leading_excess(webm, total)
+    cmd: list[str] = [ffmpeg_bin(), "-y"]
+    if lead > 0:
+        # The recording starts when the browser context opens; page loads and server start-up
+        # come before the first segment. Cut that lead so the video is exactly `total` long.
+        cmd += ["-ss", f"{lead:.3f}"]
+    cmd += ["-i", str(webm)]
     filters: list[str] = []
     maps = ["-map", "0:v"]
     if voice:
@@ -68,8 +74,25 @@ def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None) -
         cmd += ["-c:a", "aac", "-b:a", "128k", "-shortest"]
     else:
         cmd += ["-an"]
+    cmd += ["-t", f"{total:.3f}"]
     cmd.append(str(out_mp4))
     subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def _leading_excess(webm: Path, total: float) -> float:
+    """Seconds of the recording before the first segment (duration minus the storyboard total)."""
+    probe = shutil.which(ffmpeg_bin().replace("ffmpeg", "ffprobe")) or shutil.which("ffprobe")
+    if not probe:
+        return 0.0
+    out = subprocess.run(
+        [probe, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(webm)],
+        capture_output=True, text=True, check=False,
+    ).stdout.strip()
+    try:
+        excess = float(out) - total
+    except ValueError:
+        return 0.0
+    return excess if excess > 0.3 else 0.0
 
 
 def voice_at(board: dict) -> float | None:

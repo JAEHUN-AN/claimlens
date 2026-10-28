@@ -91,7 +91,8 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                 try:
                     browser = pw.chromium.launch(channel="msedge", headless=True)
                     context = browser.new_context(
-                        viewport={"width": 1280, "height": 720}, record_video_dir=str(out_dir)
+                        viewport={"width": 1280, "height": 720}, record_video_dir=str(out_dir),
+                        record_video_size={"width": 1280, "height": 720}
                     )
                     page = context.new_page()
                 except PlaywrightError as exc:
@@ -112,7 +113,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         dest.write_bytes(shot.read_bytes())
                     total = V.run_segments(page, board, urls, out_dir, overlays, png_prefix="v2-", timeline="timeline_v2.txt")
-                    video = page.video
+                    video = Path(str(page.video.path())) if page.video else None  # path must be read while Playwright runs
                     context.close()
                 finally:
                     browser.close()
@@ -122,7 +123,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
         print("no video was recorded", file=sys.stderr)
         return 2
     webm = out_dir / "claimlens_demo_v2.webm"
-    Path(str(video.path())).rename(webm)
+    video.rename(webm)
     print(f"wrote {webm}")
     if not V.have_ffmpeg():
         print("ffmpeg not found; .webm kept, .mp4 skipped", file=sys.stderr)

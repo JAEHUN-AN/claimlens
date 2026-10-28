@@ -66,7 +66,8 @@ def record(root: Path, board_path: Path, out_dir: Path) -> int:
                 try:
                     browser = pw.chromium.launch(channel="msedge", headless=True)
                     context = browser.new_context(
-                        viewport={"width": 1280, "height": 720}, record_video_dir=str(out_dir)
+                        viewport={"width": 1280, "height": 720}, record_video_dir=str(out_dir),
+                        record_video_size={"width": 1280, "height": 720}
                     )
                     page = context.new_page()
                 except PlaywrightError as exc:

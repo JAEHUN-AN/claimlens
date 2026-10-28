@@ -98,7 +98,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
                     page, board, urls, out_dir, overlays, png_prefix="vv-",
                     timeline="timeline_vertical.txt", dot0=(180.0, 320.0),
                 )
-                video = page.video
+                video = Path(str(page.video.path())) if page.video else None  # path must be read while Playwright runs
                 context.close()
             finally:
                 browser.close()
@@ -108,7 +108,7 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
         print("no video was recorded", file=sys.stderr)
         return 2
     webm = out_dir / "claimlens_vertical.webm"
-    Path(str(video.path())).rename(webm)
+    video.rename(webm)
     print(f"wrote {webm}")
     if not V.have_ffmpeg():
         print("ffmpeg not found; .webm kept, .mp4 skipped", file=sys.stderr)
