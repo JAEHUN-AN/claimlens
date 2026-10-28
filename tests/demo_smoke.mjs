@@ -107,6 +107,7 @@ assert(html.includes("/api/health"), "live probe");
 assert(html.includes("topnote_live"), "live topnote key");
 assert(html.includes("flow_note_live"), "live flow-note key");
 assert(html.includes("j.result.note"), "live result note");
+assert(html.includes("live_reused"), "live reused key");
 assert(stagesHtml.includes("Verification"), "verification heading");
 assert(stagesHtml.includes("Scripted walkthrough"), "walkthrough heading");
 assert(stagesHtml.includes("refuse → fix"), "walkthrough refusal");

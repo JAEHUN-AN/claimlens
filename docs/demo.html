@@ -302,7 +302,8 @@ h_verify:["Verification","검증"],
 v_walk:["Scripted walkthrough","스크립트 시연"],
 v_handoff:["Handoff","인계"],
 topnote_live:["All documents are synthetic. Live on this machine — committed caches untouched.","모든 문서는 합성입니다. 이 컴퓨터에서 실시간 실행 중 — 커밋된 캐시는 그대로입니다."],
-flow_note_live:["Live mode: drop receipt + certificate photos, or pick a sample to replay.","실시간 모드: 영수증+진단서 사진을 놓거나 예시를 골라 리플레이."]
+flow_note_live:["Live mode: drop receipt + certificate photos, or pick a sample to replay.","실시간 모드: 영수증+진단서 사진을 놓거나 예시를 골라 리플레이."],
+live_reused:["recording reused — no model call","기록 재사용 — 모델 호출 없음"]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -322,7 +323,9 @@ function stepLabel(s){
 }
 function stepMeta(m){
   if(m==="deterministic")return t("meta_det");
-  return String(m||"").replace(/([\d,]+) tokens \(recorded\)/,
+  return String(m||"").replace("recording reused — no model call",t("live_reused"))
+    .replace(/^deterministic \+ /,t("meta_det")+" + ")
+    .replace(/([\d,]+) tokens \(recorded\)/,
     (mm,n)=>n+" "+t("meta_tokens")).replace(/· user answers$/,"· "+t("meta_user"))
     .replace(/([\d,]+) tokens \(live\)/,(mm,n)=>n+" "+t("live_tokens"));
 }

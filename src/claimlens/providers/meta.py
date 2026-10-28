@@ -30,6 +30,7 @@ class CallRecord:
     output_tokens: int
     total_tokens: int
     cost_usd: float | None = None
+    reused: bool = False
 
 
 def prepare_image(path: Path) -> bytes:
@@ -112,6 +113,7 @@ class MetaProvider:
                 output_tokens=out_tokens,
                 total_tokens=total,
                 cost_usd=cost_usd(in_tokens, out_tokens),
+                reused=True,
             )
         )
         data = unescape_json(json.loads(payload["output_text"]))

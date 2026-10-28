@@ -210,6 +210,27 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_probe_files(args: argparse.Namespace) -> int:
+    from claimlens.probe import probe_files
+    from claimlens.providers.meta import MetaProvider
+
+    try:
+        summary = probe_files(args.image, args.out, MetaProvider)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 1
+    _emit(f"files_api: {summary['files_api']}")
+    _emit(f"input: {summary['input']}")
+    tokens = summary["tokens"]
+    _emit(
+        f"tokens: {tokens.get('total_tokens', 0)} "
+        f"(in {tokens.get('input_tokens', 0)} / out {tokens.get('output_tokens', 0)})"
+    )
+    _emit(f"documents: {summary['documents']}")
+    _emit(f"wrote: {summary['wrote']}")
+    return 0
+
+
 def cmd_consistency(args: argparse.Namespace) -> int:
     from claimlens.consistency import check_consistency
     from claimlens.rationale import rationale_provider_default
@@ -294,6 +315,12 @@ def build_parser() -> argparse.ArgumentParser:
     serve = sub.add_parser("serve", help="Local live server on 127.0.0.1 (demo + live pipeline).")
     serve.add_argument("--port", type=int, default=8000)
     serve.set_defaults(func=cmd_serve)
+    probe = sub.add_parser(
+        "probe-files", help="Upload one image via the Files API and read it once by file id."
+    )
+    probe.add_argument("image", help="Image file to upload and read.")
+    probe.add_argument("--out", default="out/probe", help="Output dir (never cache/).")
+    probe.set_defaults(func=cmd_probe_files)
     return parser
 
 

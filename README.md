@@ -184,6 +184,10 @@ voice-intake rule asking for confirmation, not the agent loop (0 steps).
   variant.
 - The engine data root and Neo4j live outside this repo; only cached engine
   outputs ship here.
+- Muse Spark's semantic consistency findings vary between runs on the same
+  input (one bundle went from 6 findings to 0 after re-recording on
+  2026-10-28). Blockers rest on the deterministic layer, which is why
+  precision/recall stays 1.000.
 
 ## License
 

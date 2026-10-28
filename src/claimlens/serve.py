@@ -22,6 +22,7 @@ from urllib.parse import unquote, urlparse
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_BODY_BYTES = 14 * 1024 * 1024
+REUSED_LABEL = "recording reused — no model call"
 
 JPEG_MAGIC = b"\xff\xd8\xff"
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -135,6 +136,19 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
              "seconds": round(seconds, 3), "tokens": tokens}
         )
 
+    def step_usage(since: int) -> tuple[int, bool, bool]:
+        """New tokens, whether any call was made, whether all were reused."""
+        made = provider.calls[since:]
+        fresh = [c for c in made if not getattr(c, "reused", False)]
+        return sum(c.total_tokens for c in fresh), bool(made), bool(made) and not fresh
+
+    def live_meta(since: int) -> tuple[str, int]:
+        """Honest meta: only a real network call may say 'live'."""
+        tokens, _, reused_only = step_usage(since)
+        if reused_only:
+            return REUSED_LABEL, 0
+        return f"{tokens} tokens (live)", tokens
+
     provider = live_provider()
     with tempfile.TemporaryDirectory(prefix="claimlens-live-") as tmp:
         paths = []
@@ -144,16 +158,17 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
             path.write_bytes(blob)
             paths.append(path)
         started = time.monotonic()
+        mark = len(provider.calls)
         reading = provider.read_documents(paths, READING_INSTRUCTIONS, reading_schema())
-        calls = [vars(c) for c in provider.calls]
-        tokens = sum(c["total_tokens"] for c in calls)
+        meta, tokens = live_meta(mark)
         tokens_total += tokens
         step("reading", "Reading", "2 documents read by Muse Spark",
-             f"{tokens} tokens (live)", time.monotonic() - started, tokens)
+             meta, time.monotonic() - started, tokens)
         reading = order_docs(reading)
         receipt, cert = reading["documents"]
 
         started = time.monotonic()
+        mark = len(provider.calls)
         bill = receipt.get("kr_bill")
         if bill:
             checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
@@ -164,11 +179,14 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
             detail = f"{names}; re-read: {verified['status']}"
         else:
             detail = "no bill checks for non-Korean receipts"
-        calls = [vars(c) for c in provider.calls]
-        tokens = sum(c["total_tokens"] for c in calls) - tokens_total
+        tokens, made, _ = step_usage(mark)
         tokens_total += tokens
-        step("checks", "Checks", detail, "deterministic + live re-read" if bill else "deterministic",
-             time.monotonic() - started, tokens)
+        if made:
+            meta, _ = live_meta(mark)
+            meta = f"deterministic + {meta}"
+        else:
+            meta = "deterministic"
+        step("checks", "Checks", detail, meta, time.monotonic() - started, tokens)
 
         matched = match_sample(blobs)
         scenarios, inbound = load_scenarios()
@@ -186,16 +204,16 @@ def run_live(images: list[dict[str, str]], person: dict[str, Any] | None) -> dic
              "deterministic", time.monotonic() - started)
 
         started = time.monotonic()
+        mark = len(provider.calls)
         ruled = deterministic_findings(receipt, cert)
         sparked, dropped = spark_findings(receipt, cert, provider)
-        calls = [vars(c) for c in provider.calls]
-        tokens = sum(c["total_tokens"] for c in calls) - tokens_total
+        meta, tokens = live_meta(mark)
         tokens_total += tokens
         blockers = [f for f in ruled + sparked if f["severity"] == "blocker"]
         step("consistency", "Consistency",
              f"{len(blockers)} blockers, {len(ruled + sparked) - len(blockers)} notes"
              + (f"; {dropped} dropped quotes" if dropped else ""),
-             f"{tokens} tokens (live)", time.monotonic() - started, tokens)
+             meta, time.monotonic() - started, tokens)
 
         started = time.monotonic()
         note = ""

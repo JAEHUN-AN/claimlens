@@ -869,3 +869,34 @@ switch to live wordings in en and ko.
 ### Model APIs
 
 - Live calls: none (replay only).
+
+## 2026-10-28 — Backlog session: item 35c honest live labels + Files probe
+
+(1) Honest labels in LIVE mode: when a step reuses a recording it now
+says "recording reused — no model call" (en/ko) with 0 new tokens;
+only a real network call may say "live", and that applies to the
+reading, the consistency check, and the re-read step. (2) Safe Files
+API probe: `claimlens probe-files <image>` uploads one image through
+the Meta Files API, reads it once by file id, prints whether it
+worked plus token counts, and writes only to `out/probe/` — the demo
+cache is never touched. (3) README documents that Muse Spark's
+semantic consistency findings vary between runs on the same input
+(one bundle went 6 → 0 on 2026-10-28), and that blockers rest on the
+deterministic layer, which is why precision/recall stays 1.000.
+
+### Muse Code (coding agent)
+
+- Tests: 193 passed, 4 skipped (ffmpeg + listen() blocked in the
+  sandbox), browser test deselected in the sandbox (`ruff check`
+  clean). New: honest-label cases for reused vs fresh reading plus
+  re-read in both cases, and probe tests for works / unavailable /
+  missing image.
+- Live calls: none in the sandbox (replay only).
+- Owner checks: run `claimlens probe-files <image>` once from a
+  normal terminal (sandbox block), verify `out/probe/` only, and
+  re-check live reuse in a real browser. No push.
+
+### Model APIs
+
+- Live calls: none in the sandbox. One probe call by the owner
+  pending (~$0.007).

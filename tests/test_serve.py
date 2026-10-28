@@ -18,13 +18,14 @@ class StubProvider:
     name = "stub"
     model = "stub"
 
-    def __init__(self):
+    def __init__(self, reused: bool = False):
         self.calls: list[CallRecord] = []
+        self._reused = reused
 
     def _log(self, total: int):
         self.calls.append(
             CallRecord(model=self.model, input_tokens=total, output_tokens=0,
-                       total_tokens=total, cost_usd=None)
+                       total_tokens=total, cost_usd=None, reused=self._reused)
         )
 
     def read_documents(self, images, instructions, schema, result_model=None):
@@ -94,6 +95,46 @@ def test_run_live_end_to_end_with_stub(stubbed):
     assert result["result"]["badge"] == "engine_unreachable"
     assert result["tokens_total"] == 150
     assert result["questions"] == []
+
+
+def test_reused_recordings_say_so_with_zero_new_tokens(monkeypatch):
+    monkeypatch.setattr(serve, "live_provider", lambda: StubProvider(reused=True))
+    monkeypatch.setattr(serve, "neo4j_up", lambda: False)
+    status, result = _run(serve, {"images": _sample_images()})
+    assert status == 200
+    by_key = {s["key"]: s for s in result["steps"]}
+    assert by_key["reading"]["tokens"] == 0
+    assert by_key["reading"]["meta"] == serve.REUSED_LABEL
+    assert by_key["consistency"]["tokens"] == 0
+    assert by_key["consistency"]["meta"] == serve.REUSED_LABEL
+    assert result["tokens_total"] == 0
+
+
+class _FailThenFixStub(StubProvider):
+    def __init__(self, reused: bool):
+        super().__init__(reused=reused)
+        self._reads = 0
+
+    def read_documents(self, images, instructions, schema, result_model=None):
+        self._reads += 1
+        reading = super().read_documents(images, instructions, schema, result_model)
+        if self._reads == 1:
+            reading["documents"][0]["kr_bill"]["cell_1"] = 0
+        return reading
+
+
+def test_reread_labels_honest_in_both_cases(monkeypatch):
+    monkeypatch.setattr(serve, "neo4j_up", lambda: False)
+    monkeypatch.setattr(serve, "live_provider", lambda: _FailThenFixStub(reused=False))
+    _, fresh = _run(serve, {"images": _sample_images()})
+    checks = {s["key"]: s for s in fresh["steps"]}["checks"]
+    assert checks["tokens"] == 100
+    assert checks["meta"] == "deterministic + 100 tokens (live)"
+    monkeypatch.setattr(serve, "live_provider", lambda: _FailThenFixStub(reused=True))
+    _, reused = _run(serve, {"images": _sample_images()})
+    checks = {s["key"]: s for s in reused["steps"]}["checks"]
+    assert checks["tokens"] == 0
+    assert checks["meta"] == f"deterministic + {serve.REUSED_LABEL}"
 
 
 def test_run_live_engine_path_never_overwrites_recordings(stubbed, monkeypatch):
