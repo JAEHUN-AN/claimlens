@@ -16,7 +16,7 @@ Theme: Build for Your World.
 
 <!-- measured:start -->
 **Measured:**
-- Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the double-read gate (39/72 pairs stopped, live gate); clean documents: 1 left, 5/30 stopped
+- Hard documents ×3 runs: 47 wrong numbers left single read, 4 with the double-read gate (39/72 pairs stopped, live gate); clean documents: 0 left, 0/30 stopped
 - Agent scorecard: 8/8 (asks when it must, never invents a number)
 - 15 fault cases injected, no wrong number
 - Per claim: p50 22.97 s, p95 30.32 s, $0.0355 (5 concurrent live runs)

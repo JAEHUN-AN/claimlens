@@ -520,7 +520,7 @@
           "op": "unzoom"
         }
       ],
-      "caption": "Single read let 47 wrong numbers leave; the double-read gate leaves 2 (live gate).",
+      "caption": "Single read let 47 wrong numbers leave; the double-read gate leaves 4 (live gate).",
       "duration": 8,
       "id": "eval",
       "page": "measured",

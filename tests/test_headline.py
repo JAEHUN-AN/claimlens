@@ -99,9 +99,9 @@ def test_missing_data_omits_lines(tmp_path):
 def test_real_lines_are_pinned():
     entries = headline.lines(ROOT)
     assert entries[0]["en"] == (
-        "Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the "
-        "double-read gate (39/72 pairs stopped, live gate); clean documents: 1 left, "
-        "5/30 stopped")
+        "Hard documents ×3 runs: 47 wrong numbers left single read, 4 with the "
+        "double-read gate (39/72 pairs stopped, live gate); clean documents: 0 left, "
+        "0/30 stopped")
     assert entries[1]["en"].startswith("Agent scorecard: 8/8")
     assert entries[2]["en"] == "15 fault cases injected, no wrong number"
     assert entries[3]["en"] == (
@@ -111,7 +111,7 @@ def test_real_lines_are_pinned():
 
 def test_eval_caption_pinned():
     assert headline.eval_caption(ROOT) == (
-        "Single read let 47 wrong numbers leave; the double-read gate leaves 2 "
+        "Single read let 47 wrong numbers leave; the double-read gate leaves 4 "
         "(live gate).")
 
 
