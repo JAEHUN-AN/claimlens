@@ -16,7 +16,7 @@ Theme: Build for Your World.
 
 <!-- measured:start -->
 **Measured:**
-- Hard documents ×3 runs: 47 wrong numbers left single read, 4 with the double-read gate (39/72 pairs stopped, live gate); clean documents: 0 left, 0/30 stopped
+- Hard documents ×3 runs: 47 wrong numbers left single read, 0 with the double-read gate (35/72 pairs stopped, live gate); clean documents: 0 left, 0/30 stopped
 - Agent scorecard: 8/8 (asks when it must, never invents a number)
 - 15 fault cases injected, no wrong number
 - Per claim: p50 22.97 s, p95 30.32 s, $0.0355 (5 concurrent live runs)
@@ -242,12 +242,12 @@ on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 
   input (one bundle went from 6 findings to 0 after re-recording on
   2026-10-28). Blockers rest on the deterministic layer, which is why
   precision/recall stays 1.000.
-- A Korean bill photographed sideways can come back with two charge columns swapped in both
-  reads (seen on the S3 rot90 hard variant in the live gate run). The sums still match, so the
-  checks and the double read pass it. Live runs and the hard/gate evals now probe each page's
-  rotation first and read the upright copy; uploads matching a committed sample photo skip the
-  probe. Whether this closes the 4 remaining hard leaks is unmeasured until the next live
-  gate-eval run.
+- Rotation rests on one model judgement. A Korean bill photographed sideways used to come back
+  with two charge columns swapped in both reads (sums unchanged, so checks and the double read
+  passed it). A separate rotation probe now turns the page upright before reading; in the live
+  gate run it judged every turned and every upright page correctly
+  (`data/gate_live_20261029T070828Z.json`). If the probe misjudges a page, only the checks and
+  the double read remain as guards.
 
 ## Demo video
 
