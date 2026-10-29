@@ -497,6 +497,24 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
             return 2
         plans["hard"] = hard_eval.plan_hard(args.seed, out_dir, samples_dir, args.repeat,
                                              wanted, picked_transforms)
+    if args.set == "unseen":
+        known = sorted(gate_eval.load_unseen_scenarios(samples_dir / "unseen"))
+        wanted = picked_samples or tuple(known)
+        unknown = [s for s in wanted if s not in known]
+        if unknown:
+            print(f"claimlens: unseen set starts with {', '.join(known)}; "
+                  f"unknown: {', '.join(unknown)}.", file=sys.stderr)
+            return 2
+        plans["unseen"] = gate_eval.plan_unseen(samples_dir / "unseen", wanted)
+    if args.set == "trips":
+        known = sorted(gate_eval.load_trip_cases(samples_dir / "unseen" / "trips"))
+        wanted = picked_samples or tuple(known)
+        unknown = [s for s in wanted if s not in known]
+        if unknown:
+            print(f"claimlens: trips set starts with {', '.join(known)}; "
+                  f"unknown: {', '.join(unknown)}.", file=sys.stderr)
+            return 2
+        plans["trips"] = gate_eval.plan_trips(samples_dir / "unseen" / "trips", wanted)
     lines = ["Live double-read gate eval (no network calls made):",
              "fresh live reads only, unique cache tags, temp cache dir;",
              "committed cache/ stays untouched.",
@@ -506,10 +524,14 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
         cases = plan["cases"]
         plan["probe"] = True  # real uploads are always probed; clean pages measure false turns
         per_pair = 2
-        lines.append(gate_eval.estimate_text(name, len(cases), args.repeat, per_pair))
+        probes_total = (sum(c["pages"] for c in cases) * args.repeat
+                        if name == "trips" else None)
+        lines.append(gate_eval.estimate_text(name, len(cases), args.repeat,
+                                             per_pair, probes_total))
         total_reads += len(cases) * args.repeat * 2
         total_verify += len(cases) * args.repeat * 2
-        total_probes += len(cases) * args.repeat * per_pair
+        total_probes += (probes_total if probes_total is not None
+                         else len(cases) * args.repeat * per_pair)
     lo = total_reads * hard_eval.BASE_EST + total_probes * hard_eval.PROBE_EST
     lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_verify} verify re-reads"
                  f" + {total_probes} rotation probes; "
@@ -522,17 +544,42 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
     from dotenv import load_dotenv
 
     load_dotenv()
+    unseen_scenarios = (gate_eval.load_unseen_scenarios(samples_dir / "unseen")
+                        if "unseen" in plans else {})
+    trip_cases = (gate_eval.load_trip_cases(samples_dir / "unseen" / "trips")
+                  if "trips" in plans else {})
     for name, plan in plans.items():
         for case in plan["cases"]:
-            truth = ground_truth(scenarios[case["sample"]])
-            if name == "hard":
-                images = [out_dir / case["receipt"], out_dir / case["cert"]]
-                unreadable = case["unreadable"]
-                case["key"] = f"{case['sample']}-{case['transform']}"
-            else:
-                images = resolve_sample_images(samples_dir / case["sample"], case["variant"])
+            if name == "unseen":
+                truth = ground_truth(unseen_scenarios[case["sample"]])
+                images = resolve_sample_images(
+                    samples_dir / "unseen" / case["sample"], case["variant"])
                 unreadable = {"total": False, "line_amounts": False, "kr_cells": []}
                 case["key"] = f"{case['sample']}-{case['variant']}"
+            elif name == "trips":
+                pair = gate_eval.trip_pair_scenario(trip_cases[case["sample"]],
+                                                    case["receipt_file"],
+                                                    case["cert_file"])
+                truth = ground_truth(pair)
+                images = gate_eval.resolve_trip_images(
+                    samples_dir / "unseen" / "trips" / case["sample"],
+                    case["receipt_file"], case["cert_file"], case["variant"])
+                unreadable = {"total": False, "line_amounts": False, "kr_cells": []}
+                cert = case["cert_file"] or "no-cert"
+                case["key"] = (f"{case['sample']}-{case['receipt_file']}-{cert}"
+                               f"-{case['variant']}")
+            else:
+                truth = ground_truth(scenarios[case["sample"]])
+                if name == "hard":
+                    images = [out_dir / case["receipt"], out_dir / case["cert"]]
+                    unreadable = case["unreadable"]
+                    case["key"] = f"{case['sample']}-{case['transform']}"
+                else:
+                    images = resolve_sample_images(samples_dir / case["sample"],
+                                                   case["variant"])
+                    unreadable = {"total": False, "line_amounts": False,
+                                  "kr_cells": []}
+                    case["key"] = f"{case['sample']}-{case['variant']}"
             case["images"] = images
             case["truth"] = truth
             case["unreadable"] = unreadable
@@ -541,6 +588,30 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
     text = "\n".join(lines) + "\n\n" + gate_eval.format_summary(results)
     text += f"\nwrote {results['path']}"
     _emit(text, end="")
+    return 0
+
+
+def cmd_trips_check(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from claimlens import trips_check
+
+    picked = ([c.strip() for c in args.cases.split(",")]
+              if args.cases else None)
+    try:
+        summary = trips_check.plan(picked)
+    except ValueError as exc:
+        print(f"claimlens: {exc}", file=sys.stderr)
+        return 2
+    lines = [trips_check.format_plan(summary)]
+    if not args.execute:
+        _emit("\n".join(lines))
+        return 0
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    results = trips_check.execute(picked, args.max_cost, Path(args.output))
+    _emit("\n".join(lines) + "\n\n" + trips_check.format_results(results), end="")
     return 0
 
 
@@ -681,8 +752,9 @@ def build_parser() -> argparse.ArgumentParser:
     load.add_argument("--execute", action="store_true",
                       help="Actually run; without it only the plan prints.")
     load.set_defaults(func=cmd_load)
-    gate = sub.add_parser("gate-eval", help="Live double-read gate over hard/normal sets.")
-    gate.add_argument("--set", choices=["normal", "hard", "both"], default="both")
+    gate = sub.add_parser("gate-eval", help="Live double-read gate over sets.")
+    gate.add_argument("--set", choices=["normal", "hard", "unseen", "trips", "both"],
+                      default="both")
     gate.add_argument("--repeat", type=int, default=3)
     gate.add_argument("--execute", action="store_true",
                       help="Actually run; without it only the plan prints.")
@@ -693,6 +765,14 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Abort the run past this spend in USD.")
     gate.add_argument("--output", default="data", help="Data dir for the run JSON.")
     gate.set_defaults(func=cmd_gate_eval)
+    trips = sub.add_parser("trips-check", help="Serve-path scenario checks over the trips.")
+    trips.add_argument("--cases", default=None, help="Comma-separated trip ids.")
+    trips.add_argument("--execute", action="store_true",
+                       help="Actually run; without it only the plan prints.")
+    trips.add_argument("--max-cost", type=float, default=1.00,
+                       help="Abort the run past this spend in USD.")
+    trips.add_argument("--output", default="out", help="Data dir for the run JSON.")
+    trips.set_defaults(func=cmd_trips_check)
     headline = sub.add_parser("headline", help="Measured block; regenerates README + demo.")
     headline.set_defaults(func=cmd_headline)
     return parser

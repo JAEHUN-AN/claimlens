@@ -171,3 +171,19 @@ def test_run_pair_clean_agree_saves_empty_wrong_fields():
     assert record["stopped"] is False
     assert record["wrong_fields"] == []
     assert len(record["values"]) == 2
+
+
+def test_agreeing_pair_stops_when_either_read_failed_verify(monkeypatch):
+    # serve stops when any read fails its verify; the harness must count the same way.
+    good = _a_reading()
+    outcomes = iter([False, True])  # read 1 passes verify, read 2 does not
+
+    def fake_verify(reading, image, provider, calls):
+        return reading, next(outcomes)
+
+    monkeypatch.setattr(gate_eval, "_verify_final", fake_verify)
+    record = gate_eval.run_pair(_case("A_niseko_wrist", None), 1,
+                                _factory([good, good], []))
+    assert record["agree"] is True
+    assert record["stopped"] is True
+    assert record["reached"] == 0

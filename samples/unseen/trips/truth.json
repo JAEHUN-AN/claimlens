@@ -1,0 +1,668 @@
+{
+  "_note": "Held-out trips set (49b): situations a Korean traveller runs into. Synthetic people, hospitals, IDs, amounts; SYNTHETIC SAMPLE watermarks. Reading truth uses plain numbers; never hand-computed payouts. Source for tools/unseen/render.py; truth for gate-eval --set trips and trips-check.",
+  "cases": [
+    {
+      "currency": "THB",
+      "documents": [
+        {
+          "data": {
+            "address": "18 Charoen Krung Road, Bangkok (SYNTHETIC)",
+            "currency": "THB",
+            "department": "Emergency",
+            "hospital": "Bangkok Riverside Hospital",
+            "hospital_th": "โรงพยาบาลบางกอก ริเวอร์ไซด์",
+            "issue_date": "2026-09-18",
+            "items": [
+              {
+                "amount": 2500.0,
+                "category": "emergency_fee",
+                "label": "Emergency fee"
+              },
+              {
+                "amount": 1800.0,
+                "category": "medication",
+                "label": "IV fluids"
+              },
+              {
+                "amount": 3200.0,
+                "category": "lab",
+                "label": "Lab tests"
+              },
+              {
+                "amount": 1450.0,
+                "category": "medication",
+                "label": "Medication (ER)"
+              },
+              {
+                "amount": 3600.0,
+                "category": "room",
+                "label": "Observation (4 hrs)"
+              }
+            ],
+            "receipt_no": "BR-260918-205",
+            "total": 12550.0,
+            "visit": "Emergency (outpatient)"
+          },
+          "doc_type": "receipt",
+          "file": "receipt_er",
+          "role": "receipt",
+          "template": "t1_er"
+        },
+        {
+          "data": {
+            "address": "18 Charoen Krung Road, Bangkok (SYNTHETIC)",
+            "currency": "THB",
+            "hospital": "Riverside Pharmacy",
+            "issue_date": "2026-09-18",
+            "items": [
+              {
+                "amount": 890.0,
+                "category": "medication",
+                "label": "Antibiotics"
+              },
+              {
+                "amount": 650.0,
+                "category": "medication",
+                "label": "Probiotics"
+              },
+              {
+                "amount": 120.0,
+                "category": "medication",
+                "label": "ORS sachets"
+              }
+            ],
+            "receipt_no": "RP-260918-077",
+            "total": 1660.0
+          },
+          "doc_type": "receipt",
+          "file": "receipt_pharm",
+          "role": "receipt",
+          "template": "t1_pharm"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026-09-18",
+            "diagnoses": [
+              {
+                "code": "A05.9",
+                "label": "Foodborne illness (suspected)",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Nattaya SRISAI (Emergency Medicine)",
+            "history": "Vomiting and diarrhoea after street food. Mild dehydration.",
+            "hospital": "Bangkok Riverside Hospital",
+            "issue_date": "2026-09-18",
+            "license": "TH-MD-66120",
+            "outcome": "Outpatient. Oral rehydration.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "IV fluids and antiemetic in the ER."
+          },
+          "doc_type": "medical_certificate",
+          "file": "medical_certificate",
+          "role": "certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Accept 2 receipts + 1 certificate; read both totals; ask nothing.",
+        "serve_today": {
+          "reason": "run_live takes exactly 2 images",
+          "status": 400
+        }
+      },
+      "id": "T1_bangkok_food_poisoning",
+      "pairs": [
+        [
+          "receipt_er",
+          "medical_certificate"
+        ],
+        [
+          "receipt_pharm",
+          "medical_certificate"
+        ]
+      ],
+      "patient": {
+        "dob": "1988-11-02",
+        "name": "Jaeho PARK",
+        "passport": "M19881102",
+        "patient_id": "BR-2026-7718"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Jaeho PARK",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Food poisoning in Bangkok: hospital ER bill plus a separate pharmacy receipt.",
+      "totals": {
+        "krw": 595399,
+        "local": 14210.0
+      }
+    },
+    {
+      "currency": "VND",
+      "documents": [
+        {
+          "data": {
+            "address": "21 Bach Dang Street, Da Nang (SYNTHETIC)",
+            "currency": "VND",
+            "hospital": "Lotus Clinic Da Nang",
+            "hospital_vi": "Phòng Khám Sen Đà Nẵng",
+            "issue_date": "2026-09-21",
+            "items": [
+              {
+                "amount": 300000.0,
+                "category": "consultation",
+                "label": "Khám",
+                "label_en": "Exam"
+              },
+              {
+                "amount": 450000.0,
+                "category": "imaging",
+                "label": "Chụp X-quang",
+                "label_en": "X-ray"
+              },
+              {
+                "amount": 250000.0,
+                "category": "device_purchase",
+                "label": "Nẹp",
+                "label_en": "Splint"
+              },
+              {
+                "amount": 186000.0,
+                "category": "medication",
+                "label": "Thuốc",
+                "label_en": "Medication"
+              }
+            ],
+            "receipt_no": "LN-260921-014",
+            "total": 1186000.0,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "file": "receipt",
+          "role": "receipt",
+          "template": "t2_vnd"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026-09-21",
+            "diagnoses": [
+              {
+                "code": "S93.4",
+                "label": "Sprain of left ankle",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Linh NGUYEN (General Medicine)",
+            "history": "Fell from a scooter at low speed. Left ankle swelling.",
+            "hospital": "Lotus Clinic Da Nang",
+            "issue_date": "2026-09-21",
+            "license": "VN-MD-44710",
+            "outcome": "Outpatient. Splint for ten days.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "Splint applied. Analgesic prescribed."
+          },
+          "doc_type": "medical_certificate",
+          "file": "medical_certificate",
+          "role": "certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Read the dotted amounts as plain numbers; no decision path today.",
+        "serve_today": {
+          "badge": "needs_review",
+          "status": 200
+        }
+      },
+      "id": "T2_danang_scooter",
+      "pairs": [
+        [
+          "receipt",
+          "medical_certificate"
+        ]
+      ],
+      "patient": {
+        "dob": "1997-06-19",
+        "name": "Minho CHOI",
+        "passport": "M19970619",
+        "patient_id": "LN-2026-0917"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Minho CHOI",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Scooter fall in Da Nang; clinic receipt uses dotted thousand separators.",
+      "totals": {
+        "krw": 64637,
+        "local": 1186000.0
+      }
+    },
+    {
+      "currency": "JPY",
+      "documents": [
+        {
+          "data": {
+            "address": "5-11 Sakura-shinmachi, Setagaya, Tokyo (SYNTHETIC)",
+            "currency": "JPY",
+            "department": "Pediatrics",
+            "hospital": "Setagaya Kodomo Clinic",
+            "hospital_ja": "世田谷こどもクリニック",
+            "issue_date": "2026/09/24",
+            "items": [
+              {
+                "amount": 2900.0,
+                "category": "consultation",
+                "label": "初診料",
+                "label_en": "First visit"
+              },
+              {
+                "amount": 3400.0,
+                "category": "lab",
+                "label": "迅速検査",
+                "label_en": "Rapid test"
+              },
+              {
+                "amount": 2100.0,
+                "category": "medication",
+                "label": "投薬（3日分）",
+                "label_en": "Medication (3 days)"
+              },
+              {
+                "amount": 3300.0,
+                "category": "admin_fee",
+                "label": "診断書料",
+                "label_en": "Certificate fee"
+              },
+              {
+                "amount": 330.0,
+                "category": "admin_fee",
+                "label": "消費税（10%）",
+                "label_en": "Consumption tax (10%)"
+              }
+            ],
+            "receipt_no": "SK-260924-052",
+            "subtotal": 11700.0,
+            "taxable": 3300.0,
+            "total": 12030.0,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "file": "receipt",
+          "role": "receipt",
+          "template": "t3_clinic"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026/09/24",
+            "diagnoses": [
+              {
+                "code": "J02.9",
+                "label": "Acute pharyngitis",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Yuki TANAKA (Pediatrics)",
+            "history": "Fever up to 39 degrees for one day. Throat red, rapid test negative.",
+            "hospital": "Setagaya Kodomo Clinic",
+            "issue_date": "2026/09/24",
+            "license": "MD-JP-044521",
+            "outcome": "Outpatient. Fluids and rest.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "診断書",
+            "treatment": "Antipyretic for three days."
+          },
+          "doc_type": "medical_certificate",
+          "file": "medical_certificate",
+          "role": "certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Read the tax block; fully self-paid; no decision path today.",
+        "serve_today": {
+          "badge": "needs_review",
+          "status": 200
+        }
+      },
+      "id": "T3_setagaya_fever",
+      "pairs": [
+        [
+          "receipt",
+          "medical_certificate"
+        ]
+      ],
+      "patient": {
+        "dob": "2021-03-08",
+        "name": "Siwoo KIM",
+        "passport": "M20210308",
+        "patient_id": "SK-2026-1102"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Siwoo KIM",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Child's fever in Tokyo; clinic receipt with a consumption-tax line.",
+      "totals": {
+        "krw": 113443,
+        "local": 12030.0
+      }
+    },
+    {
+      "currency": "EUR",
+      "documents": [
+        {
+          "data": {
+            "address": "8 Rue de Rivoli, Paris (SYNTHETIC)",
+            "currency": "EUR",
+            "hospital": "Pharmacie Lumière Verte",
+            "issue_date": "24/09/2026",
+            "items": [
+              {
+                "amount": 4.2,
+                "category": "medication",
+                "label": "Paracétamol 500mg"
+              },
+              {
+                "amount": 8.9,
+                "category": "medication",
+                "label": "Sirop contre la toux"
+              },
+              {
+                "amount": 3.4,
+                "category": "other",
+                "label": "Pansements"
+              }
+            ],
+            "receipt_no": "PL-260924-003",
+            "total": 16.5
+          },
+          "doc_type": "receipt",
+          "file": "receipt",
+          "role": "receipt",
+          "template": "t4_pharm"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Ask for the doctor's certificate instead of refusing the upload.",
+        "serve_today": {
+          "reason": "run_live takes exactly 2 images",
+          "status": 400
+        }
+      },
+      "id": "T4_paris_pharmacy",
+      "pairs": [
+        [
+          "receipt",
+          null
+        ]
+      ],
+      "patient": {
+        "dob": "1994-02-28",
+        "name": "Soobin LEE",
+        "passport": "M19940228",
+        "patient_id": "PL-2026-0033"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Soobin LEE",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Paris pharmacy only; no doctor's certificate exists.",
+      "totals": {
+        "krw": 24915,
+        "local": 16.5
+      }
+    },
+    {
+      "currency": "USD",
+      "documents": [
+        {
+          "data": {
+            "account": "ACCT 8810-20260926",
+            "address": "88 Kapahulu Avenue, Honolulu, HI 96815 (SYNTHETIC)",
+            "currency": "USD",
+            "hospital": "Honolulu Pacific Urgent Care",
+            "items": [
+              {
+                "amount": 950.0,
+                "category": "consultation",
+                "label": "Urgent care visit"
+              },
+              {
+                "amount": 620.0,
+                "category": "imaging",
+                "label": "X-ray ankle"
+              },
+              {
+                "amount": 240.0,
+                "category": "lab",
+                "label": "Lab tests"
+              },
+              {
+                "amount": 95.5,
+                "category": "medication",
+                "label": "Medication"
+              },
+              {
+                "amount": -571.65,
+                "category": "other",
+                "label": "Insurance adjustment"
+              }
+            ],
+            "service_date": "09/26/2026",
+            "statement_date": "09/28/2026",
+            "subtotal": 1905.5,
+            "total": 1333.85,
+            "visit": "Urgent care (outpatient)"
+          },
+          "doc_type": "receipt",
+          "file": "receipt_bill",
+          "role": "receipt",
+          "template": "t5_bill"
+        },
+        {
+          "data": {
+            "amount": 1333.85,
+            "auth": "882130",
+            "card": "Visa ••4412",
+            "currency": "USD",
+            "date": "09/26/2026",
+            "hospital": "Honolulu Pacific Urgent Care",
+            "items": [],
+            "total": 1333.85
+          },
+          "doc_type": "receipt",
+          "file": "receipt_cardpay",
+          "role": "payment",
+          "template": "t5_cardpay"
+        },
+        {
+          "data": {
+            "date_of_visit": "09/26/2026",
+            "diagnoses": [
+              {
+                "code": "S93.4",
+                "label": "Sprain of right ankle",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Kai NAKAMURA (Urgent Care)",
+            "history": "Twisted the right ankle on hotel stairs. X-ray negative.",
+            "hospital": "Honolulu Pacific Urgent Care",
+            "issue_date": "09/26/2026",
+            "license": "HI-MD-22901",
+            "outcome": "Outpatient. Brace and rest.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "Elastic bandage. Analgesic prescribed."
+          },
+          "doc_type": "medical_certificate",
+          "file": "medical_certificate",
+          "role": "certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Accept bill + payment proof + cert; reconcile paid vs owed.",
+        "serve_today": {
+          "reason": "run_live takes exactly 2 images",
+          "status": 400
+        }
+      },
+      "id": "T5_honolulu_urgent",
+      "pairs": [
+        [
+          "receipt_bill",
+          "medical_certificate"
+        ],
+        [
+          "receipt_cardpay",
+          "medical_certificate"
+        ]
+      ],
+      "patient": {
+        "dob": "1990-08-25",
+        "name": "Dongmin HAN",
+        "passport": "M19900825",
+        "patient_id": "HP-2026-5519"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Dongmin HAN",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Honolulu urgent care: itemized bill with insurance adjustment plus a card payment receipt.",
+      "totals": {
+        "krw": 1852571,
+        "local": 1333.85,
+        "note": "Patient responsibility; the card slip pays it and is not added."
+      }
+    },
+    {
+      "currency": "USD",
+      "documents": [
+        {
+          "data": {
+            "address": "120 Pale San Vitores Road, Tumon, Guam (SYNTHETIC)",
+            "currency": "USD",
+            "hospital": "Tumon Bay Dental Clinic",
+            "issue_date": "09/27/2026",
+            "items": [
+              {
+                "amount": 145.0,
+                "category": "consultation",
+                "code": "D0140",
+                "label": "Emergency exam"
+              },
+              {
+                "amount": 95.0,
+                "category": "imaging",
+                "code": "D0220",
+                "label": "X-ray"
+              },
+              {
+                "amount": 480.0,
+                "category": "surgery",
+                "code": "D7140",
+                "label": "Extraction"
+              },
+              {
+                "amount": 62.0,
+                "category": "medication",
+                "label": "Medication"
+              }
+            ],
+            "receipt_no": "TB-260927-009",
+            "total": 782.0,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "file": "receipt",
+          "role": "receipt",
+          "template": "t6_dental"
+        },
+        {
+          "data": {
+            "date_of_visit": "09/27/2026",
+            "diagnoses": [
+              {
+                "code": "K04.7",
+                "label": "Periapical abscess",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Maria CRUZ (Dentistry)",
+            "history": "Severe tooth pain for two days. Abscess on X-ray.",
+            "hospital": "Tumon Bay Dental Clinic",
+            "issue_date": "09/27/2026",
+            "license": "GU-DDS-11093",
+            "outcome": "Outpatient. Extraction completed.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "Tooth extraction under local anaesthesia."
+          },
+          "doc_type": "medical_certificate",
+          "file": "medical_certificate",
+          "role": "certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "expected": {
+        "ideal": "Flag dental for the reviewer; never decide (no payout rule exists).",
+        "serve_today": {
+          "badge": "needs_review",
+          "status": 200
+        }
+      },
+      "id": "T6_guam_dental",
+      "pairs": [
+        [
+          "receipt",
+          "medical_certificate"
+        ]
+      ],
+      "patient": {
+        "dob": "1985-05-30",
+        "name": "Seungho YOON",
+        "passport": "M19850530",
+        "patient_id": "TB-2026-2204"
+      },
+      "person": {
+        "entry_date": "n/a",
+        "korean_employer": false,
+        "name": "Seungho YOON",
+        "visa": "none (Korean national)",
+        "work_related": false
+      },
+      "story": "Dental emergency in Guam; travel policies often limit or exclude dental.",
+      "totals": {
+        "krw": 1086112,
+        "local": 782.0
+      }
+    }
+  ],
+  "fx": "samples/fx_demo.json"
+}

@@ -399,3 +399,12 @@ def test_wrong_numeric_fields_kr_and_cut_cell_guesses():
     assert hard_eval.wrong_numeric_fields(truth, reading(), cut) == ["kr_cells[3]"]
     bill["cell_3"] = None
     assert hard_eval.wrong_numeric_fields(truth, reading(), cut) == []
+
+
+def test_null_line_amount_is_wrong_not_a_crash():
+    from claimlens import hard_eval
+
+    truth = {"total": 300.0, "line_amounts": [100.0, 200.0], "kr_cells": None}
+    reading = {"documents": [{"total_amount": 300.0,
+                              "line_items": [{"amount": 100.0}, {"amount": None}]}]}
+    assert hard_eval.wrong_numeric_fields(truth, reading, {}) == ["lines[1]"]

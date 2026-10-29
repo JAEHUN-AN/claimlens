@@ -162,10 +162,12 @@ def wrong_numeric_fields(truth: dict[str, Any], reading: dict[str, Any],
         wrong += [f"lines[{i}]" for i, item in enumerate(receipt.get("line_items", []))
                   if item.get("amount") is not None]
     else:
-        read = [float(i.get("amount", 0)) for i in receipt.get("line_items", [])]
+        # A null amount is a wrong line, not a crash (live reads return explicit nulls).
+        read = [i.get("amount") for i in receipt.get("line_items", [])]
         exp = truth["line_amounts"]
         for i in range(max(len(read), len(exp))):
-            if i >= len(read) or i >= len(exp) or not _close(read[i], exp[i]):
+            if (i >= len(read) or i >= len(exp) or read[i] is None
+                    or not _close(float(read[i]), exp[i])):
                 wrong.append(f"lines[{i}]")
     if truth["kr_cells"] is not None:
         bill = receipt.get("kr_bill") or {}

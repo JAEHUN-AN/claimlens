@@ -89,3 +89,48 @@ pairs for a person instead, leaving 0. The arithmetic checks pass when
 Spark puts the right numbers in the wrong cells (S2/S3 rot90/rot180) or
 "fixes" blurred JP lines so they still add up (A motion/lowres) — the
 gate catches what the checks cannot.
+
+## Unseen layouts and real trips (first run, before fixes, 2026-10-30)
+
+Held-out documents rendered for this test (`tools/unseen/render.py`, `samples/unseen/`), never used
+while building the pipeline. Live double-read gate with the rotation probe, 3 rounds. The metric
+scores amount fields only (total, line amounts, Korean bill cells); currency, dates and codes are
+not scored yet. Nothing was changed after these runs before writing this section.
+
+| set | pairs | wrong amounts that left | pairs stopped for a person | cost per claim | data |
+|---|---|---|---|---|---|
+| unseen | 36 | 0 | 12 | $0.0252 | `data/gate_live_20261029T154402Z.json` |
+| trips | 48 | 0 | 18 | $0.0225 | `data/gate_live_20261029T155458Z.json` |
+
+Where the pairs stopped:
+
+| case | pairs | stopped |
+|---|---|---|
+| U1_hanbit_outpatient | 6 | 0 |
+| U2_mirae_inpatient | 6 | 0 |
+| U3_naha_clinic | 6 | 6 |
+| U4_denver_bill | 6 | 6 |
+| U5_pudong_receipt | 6 | 0 |
+| U6_austin_urgent | 6 | 0 |
+| T1_bangkok_food_poisoning | 12 | 0 |
+| T2_danang_scooter | 6 | 0 |
+| T3_setagaya_fever | 6 | 6 |
+| T4_paris_pharmacy | 6 | 0 |
+| T5_honolulu_urgent | 12 | 12 |
+| T6_guam_dental | 6 | 0 |
+
+Each trip through the live upload path (`claimlens trips-check`, `data/trips_check_20261029T155607Z.json`):
+
+| trip | outcome |
+|---|---|
+| T1_bangkok_food_poisoning | 400 Upload exactly 2 images: the receipt and the certificate. |
+| T2_danang_scooter | 200 needs_review — Human review: no decision path. |
+| T3_setagaya_fever | 200 needs_manual_check — Human review: receipt checks failed. |
+| T4_paris_pharmacy | 400 Upload exactly 2 images: the receipt and the certificate. |
+| T5_honolulu_urgent | 400 Upload exactly 2 images: the receipt and the certificate. |
+| T6_guam_dental | 200 needs_review — Human review: no decision path. |
+
+Read honestly: no wrong amount left on unfamiliar layouts, but every bill with a tax line or a
+discount/adjustment line stopped for a person, three of six trips were refused at upload (more
+or fewer than two images), and no trip reached a decision or a next step.
+

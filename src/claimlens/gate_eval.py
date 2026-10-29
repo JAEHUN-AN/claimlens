@@ -19,6 +19,83 @@ from claimlens.hard_eval import BASE_EST, PROBE_EST, REREAD_EST, cache_dir_scope
 
 TAG_PREFIX = ".gate41c"
 
+UNSEEN_VARIANTS = ("photo", "clean")
+
+
+def load_unseen_scenarios(unseen_dir: Path) -> dict[str, Any]:
+    """Unseen truth keyed by case id (truth.json, scenarios.json shape)."""
+    truth = json.loads((unseen_dir / "truth.json").read_text(encoding="utf-8"))
+    return {s["id"]: s for s in truth["scenarios"]}
+
+
+def plan_unseen(unseen_dir: Path,
+                samples: tuple[str, ...] | None = None) -> dict[str, Any]:
+    """Unseen plan: every wanted case in photo + clean; probed at run time."""
+    ids = sorted(load_unseen_scenarios(unseen_dir))
+    if samples:
+        ids = [s for s in ids if s in samples]
+    cases = [{"sample": sid, "variant": variant}
+             for sid in ids for variant in UNSEEN_VARIANTS]
+    return {"cases": cases}
+
+
+def load_trip_cases(trips_dir: Path) -> dict[str, Any]:
+    """Trips truth keyed by case id (trips/truth.json)."""
+    truth = json.loads((trips_dir / "truth.json").read_text(encoding="utf-8"))
+    return {c["id"]: c for c in truth["cases"]}
+
+
+def plan_trips(trips_dir: Path,
+               samples: tuple[str, ...] | None = None) -> dict[str, Any]:
+    """Trips plan: every receipt/cert pair in photo + clean; probed at run time.
+
+    Each case lists its pairs so multi-receipt trips (T1, T5) and the
+    certificate-less trip (T4, one page) run through the same gate.
+    """
+    by_id = load_trip_cases(trips_dir)
+    ids = sorted(by_id)
+    if samples:
+        ids = [s for s in ids if s in samples]
+    cases = []
+    for sid in ids:
+        for receipt_file, cert_file in by_id[sid]["pairs"]:
+            for variant in UNSEEN_VARIANTS:
+                cases.append({"sample": sid, "variant": variant,
+                              "receipt_file": receipt_file,
+                              "cert_file": cert_file,
+                              "pages": 1 if cert_file is None else 2})
+    return {"cases": cases}
+
+
+def trip_pair_scenario(case: dict[str, Any], receipt_file: str,
+                       cert_file: str | None) -> dict[str, Any]:
+    """A gate pair's truth in scenarios.json shape for ground_truth."""
+    docs = {d["file"]: d for d in case["documents"]}
+    receipt = docs[receipt_file]["data"]
+    cert = docs[cert_file]["data"] if cert_file else {"diagnoses": []}
+    return {
+        "id": case["id"],
+        "expected": {"currency": case["currency"], "total": receipt["total"]},
+        "documents": [
+            {"doc_type": "receipt", "data": {"items": receipt["items"]}},
+            {"doc_type": "medical_certificate",
+             "data": {"diagnoses": cert["diagnoses"]}},
+        ],
+        "patient": case["patient"],
+    }
+
+
+def resolve_trip_images(case_dir: Path, receipt_file: str,
+                        cert_file: str | None, variant: str) -> list[Path]:
+    """Receipt plus certificate (receipt alone when no certificate exists)."""
+    images = []
+    for stem in [receipt_file] + ([cert_file] if cert_file else []):
+        matches = sorted(case_dir.glob(f"{stem}_{variant}.*"))
+        if not matches:
+            raise FileNotFoundError(f"No {stem}_{variant} image in {case_dir}")
+        images.append(matches[0])
+    return images
+
 
 def default_provider_factory() -> Callable[[], Any]:
     from claimlens.providers.meta import MetaProvider
@@ -91,13 +168,16 @@ def run_pair(case: dict[str, Any], round_no: int,
     values = [hard_eval.field_values(final) for final in finals]
     agree = hard_eval._gate_agree(values[0], values[1])
     if agree:
-        stopped = stopped_each[0]
+        # Same rule as serve: either read failing its verify stops the claim.
+        stopped = any(stopped_each)
         wrong_fields = [] if stopped else hard_eval.wrong_numeric_fields(
             truth, finals[0], unreadable)
         reached = 0 if stopped else len(wrong_fields)
     else:
         stopped, reached, wrong_fields = True, 0, []
-    case_id = {k: case[k] for k in ("sample", "transform", "variant") if k in case}
+    case_id = {k: case[k] for k in ("sample", "transform", "variant",
+                                               "receipt_file", "cert_file")
+               if k in case}
     return {"round": round_no, "case": case_id, "tags": tags, "agree": agree,
             "stopped": stopped, "stopped_each": stopped_each, "reached": reached,
             "wrong_fields": wrong_fields, "values": values, "calls": calls,
@@ -136,7 +216,8 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
                 "spent": round(spent, 6),
                 "per_claim": round(spent / len(pairs), 6) if pairs else 0.0,
                 "cases": [
-                    {k: case[k] for k in ("sample", "transform", "variant")
+                    {k: case[k] for k in ("sample", "transform", "variant",
+                                         "receipt_file", "cert_file")
                      if k in case}
                     for case in plan["cases"]
                 ],
@@ -155,12 +236,14 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
     return results
 
 
-def estimate_text(name: str, cases: int, repeat: int, probes_per_pair: int = 0) -> str:
-    """Plan line; probes_per_pair is 2 for hard pairs, 0 for normal ones."""
+def estimate_text(name: str, cases: int, repeat: int,
+                  probes_per_pair: int = 0,
+                  probes_total: int | None = None) -> str:
+    """Plan line; probes_total overrides it when pairs vary (trips' T4)."""
     pairs = cases * repeat
     reads = pairs * 2
     verify_max = pairs * 2
-    probes = pairs * probes_per_pair
+    probes = pairs * probes_per_pair if probes_total is None else probes_total
     lo = reads * BASE_EST + probes * PROBE_EST
     parts = f"{reads} reads + up to {verify_max} verify re-reads"
     if probes:

@@ -27,6 +27,15 @@ def _read(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _newest_gate(root: Path) -> Path | None:
+    """Newest live gate run that measured the hard set (unseen/trips runs do not)."""
+    files = sorted((root / "data").glob("gate_live_*.json"))
+    for path in reversed(files):
+        if "hard" in _read(path).get("sets", {}):
+            return path
+    return None
+
+
 def _hard_sets(root: Path) -> dict[str, dict[str, int]] | None:
     """Single-read wrongs + simulated gate pairs, recomputed from cases."""
     from claimlens import hard_eval
@@ -49,7 +58,7 @@ def _hard_sets(root: Path) -> dict[str, dict[str, int]] | None:
 def gate_line(root: Path) -> dict[str, str] | None:
     """Single read vs double-read gate; live numbers drop 'simulated'."""
     hard = _hard_sets(root)
-    gate_path = _newest(root, "gate_live_*.json")
+    gate_path = _newest_gate(root)
     live = _read(gate_path)["sets"].get("hard") if gate_path else None
     if hard is None and live is None:
         return None
@@ -178,7 +187,7 @@ def apply_readme(readme: Path, root: Path) -> bool:
 def eval_caption(root: Path) -> str:
     """Storyboard eval caption, built from the same gate numbers."""
     hard = _hard_sets(root)
-    gate_path = _newest(root, "gate_live_*.json")
+    gate_path = _newest_gate(root)
     live = _read(gate_path)["sets"].get("hard") if gate_path else None
     if hard is None and live is None:
         return "Hard documents, read three times: measured, not claimed."

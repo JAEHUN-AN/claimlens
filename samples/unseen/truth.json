@@ -1,0 +1,624 @@
+{
+  "_note": "Held-out unseen set. All people, hospitals, IDs and amounts are synthetic. Documents carry a SYNTHETIC SAMPLE watermark. Source for tools/unseen/render.py; truth for gate-eval scoring.",
+  "scenarios": [
+    {
+      "documents": [
+        {
+          "data": {
+            "address": "12 Wausan-ro, Mapo-gu, Seoul (SYNTHETIC)",
+            "currency": "KRW",
+            "hospital": "Seoul Hanbit Clinic",
+            "hospital_ko": "서울한빛의원",
+            "issue_date": "2026-09-15",
+            "items": [
+              {
+                "amount": 15000,
+                "category": "consultation",
+                "label": "진찰료",
+                "label_en": "Consultation"
+              },
+              {
+                "amount": 28000,
+                "category": "lab",
+                "label": "검사료",
+                "label_en": "Lab tests"
+              },
+              {
+                "amount": 55000,
+                "category": "imaging",
+                "label": "영상진단료",
+                "label_en": "X-ray"
+              },
+              {
+                "amount": 22000,
+                "category": "procedure",
+                "label": "처치료",
+                "label_en": "Treatment"
+              },
+              {
+                "amount": 13500,
+                "category": "medication",
+                "label": "약제비",
+                "label_en": "Medication"
+              }
+            ],
+            "receipt_no": "HB-260915-118",
+            "total": 133500,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "template": "u1_gridless"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026-09-15",
+            "diagnoses": [
+              {
+                "code": "J06.9",
+                "label": "Acute upper respiratory infection",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Minseo HAN (Family Medicine)",
+            "history": "Sore throat and cough for three days. No fever.",
+            "hospital": "Seoul Hanbit Clinic",
+            "issue_date": "2026-09-15",
+            "license": "KR-DOC-88231",
+            "outcome": "Outpatient. Rest and fluids.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "진단서",
+            "treatment": "Symptomatic medication for five days."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "expected": {
+        "currency": "KRW",
+        "total": 133500
+      },
+      "id": "U1_hanbit_outpatient",
+      "patient": {
+        "dob": "1998-05-14",
+        "name": "TRAN THI BINH",
+        "passport": "B98765432",
+        "patient_id": "HB-2026-0341"
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "Korean clinic (의원) outpatient bill, gridless layout"
+    },
+    {
+      "documents": [
+        {
+          "data": {
+            "address": "45 Haeundae-ro, Haeundae-gu, Busan (SYNTHETIC)",
+            "currency": "KRW",
+            "discharge_date": "2026-09-06",
+            "hospital": "Busan Mirae Hospital",
+            "hospital_ko": "부산미래병원",
+            "issue_date": "2026-09-06",
+            "items": [
+              {
+                "amount": 240000,
+                "category": "room",
+                "label": "입원료 (4인실)",
+                "label_en": "Room (4-bed)",
+                "qty": 3,
+                "unit": 80000
+              },
+              {
+                "amount": 45000,
+                "category": "other",
+                "label": "식대",
+                "label_en": "Meals",
+                "qty": 9,
+                "unit": 5000
+              },
+              {
+                "amount": 60000,
+                "category": "consultation",
+                "label": "진찰료",
+                "label_en": "Consultation",
+                "qty": 4,
+                "unit": 15000
+              },
+              {
+                "amount": 185000,
+                "category": "lab",
+                "label": "검사료",
+                "label_en": "Lab tests",
+                "qty": 1,
+                "unit": 185000
+              },
+              {
+                "amount": 320000,
+                "category": "imaging",
+                "label": "영상진단료 (CT)",
+                "label_en": "CT scan",
+                "qty": 1,
+                "unit": 320000
+              },
+              {
+                "amount": 890000,
+                "category": "surgery",
+                "label": "처치·수술료",
+                "label_en": "Surgery",
+                "qty": 1,
+                "unit": 890000
+              },
+              {
+                "amount": 120000,
+                "category": "medication",
+                "label": "주사료",
+                "label_en": "Injections",
+                "qty": 6,
+                "unit": 20000
+              },
+              {
+                "amount": 96000,
+                "category": "medication",
+                "label": "약제비",
+                "label_en": "Medication",
+                "qty": 1,
+                "unit": 96000
+              },
+              {
+                "amount": 450000,
+                "category": "other",
+                "label": "비급여 (상급병실 차액)",
+                "label_en": "Non-covered upgrade",
+                "qty": 1,
+                "unit": 450000
+              }
+            ],
+            "receipt_no": "BM-260906-044",
+            "service_date": "2026-09-03",
+            "total": 2406000,
+            "visit": "Inpatient (3 nights)",
+            "ward": "301호 4인실"
+          },
+          "doc_type": "receipt",
+          "template": "u2_qty_grid"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026-09-03",
+            "diagnoses": [
+              {
+                "code": "K81.0",
+                "label": "Acute cholecystitis",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Jiwon SEO (Surgery)",
+            "history": "Right upper abdominal pain for two days. Ultrasound shows gallbladder inflammation.",
+            "hospital": "Busan Mirae Hospital",
+            "issue_date": "2026-09-06",
+            "license": "KR-DOC-77412",
+            "outcome": "Inpatient, three nights. Stable at discharge.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "진단서",
+            "treatment": "Laparoscopic cholecystectomy on 2026-09-04."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "expected": {
+        "currency": "KRW",
+        "total": 2406000
+      },
+      "id": "U2_mirae_inpatient",
+      "patient": {
+        "dob": "1990-12-03",
+        "name": "Anna KOWALSKA",
+        "passport": "EP3091277",
+        "patient_id": "BM-2026-1204"
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "Korean inpatient bill with quantity grid and non-covered items"
+    },
+    {
+      "documents": [
+        {
+          "data": {
+            "address": "2-14 Kokusai-dori, Naha, Okinawa (SYNTHETIC)",
+            "currency": "JPY",
+            "department": "Orthopedics",
+            "hospital": "Naha Minato Clinic",
+            "hospital_ja": "那覇みなとクリニック",
+            "issue_date": "2026/09/20",
+            "items": [
+              {
+                "amount": 3200,
+                "category": "consultation",
+                "label": "初診料",
+                "label_en": "First visit"
+              },
+              {
+                "amount": 1800,
+                "category": "consultation",
+                "label": "処方料",
+                "label_en": "Prescription"
+              },
+              {
+                "amount": 4600,
+                "category": "medication",
+                "label": "投薬（7日分）",
+                "label_en": "Medication (7 days)"
+              },
+              {
+                "amount": 3300,
+                "category": "admin_fee",
+                "label": "診断書料",
+                "label_en": "Certificate fee"
+              },
+              {
+                "amount": 2800,
+                "category": "device_purchase",
+                "label": "足首サポーター",
+                "label_en": "Ankle supporter"
+              },
+              {
+                "amount": 610,
+                "category": "admin_fee",
+                "label": "消費税（10%）",
+                "label_en": "Consumption tax (10%)"
+              }
+            ],
+            "receipt_no": "NM-260920-031",
+            "subtotal": 15700,
+            "taxable": 6100,
+            "total": 16310,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "template": "u3_slip"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026/09/20",
+            "diagnoses": [
+              {
+                "code": "S93.4",
+                "label": "Sprain of right ankle",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Aoi NAKAMURA (Orthopedics)",
+            "history": "Twisted the right ankle on stairs. Swelling without fracture on X-ray.",
+            "hospital": "Naha Minato Clinic",
+            "issue_date": "2026/09/20",
+            "license": "MD-JP-0091234",
+            "outcome": "Outpatient. Brace for two weeks.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "title_local": "診断書",
+            "treatment": "Elastic bandage and ankle supporter. Analgesic for seven days."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "expected": {
+        "currency": "JPY",
+        "total": 16310
+      },
+      "id": "U3_naha_clinic",
+      "patient": {
+        "dob": "1999-01-25",
+        "name": "Jiwon MOON",
+        "passport": "M19990125",
+        "patient_id": "NM-2026-0512"
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "Japanese clinic register-slip receipt with a tax line"
+    },
+    {
+      "documents": [
+        {
+          "data": {
+            "account": "ACCT 5514-20260914",
+            "address": "1700 Lincoln Street, Denver, CO 80203 (SYNTHETIC)",
+            "currency": "USD",
+            "hospital": "Denver Front Range Hospital",
+            "items": [
+              {
+                "amount": 1850.0,
+                "category": "emergency_fee",
+                "label": "ED VISIT LVL 3",
+                "qty": 1,
+                "unit": 1850.0
+              },
+              {
+                "amount": 1275.0,
+                "category": "imaging",
+                "label": "CT HEAD W/O CONTRAST",
+                "qty": 1,
+                "unit": 1275.0
+              },
+              {
+                "amount": 385.0,
+                "category": "lab",
+                "label": "LAB - COMPREHENSIVE PANEL",
+                "qty": 1,
+                "unit": 385.0
+              },
+              {
+                "amount": 85.0,
+                "category": "medication",
+                "label": "PHARMACY - ONDANSETRON 4MG",
+                "qty": 1,
+                "unit": 85.0
+              },
+              {
+                "amount": 655.0,
+                "category": "consultation",
+                "label": "PHYSICIAN SVC - EMERGENCY",
+                "qty": 1,
+                "unit": 655.0
+              },
+              {
+                "amount": -212.5,
+                "category": "other",
+                "label": "Prompt-pay discount (5%)",
+                "qty": 1,
+                "unit": -212.5
+              }
+            ],
+            "previous_balance": 0.0,
+            "service_date": "09/14/2026",
+            "statement_date": "09/28/2026",
+            "subtotal": 4250.0,
+            "total": 4037.5,
+            "visit": "Emergency (outpatient) - self-pay, international visitor"
+          },
+          "doc_type": "receipt",
+          "template": "u4_desc_first"
+        },
+        {
+          "data": {
+            "date_of_visit": "09/14/2026",
+            "diagnoses": [
+              {
+                "code": "S06.0X0A",
+                "label": "Concussion without loss of consciousness",
+                "system": "ICD-10-CM"
+              },
+              {
+                "code": "R11.0",
+                "label": "Nausea",
+                "system": "ICD-10-CM"
+              }
+            ],
+            "doctor": "Dr. Miguel SANTOS (Emergency Medicine)",
+            "history": "Slipped on a hotel staircase and struck the head. No loss of consciousness.",
+            "hospital": "Denver Front Range Hospital",
+            "issue_date": "09/14/2026",
+            "license": "CO-MD-55210",
+            "outcome": "Outpatient. Head-injury precautions explained.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "CT head without contrast, normal. Observation for four hours."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "expected": {
+        "currency": "USD",
+        "total": 4037.5
+      },
+      "id": "U4_denver_bill",
+      "patient": {
+        "dob": "2001-07-08",
+        "name": "Yuna BAE",
+        "passport": "M20010708",
+        "patient_id": "MRN 77120-445"
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "US itemized bill with a nonzero adjustment line"
+    },
+    {
+      "documents": [
+        {
+          "data": {
+            "address": "No. 88 Pudong Avenue, Shanghai (SYNTHETIC)",
+            "currency": "CNY",
+            "department": "Gastroenterology",
+            "fx_note": "参考：约 USD 380.20 (For reference only)",
+            "hospital": "Shanghai Pudong United Hospital",
+            "hospital_cn": "上海浦东联合医院",
+            "invoice_no": "FP-260922-207",
+            "issue_date": "2026-09-22",
+            "items": [
+              {
+                "amount": 50.0,
+                "category": "consultation",
+                "label": "挂号费",
+                "label_en": "Registration"
+              },
+              {
+                "amount": 680.0,
+                "category": "lab",
+                "label": "检查费",
+                "label_en": "Lab tests"
+              },
+              {
+                "amount": 450.0,
+                "category": "imaging",
+                "label": "B超费",
+                "label_en": "Ultrasound"
+              },
+              {
+                "amount": 386.5,
+                "category": "medication",
+                "label": "药费",
+                "label_en": "Medication"
+              },
+              {
+                "amount": 1200.0,
+                "category": "procedure",
+                "label": "治疗费",
+                "label_en": "Treatment"
+              }
+            ],
+            "total": 2766.5,
+            "visit": "Outpatient"
+          },
+          "doc_type": "receipt",
+          "template": "u5_fapiao"
+        },
+        {
+          "data": {
+            "date_of_visit": "2026-09-22",
+            "diagnoses": [
+              {
+                "code": "K29.1",
+                "label": "Acute gastritis",
+                "system": "ICD-10"
+              }
+            ],
+            "doctor": "Dr. Wei LI (Gastroenterology)",
+            "history": "Upper abdominal pain and nausea for one day.",
+            "hospital": "Shanghai Pudong United Hospital",
+            "issue_date": "2026-09-22",
+            "license": "SH-DOC-33410",
+            "outcome": "Outpatient. Bland diet for one week.",
+            "style": "simple",
+            "title": "MEDICAL CERTIFICATE",
+            "treatment": "Antacid medication for seven days."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_simple"
+        }
+      ],
+      "expected": {
+        "currency": "CNY",
+        "total": 2766.5
+      },
+      "id": "U5_pudong_receipt",
+      "patient": {
+        "dob": "1995-09-30",
+        "name": "Seojun HAN",
+        "passport": "M19950930",
+        "patient_id": "PD-2026-8821"
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "Chinese hospital receipt with a reference FX memo"
+    },
+    {
+      "documents": [
+        {
+          "data": {
+            "address": "4300 Westbank Drive, Austin, TX 78746 (SYNTHETIC)",
+            "currency": "USD",
+            "hospital": "Austin Hill Country Urgent Care",
+            "items": [
+              {
+                "amount": 320.0,
+                "category": "consultation",
+                "label": "Office visit"
+              },
+              {
+                "amount": 145.0,
+                "category": "lab",
+                "label": "Wound culture"
+              },
+              {
+                "amount": 68.9,
+                "category": "medication",
+                "label": "Antibiotics (14 days)"
+              },
+              {
+                "amount": 42.0,
+                "category": "other",
+                "label": "Dressing supplies"
+              }
+            ],
+            "receipt_no": "UC-260925-076",
+            "service_date": "09/25/2026",
+            "total": 575.9,
+            "visit": "Urgent care (outpatient)"
+          },
+          "doc_type": "receipt",
+          "template": "u6_compact"
+        },
+        {
+          "data": {
+            "date_of_visit": "September 25, 2026",
+            "diagnoses": [
+              {
+                "code": "L03.115",
+                "label": "Cellulitis of right lower limb",
+                "system": "ICD-10-CM"
+              },
+              {
+                "code": "E11.9",
+                "label": "Type 2 diabetes mellitus without complications",
+                "system": "ICD-10-CM"
+              }
+            ],
+            "doctor": "Emily Carter, MD",
+            "history": "Ms. Chaewon SEO was seen on September 25, 2026 for a spreading redness of the right lower leg.",
+            "hospital": "Austin Hill Country Urgent Care",
+            "issue_date": "September 25, 2026",
+            "license": "TX-MD-88120",
+            "outcome": "Outpatient. Return if the redness spreads.",
+            "style": "letter",
+            "title": "Medical Certificate",
+            "treatment": "Oral antibiotics for fourteen days. Wound dressing applied."
+          },
+          "doc_type": "medical_certificate",
+          "template": "cert_letter"
+        }
+      ],
+      "expected": {
+        "currency": "USD",
+        "total": 575.9
+      },
+      "id": "U6_austin_urgent",
+      "patient": {
+        "dob": "1992-04-17",
+        "name": "Chaewon SEO",
+        "passport": "M19920417",
+        "patient_id": "AH-2026-1190",
+        "title": "Ms."
+      },
+      "policy": {
+        "enrolled_on": "2026-07-01",
+        "paid_so_far_krw": 0,
+        "product": "기본형 해외여행 실손의료보험",
+        "sum_insured_krw": 10000000
+      },
+      "title": "Compact US receipt plus a letter-style English certificate"
+    }
+  ]
+}

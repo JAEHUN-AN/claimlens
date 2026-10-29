@@ -1,0 +1,91 @@
+{
+  "tool": "trips-check",
+  "cases": [
+    {
+      "case": "T1_bangkok_food_poisoning",
+      "uploads": 3,
+      "status": 400,
+      "badge": "",
+      "title": "",
+      "questions": [],
+      "cost_usd": 0.0,
+      "error": "Upload exactly 2 images: the receipt and the certificate.",
+      "verdict": "PASS",
+      "note": "Upload exactly 2 images: the receipt and the certificate."
+    },
+    {
+      "case": "T2_danang_scooter",
+      "uploads": 2,
+      "status": 200,
+      "badge": "needs_review",
+      "title": "Human review: no decision path.",
+      "questions": [],
+      "cost_usd": 0.027533000000000002,
+      "error": "",
+      "verdict": "PASS",
+      "note": ""
+    },
+    {
+      "case": "T3_setagaya_fever",
+      "uploads": 2,
+      "status": 200,
+      "badge": "needs_manual_check",
+      "title": "Human review: receipt checks failed.",
+      "questions": [
+        {
+          "question": "Read 1 of 2 failed its receipt checks (lines_sum_total); a narrow re-read did not fix them — what is printed?",
+          "why_needed": "Deterministic checks failed twice; a person must confirm the printed numbers before any decision."
+        },
+        {
+          "question": "Read 2 of 2 failed its receipt checks (lines_sum_total); a narrow re-read did not fix them — what is printed?",
+          "why_needed": "Deterministic checks failed twice; a person must confirm the printed numbers before any decision."
+        }
+      ],
+      "cost_usd": 0.023885,
+      "error": "",
+      "verdict": "PASS (earlier stop)",
+      "note": "badge needs_manual_check, want needs_review"
+    },
+    {
+      "case": "T4_paris_pharmacy",
+      "uploads": 1,
+      "status": 400,
+      "badge": "",
+      "title": "",
+      "questions": [],
+      "cost_usd": 0.0,
+      "error": "Upload exactly 2 images: the receipt and the certificate.",
+      "verdict": "PASS",
+      "note": "Upload exactly 2 images: the receipt and the certificate."
+    },
+    {
+      "case": "T5_honolulu_urgent",
+      "uploads": 3,
+      "status": 400,
+      "badge": "",
+      "title": "",
+      "questions": [],
+      "cost_usd": 0.0,
+      "error": "Upload exactly 2 images: the receipt and the certificate.",
+      "verdict": "PASS",
+      "note": "Upload exactly 2 images: the receipt and the certificate."
+    },
+    {
+      "case": "T6_guam_dental",
+      "uploads": 2,
+      "status": 200,
+      "badge": "needs_review",
+      "title": "Human review: no decision path.",
+      "questions": [],
+      "cost_usd": 0.02659,
+      "error": "",
+      "verdict": "PASS",
+      "note": ""
+    }
+  ],
+  "spent": 0.078008,
+  "aborted": false,
+  "cache_before": "(clean)",
+  "cache_after": "(clean)",
+  "recorded_at": "2026-10-29T15:56:07.850509+00:00"
+}
