@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import all_passed, receipt_checks
 from claimlens.codes import DISCLAIMER as CODE_DISCLAIMER
 from claimlens.codes import convert_diagnosis
 from claimlens.packlang import LANG_NAMES, source_sentences
@@ -188,7 +188,7 @@ def build_pack(
         if diag.get("code")
         else None
     )
-    verified = all_passed([*check_kr_bill(bill), *check_kr_lines(receipt)])
+    verified = all_passed(receipt_checks(receipt))
     return {
         "sample": sample_id,
         "variant": variant,

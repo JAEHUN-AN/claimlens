@@ -109,7 +109,7 @@ def test_model_table_has_files_row_and_facts():
     assert any("Send documents by file id" in row and "4,023 tokens" in row
                for row in rows)
     assert sum("267 fields read" in row for row in rows) == 1
-    assert sum("12/15 fields match hosted" in row for row in rows) == 1
+    assert sum("11/15 fields match hosted" in row for row in rows) == 1
 
 
 def test_readme_table_matches_rendered():

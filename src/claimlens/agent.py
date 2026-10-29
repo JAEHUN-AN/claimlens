@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from claimlens import cache as replay_cache
-from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import all_passed, check_kr_bill, check_kr_lines, receipt_checks
 from claimlens.providers.meta import MODEL, cost_usd
 from claimlens.schema import strict_schema_of
 from claimlens.supervision import guard_terminal_tool
@@ -192,6 +192,8 @@ def tool_run_checks(state: AgentState) -> dict[str, Any]:
     if state.reading is None:
         return {"error": "no reading yet; call read_documents first."}
     receipt = state.reading["documents"][0]
+    # Recorded agent turns are keyed on this tool result; keep the old set
+    # until the turns are re-recorded live.
     bill = receipt.get("kr_bill") or {}
     checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
     return {
@@ -225,7 +227,7 @@ def tool_reread_cells(state: AgentState, cells: list[str], provider: Any) -> dic
     merged, corrected = merge_reread(receipt, reread)
     state.reading["documents"][0] = merged
     if corrected:
-        fixed = [*check_kr_bill(merged.get("kr_bill") or {}), *check_kr_lines(merged)]
+        fixed = receipt_checks(merged)
         state.reread_verified = all_passed(fixed)
     return {"corrected": corrected}
 
@@ -343,7 +345,7 @@ def tool_ask_user(
             k for k in state.hidden_cells if k in bill
         }:
             receipt = state.reading["documents"][0]
-            second = [*check_kr_bill(bill), *check_kr_lines(receipt)]
+            second = receipt_checks(receipt)
             if not all_passed(second):
                 for key in recorded:
                     bill[key] = None

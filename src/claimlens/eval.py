@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from claimlens import cache as replay_cache
 from claimlens.cache import CacheMissError
-from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import all_passed, receipt_checks
 from claimlens.prompts import READING_INSTRUCTIONS
 from claimlens.providers.meta import MetaProvider
 from claimlens.providers.replay import ReplayProvider
@@ -147,19 +147,19 @@ def compare(sample_id: str, truth: dict[str, Any], reading: dict[str, Any]) -> d
     if truth["kr_cells"] is None:
         kr_cells = "n/a"
         instit = "n/a"
-        checks = "n/a"
     else:
         exp_cells = truth["kr_cells"] or []
         if bill is None:
             kr_cells = f"0/{len(exp_cells)}"
             instit = "FAIL"
-            checks = "FAIL"
         else:
             hit = sum(1 for n, exp in enumerate(exp_cells, start=1) if bill.get(f"cell_{n}") == exp)
             kr_cells = f"{hit}/{len(exp_cells)}"
             instit = "ok" if bill.get("institution_type") == truth["institution"] else "FAIL"
-            full = [*check_kr_bill(bill), *check_kr_lines(receipt)]
-            checks = "pass" if all_passed(full) else "FAIL"
+    if truth["kr_cells"] is not None and bill is None:
+        checks = "FAIL"
+    else:
+        checks = "pass" if all_passed(receipt_checks(receipt)) else "FAIL"
     pii_found = set()
     for doc in docs:
         for item in doc.get("pii", []):

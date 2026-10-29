@@ -108,7 +108,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Extract facts from transcript | `muse-spark-1.3` (hosted) | Decides facts + supporting quotes; uncertain ones routed to confirm | 2 fact types need confirmation |
 | Compare documents (consistency) | `muse-spark-1.3` (hosted) | Decides mismatch findings from quoted evidence; code drops unquoted claims | — |
 | Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same labels for comparison; forced `submit_labels` tool call | — |
-| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call | 12/15 fields match hosted |
+| Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call | 11/15 fields match hosted |
 | Mask seals and signatures | `sam-3.1` (hosted) | Decides seal/signature boxes; painted on a copy | 2 masked copies |
 
 Every number shown to a user comes from a document reading, a deterministic check,

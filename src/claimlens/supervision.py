@@ -65,6 +65,7 @@ def verify_receipt_gate(state: Any) -> dict[str, Any]:
     receipt = (state.reading or {}).get("documents", [{}])[0]
     bill = receipt.get("kr_bill")
     if not bill:
+        # Recorded agent turns are keyed on this feedback; keep it stable.
         return {"passed": True, "feedback": "no bill checks for non-Korean receipts."}
     checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
     if all_passed(checks):

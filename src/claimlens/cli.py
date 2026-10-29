@@ -8,7 +8,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from claimlens.checks import all_passed, check_kr_bill
+from claimlens.checks import all_passed
+from claimlens.checks import receipt_checks as check_receipt
 from claimlens.reader import read_sample
 
 
@@ -22,12 +23,13 @@ def _emit(text: str, end: str = "\n") -> None:
 
 def receipt_checks(envelope: dict[str, Any]) -> list[dict[str, Any]] | None:
     docs = envelope["result"].get("documents", [])
-    bills = [(i, d["kr_bill"]) for i, d in enumerate(docs) if d.get("kr_bill")]
+    bills = [(i, d) for i, d in enumerate(docs)
+             if d.get("kr_bill") or d.get("doc_type") == "receipt"]
     if not bills:
         return None
     out = []
-    for i, bill in bills:
-        checks = check_kr_bill(bill)
+    for i, doc in bills:
+        checks = check_receipt(doc)
         out.append(
             {
                 "document": i,
@@ -47,7 +49,8 @@ def verify_envelope(
     from claimlens.verify import verify_receipt
 
     docs = envelope["result"].get("documents", [])
-    bills = [(i, d) for i, d in enumerate(docs) if d.get("kr_bill")]
+    bills = [(i, d) for i, d in enumerate(docs)
+             if d.get("kr_bill") or d.get("doc_type") == "receipt"]
     if not bills:
         return None
     images = resolve_sample_images(Path(sample), variant)
@@ -456,16 +459,15 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
              "fresh live reads only, unique cache tags, temp cache dir;",
              "committed cache/ stays untouched.",
              f"git status cache/: {hard_eval.git_cache_status()}"]
-    total_reads = total_re = 0
+    total_reads = total_verify = 0
     for name, plan in plans.items():
         cases = plan["cases"]
-        kr = sum(1 for c in cases if c["sample"].startswith(("S2", "S3")))
-        lines.append(gate_eval.estimate_text(name, len(cases), kr, args.repeat))
+        lines.append(gate_eval.estimate_text(name, len(cases), args.repeat))
         total_reads += len(cases) * args.repeat * 2
-        total_re += kr * args.repeat * 2
-    lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_re} re-reads; "
+        total_verify += len(cases) * args.repeat * 2
+    lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_verify} verify re-reads; "
                  f"estimate ${total_reads * hard_eval.BASE_EST:.2f}"
-                 f"-${total_reads * hard_eval.BASE_EST + total_re * hard_eval.REREAD_EST:.2f}.")
+                 f"-${total_reads * hard_eval.BASE_EST + total_verify * hard_eval.REREAD_EST:.2f}.")
     if not args.execute:
         lines.append("Stopped before any API call. Re-run with --execute to run it.")
         _emit("\n".join(lines))

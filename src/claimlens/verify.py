@@ -1,4 +1,4 @@
-"""Verify-and-re-read loop for Korean bills (SPEC 5.6). One re-read max."""
+"""Verify-and-re-read loop for receipts (SPEC 5.6). One re-read max."""
 
 from copy import deepcopy
 from pathlib import Path
@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, create_model
 
-from claimlens.checks import BillCheck, all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import BillCheck, all_passed, receipt_checks
 from claimlens.schema import LineItem, strict_schema_of
 
 CHECK_CELLS: dict[str, list[str]] = {
@@ -39,6 +39,9 @@ CATEGORIES = (
 )
 
 
+TOTAL_CHECKS = ("total_positive", "lines_sum_total")
+
+
 def involved_cells(failed: list[BillCheck], receipt: dict[str, Any]) -> list[str]:
     """Cell keys involved in the failed checks, sorted and unique."""
     keys: set[str] = set()
@@ -56,6 +59,8 @@ def involved_cells(failed: list[BillCheck], receipt: dict[str, Any]) -> list[str
                 keys.add(f"row_{i}_col_{n}")
         elif check.name in LINES_CHECKS:
             keys.add("line_items")
+        elif check.name in TOTAL_CHECKS:
+            keys.add("total_amount")
     return sorted(keys)
 
 
@@ -64,17 +69,24 @@ def build_reread_model(cell_keys: list[str]) -> type[BaseModel]:
     fields: dict[str, Any] = {
         key: (int | None, Field(default=None, description=f"Re-read value for {key}."))
         for key in cell_keys
-        if key != "line_items"
+        if key not in ("line_items", "total_amount")
     }
     if "line_items" in cell_keys:
         fields["line_items"] = (
             list[LineItem],
             Field(description="Re-read itemized charge table, one entry per row."),
         )
+    if "total_amount" in cell_keys:
+        fields["total_amount"] = (
+            float | None,
+            Field(default=None, description="Re-read receipt total as printed."),
+        )
     return create_model("RereadCells", **fields)  # type: ignore[call-overload]
 
 
 def _describe_key(key: str, receipt: dict[str, Any]) -> str:
+    if key == "total_amount":
+        return "the receipt total (total_amount)"
     if key == "line_items":
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         return (
@@ -99,6 +111,13 @@ def _describe_key(key: str, receipt: dict[str, Any]) -> str:
 
 def build_reread_instructions(cell_keys: list[str], receipt: dict[str, Any]) -> str:
     """Narrow prompt naming only the failed cells."""
+    if cell_keys == ["total_amount"]:
+        return (
+            "You previously read a receipt. "
+            "Re-read ONLY the receipt total (total_amount) from the same image, "
+            "copying the printed number exactly without commas. Never compute, infer, "
+            "or copy from other amounts. Use null only when unreadable."
+        )
     items = "; ".join(_describe_key(k, receipt) for k in cell_keys)
     text = (
         "You previously read a Korean receipt (별지 제6호서식). "
@@ -120,14 +139,21 @@ def merge_reread(
 ) -> tuple[dict[str, Any], list[str]]:
     """Merge only fresh readings; never compute. Returns (merged, corrected)."""
     merged = deepcopy(receipt)
+    if "kr_bill" in merged:
+        merged["kr_bill"] = merged.get("kr_bill") or {}
     bill = merged.get("kr_bill") or {}
-    merged["kr_bill"] = bill
     rows = bill.get("charge_rows") or []
     corrected: list[str] = []
     for key, value in reread.items():
         if key == "line_items":
             if isinstance(value, list) and merged.get("line_items") != value:
                 merged["line_items"] = value
+                corrected.append(key)
+            continue
+        if key == "total_amount":
+            if (isinstance(value, (int, float)) and not isinstance(value, bool)
+                    and value != merged.get("total_amount")):
+                merged["total_amount"] = value
                 corrected.append(key)
             continue
         if value is None or isinstance(value, bool):
@@ -157,8 +183,7 @@ def merge_reread(
 
 def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any) -> dict[str, Any]:
     """Check once; on failure do one narrow re-read and check again."""
-    bill = receipt.get("kr_bill") or {}
-    first = [*check_kr_bill(bill), *check_kr_lines(receipt)]
+    first = receipt_checks(receipt)
     if all_passed(first):
         return {"status": "verified", "checks": first, "corrected": [], "receipt": receipt}
     failed = [c for c in first if not c.passed]
@@ -168,7 +193,7 @@ def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any) -> dict[
     instructions = build_reread_instructions(keys, receipt)
     reread = provider.read_documents([image], instructions, schema, result_model=model)
     merged, corrected = merge_reread(receipt, reread)
-    second = [*check_kr_bill(merged.get("kr_bill") or {}), *check_kr_lines(merged)]
+    second = receipt_checks(merged)
     if all_passed(second):
         return {
             "status": "verified",

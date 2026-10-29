@@ -192,6 +192,20 @@ def gate_questions(diffs: list[tuple[str, str, str]]) -> list[dict[str, str]]:
     ]
 
 
+def verify_questions(failures: list[tuple[int, list[str]]]) -> list[dict[str, str]]:
+    """One ask_user question per read whose receipt checks failed twice."""
+    out = []
+    for pos, names in failures:
+        what = ", ".join(names) if names else "receipt checks"
+        out.append({
+            "question": f"Read {pos + 1} of 2 failed its receipt checks ({what}); "
+                        "a narrow re-read did not fix them — what is printed?",
+            "why_needed": "Deterministic checks failed twice; a person must confirm "
+                          "the printed numbers before any decision.",
+        })
+    return out
+
+
 def missing_facts(person: dict[str, Any] | None) -> list[str]:
     """Panel fields with no answer yet. False is an answer; blank is not."""
     person = person or {}
@@ -281,7 +295,7 @@ def run_live(
     ask_user questions instead of dead-ending; answering continues the
     same run (see run_continue) with no new reading call.
     """
-    from claimlens.checks import check_kr_bill, check_kr_lines
+    from claimlens.checks import receipt_checks
     from claimlens.engine import load_scenarios
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
@@ -344,6 +358,7 @@ def run_live(
         order_failed = False
         read_failed: int | None = None
         raw_counts: list[int] = []
+        receipt_images: list[int] = []
         for pos, raw in enumerate(raws):
             if raw is None:
                 read_failed = pos + 1
@@ -351,8 +366,12 @@ def run_live(
             # Count before order_docs normalizes: a dropped third document
             # must still stop the gate, never pass on the ordered pair.
             raw_counts.append(len(raw.get("documents", [])) if isinstance(raw, dict) else -1)
+            docs = raw.get("documents", []) if isinstance(raw, dict) else []
+            receipt_idx = next(
+                (i for i, d in enumerate(docs) if d.get("doc_type") == "receipt"), 0)
             try:
                 readings.append(order_docs(raw))
+                receipt_images.append(receipt_idx)
             except ValueError:
                 order_failed = True
         receipts = [r["documents"][0] for r in readings]
@@ -360,17 +379,16 @@ def run_live(
         started = time.monotonic()
         marks = [len(p.calls) for p in providers]
         details = []
+        verify_failed: list[tuple[int, list[str]]] = []
         for pos, receipt in enumerate(receipts):
-            bill = receipt.get("kr_bill")
-            if bill:
-                checks = [*check_kr_bill(bill), *check_kr_lines(receipt)]
-                names = f"{sum(c.passed for c in checks)}/{len(checks)} pass"
-                verified = verify_receipt(receipt, paths[0], providers[pos])
-                receipts[pos] = verified["receipt"]
-                readings[pos]["documents"][0] = verified["receipt"]
-                details.append(f"{names}; re-read: {verified['status']}")
-            else:
-                details.append("no bill checks for non-Korean receipts")
+            checks = receipt_checks(receipt)
+            names = f"{sum(c.passed for c in checks)}/{len(checks)} pass"
+            verified = verify_receipt(receipt, paths[receipt_images[pos]], providers[pos])
+            receipts[pos] = verified["receipt"]
+            readings[pos]["documents"][0] = verified["receipt"]
+            details.append(f"{names}; re-read: {verified['status']}")
+            if verified["status"] == "needs_manual_check":
+                verify_failed.append((pos, verified.get("failing", [])))
         tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
         made = any(_step_usage(p, mark)[1] for p, mark in zip(providers, marks))
         reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
@@ -387,6 +405,18 @@ def run_live(
               0 if reused_only else tokens)
 
         matched = match_sample(blobs)
+        if verify_failed:
+            return {
+                "steps": steps,
+                "result": {"badge": "needs_manual_check",
+                           "title": "Human review: receipt checks failed.", "note": ""},
+                "tokens_total": tokens_total,
+                "cost_usd": _run_spend(providers),
+                "retries_429": _run_retries(providers),
+                "matched_sample": matched,
+                "scenario": declared,
+                "questions": verify_questions(verify_failed),
+            }
         started = time.monotonic()
         read_questions: list[dict[str, str]] | None = None
         if read_failed is not None:

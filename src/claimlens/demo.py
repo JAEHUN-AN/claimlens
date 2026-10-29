@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import all_passed, receipt_checks
 from claimlens.claimpack import (
     CHECKLIST,
     GENERIC_DEADLINE,
@@ -146,12 +146,7 @@ def _reading_section(
 ) -> dict[str, Any]:
     docs = reading["documents"]
     receipt, cert = docs[0], docs[1]
-    bill = receipt.get("kr_bill")
-    checks = (
-        [{"name": c.name, "passed": c.passed} for c in (*check_kr_bill(bill), *check_kr_lines(receipt))]
-        if bill
-        else []
-    )
+    checks = [{"name": c.name, "passed": c.passed} for c in receipt_checks(receipt)]
     total = receipt.get("total_amount")
     if total is None:
         total_ref: Any = "-"
@@ -181,7 +176,7 @@ def _reading_section(
         "total": total_ref,
         "diags": diags,
         "checks": checks,
-        "all_passed": all_passed([*check_kr_bill(bill), *check_kr_lines(receipt)]) if bill else None,
+        "all_passed": all_passed(receipt_checks(receipt)),
     }
 
 

@@ -26,7 +26,7 @@ from typing import Any
 from claimlens import cache as replay_cache
 from claimlens import eval as base_eval
 from claimlens.cache import CacheMissError
-from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+from claimlens.checks import all_passed, receipt_checks
 from claimlens.hard_images import ensure_hard_set
 from claimlens.prompts import READING_INSTRUCTIONS
 from claimlens.providers.meta import MODEL, MetaProvider
@@ -187,7 +187,7 @@ def run_once(sample_id: str, images: list[Path], truth: dict[str, Any],
              unreadable: dict[str, Any], replay_dir: Path | None, live_dir: Path,
              force_live: bool,
              provider_factory: Callable[[], Any]) -> dict[str, Any]:
-    """One read plus the KR check/re-read pipeline; returns the run record.
+    """One read plus the check/re-read pipeline; returns the run record.
 
     Run 1 replays from replay_dir (committed cache, or hard/ for hard
     cases) and falls back to a live call stored under live_dir; later
@@ -218,27 +218,25 @@ def run_once(sample_id: str, images: list[Path], truth: dict[str, Any],
         "base_wrongs": _numeric_wrongs(truth, result, unreadable),
     }
     receipt = result["documents"][0] if result.get("documents") else {}
-    is_kr = truth["kr_cells"] is not None
     record["verify"] = None
     record["checks_first"] = None
     record["stopped"] = False
     final = result
-    if is_kr:
-        first = [*check_kr_bill(receipt.get("kr_bill") or {}), *check_kr_lines(receipt)]
-        record["checks_first"] = "pass" if all_passed(first) else "FAIL"
-        if not all_passed(first):
-            with cache_dir_scope(live_dir):
-                verifier = provider_factory()
-                seen = len(verifier.calls)
-                verified = verify_receipt(receipt, images[0], verifier)
-                live_calls += [vars(c) for c in verifier.calls[seen:]]
-            record["verify"] = {
-                "status": verified["status"],
-                "corrected": verified.get("corrected", []),
-            }
-            rest = result.get("documents", [])[1:]
-            final = {"documents": [verified["receipt"], *rest]}
-            record["stopped"] = verified["status"] == "needs_manual_check"
+    first = receipt_checks(receipt)
+    record["checks_first"] = "pass" if all_passed(first) else "FAIL"
+    if not all_passed(first):
+        with cache_dir_scope(live_dir):
+            verifier = provider_factory()
+            seen = len(verifier.calls)
+            verified = verify_receipt(receipt, images[0], verifier)
+            live_calls += [vars(c) for c in verifier.calls[seen:]]
+        record["verify"] = {
+            "status": verified["status"],
+            "corrected": verified.get("corrected", []),
+        }
+        rest = result.get("documents", [])[1:]
+        final = {"documents": [verified["receipt"], *rest]}
+        record["stopped"] = verified["status"] == "needs_manual_check"
     record["final"] = compare_hard(sample_id, truth, final, unreadable)
     record["final_values"] = field_values(final)
     wrongs = _numeric_wrongs(truth, final, unreadable)
@@ -260,12 +258,11 @@ def plan_hard(seed: int, out_dir: Path, samples_dir: Path, repeat: int,
             canonical_live += not cached
             cases.append({**case, "cached": cached})
     n = len(cases)
-    kr = sum(1 for c in cases if c["sample"].startswith(("S2", "S3")))
     return {
         "cases": cases,
         "base_live": canonical_live + n * (repeat - 1),
         "base_replay": n - canonical_live,
-        "reread_max": kr * repeat,
+        "reread_max": n * repeat,
     }
 
 
@@ -283,12 +280,11 @@ def plan_normal(samples_dir: Path, repeat: int,
                 missing += not cached
                 cases.append({"sample": sample, "variant": variant, "cached": cached})
     n = len(cases)
-    kr = sum(1 for c in cases if c["sample"].startswith(("S2", "S3")))
     return {
         "cases": cases,
         "base_live": missing + n * (repeat - 1),
         "base_replay": n - missing,
-        "reread_max": kr * repeat,
+        "reread_max": n * repeat,
     }
 
 

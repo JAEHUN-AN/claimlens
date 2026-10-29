@@ -27,11 +27,12 @@ def test_gate_plan_prints_and_stops(capsys, tmp_path):
 
 
 def test_gate_plan_estimate_math():
-    text = gate_eval.estimate_text("hard", 24, 16, 3)
+    text = gate_eval.estimate_text("hard", 24, 3)
     assert "72 pairs" in text
-    assert "144 reads + up to 96 re-reads" in text
+    assert "144 reads + up to 144 verify re-reads" in text
     assert f"${144 * BASE_EST:.2f}" in text
-    assert f"${144 * BASE_EST + 96 * REREAD_EST:.2f}" in text
+    hi = 144 * BASE_EST + 144 * REREAD_EST
+    assert f"${hi:.2f}" in text
 
 
 class _GateStub:
@@ -87,22 +88,22 @@ def test_execute_stub_pairs(tmp_path):
                                 _factory(script, stubs), tmp_path)
     summary = results["sets"]["normal"]
     assert summary["pairs"] == 3
-    assert summary["stops"] == 1
-    assert summary["leaks"] == 1
-    assert summary["spent"] == 0.06
-    assert summary["per_claim"] == 0.02
+    assert summary["stops"] == 2
+    assert summary["leaks"] == 0
+    assert summary["spent"] == 0.09
+    assert summary["per_claim"] == 0.03
     assert results["aborted"] is False
-    tags = [tag for stub in stubs for tag in stub.tags]
+    tags = [tag for stub in stubs for tag in stub.tags if tag]
     assert len(set(tags)) == 6
     assert all(tag.startswith(".gate41c-r1") for tag in tags)
     files = list(tmp_path.glob("gate_live_*.json"))
     assert len(files) == 1
     stored = json.loads(files[0].read_text(encoding="utf-8"))["sets"]["normal"]
-    assert stored["leaks"] == 1
+    assert stored["leaks"] == 0
     details = stored["pair_details"]
     assert len(details) == 3
-    assert [d["reached"] for d in details] == [0, 1, 0]
-    assert details[1]["wrong_fields"] == ["total"]
+    assert [d["reached"] for d in details] == [0, 0, 0]
+    assert details[1]["wrong_fields"] == []
     assert details[1]["case"] == {"sample": "A_niseko_wrist", "variant": "photo"}
     assert [v["total"] for v in details[1]["values"]] == [999999, 999999]
     assert sum(d["reached"] for d in details) == stored["leaks"]
@@ -147,16 +148,17 @@ def test_run_pair_disagree_never_passes():
                               ".gate41c-r2b-A_niseko_wrist-photo"]
 
 
-def test_run_pair_saves_case_values_and_wrong_fields():
+def test_run_pair_total_check_stops_agreeing_wrong_total():
     bad = _a_reading(total=999999)
     case = _case("A_niseko_wrist", None)
     record = gate_eval.run_pair(case, 1, _factory([bad, bad], []))
     assert record["agree"] is True
     assert record["case"] == {"sample": "A_niseko_wrist", "variant": "photo"}
     assert [v["total"] for v in record["values"]] == [999999, 999999]
-    assert record["wrong_fields"] == ["total"]
-    assert record["stopped_each"] == [False, False]
-    assert len(record["wrong_fields"]) == record["reached"] == 1
+    assert record["wrong_fields"] == []
+    assert record["stopped_each"] == [True, True]
+    assert record["stopped"] is True
+    assert record["reached"] == 0
 
 
 def test_run_pair_clean_agree_saves_empty_wrong_fields():

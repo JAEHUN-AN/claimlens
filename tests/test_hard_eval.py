@@ -189,7 +189,7 @@ def test_crop_guesses_count_as_wrong():
                                   reading, unreadable)["guesses"] == 2
 
 
-def test_non_kr_wrong_numbers_reach_without_checks():
+def test_non_kr_wrong_numbers_reach_when_checks_pass():
     scenarios = load_scenarios()
     truth = ground_truth(scenarios["A_niseko_wrist"])
     reading = {"documents": [
@@ -200,7 +200,8 @@ def test_non_kr_wrong_numbers_reach_without_checks():
          "diagnoses": [{"code": c} for c in truth["diag_codes"]], "pii": []},
     ]}
     record, _ = _run([reading], truth=truth, sample="A_niseko_wrist")
-    assert record["checks_first"] is None
+    assert record["checks_first"] == "pass"
+    assert record["verify"] is None
     assert record["stopped"] is False
     assert record["reached"] == record["wrong_numbers"] > 0
 
@@ -273,9 +274,10 @@ def test_plan_counts_without_network(tmp_path, monkeypatch):
     assert len(plan["cases"]) == 2
     assert plan["base_live"] == 2 + 2 * 2
     assert plan["base_replay"] == 0
-    assert plan["reread_max"] == 0
+    assert plan["reread_max"] == 2 * 3
     text = hard_eval.estimate_text(plan, "hard set x3")
     assert "6 live + 0 replay" in text
+    assert "narrow re-reads: up to 6" in text
     assert text.count("$") >= 2
 
 

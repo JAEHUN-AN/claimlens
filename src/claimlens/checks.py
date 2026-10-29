@@ -1,4 +1,8 @@
-"""Receipt arithmetic check for the Korean bill (SPEC 5.6). Deterministic, no model."""
+"""Receipt arithmetic checks (SPEC 5.6). Deterministic, no model.
+
+Korean bills get cell and row-sum checks; every other receipt gets a
+total check: the total is positive and equals the line-amount sum.
+"""
 
 from dataclasses import dataclass
 from typing import Any
@@ -120,6 +124,46 @@ def _number_or_none(value: Any) -> float | None:
     if isinstance(value, (int, float)):
         return float(value)
     return None
+
+
+def check_total_positive(receipt: dict[str, Any]) -> BillCheck:
+    """Every receipt total is a positive printed amount."""
+    total = _number_or_none(receipt.get("total_amount"))
+    if total is None:
+        return BillCheck("total_positive", None, None, False, "missing total_amount")
+    ok = total > 0
+    return BillCheck(
+        "total_positive", None, total, ok, "ok" if ok else f"total {total} not positive"
+    )
+
+
+def check_receipt_total(receipt: dict[str, Any]) -> list[BillCheck]:
+    """Arithmetic checks for non-Korean receipts: positive total, lines sum to it."""
+    total = _number_or_none(receipt.get("total_amount"))
+    lines = receipt.get("line_items") or []
+    amounts = [_number_or_none(i.get("amount")) for i in lines]
+    if any(a is None for a in amounts):
+        lines_sum = BillCheck("lines_sum_total", total, None, False, "missing line amount")
+    elif total is None:
+        lines_sum = BillCheck("lines_sum_total", None, sum(amounts), False, "missing total")
+    else:
+        found = sum(a for a in amounts if a is not None)
+        ok = abs(found - total) < 0.01
+        lines_sum = BillCheck(
+            "lines_sum_total", total, found, ok,
+            "ok" if ok else f"expected {total}, read {found}",
+        )
+    return [check_total_positive(receipt), lines_sum]
+
+
+def receipt_checks(receipt: dict[str, Any]) -> list[BillCheck]:
+    """The check set for what was read: Korean cells, or receipt totals."""
+    bill = receipt.get("kr_bill")
+    if bill:
+        # Korean totals already recompute from cells (6/7/8/10); keep this
+        # set byte-stable so recorded agent turns keyed on it still replay.
+        return [*check_kr_bill(bill), *check_kr_lines(receipt)]
+    return check_receipt_total(receipt)
 
 
 def check_kr_lines(receipt: dict[str, Any]) -> list[BillCheck]:

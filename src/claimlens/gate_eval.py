@@ -29,18 +29,17 @@ def default_provider_factory() -> Callable[[], Any]:
     return make
 
 
-def _verify_final(truth: dict[str, Any], reading: dict[str, Any], image: Path,
+def _verify_final(reading: dict[str, Any], image: Path,
                   provider: Any, calls: list[dict]) -> tuple[dict[str, Any], bool]:
-    """Verified final reading + stopped flag (KR bills only; else as read)."""
-    from claimlens.checks import all_passed, check_kr_bill, check_kr_lines
+    """Verified final reading + stopped flag (every receipt)."""
+    from claimlens.checks import all_passed, receipt_checks
     from claimlens.verify import verify_receipt
 
     final = reading
     stopped = False
-    if truth.get("kr_cells") is not None and reading.get("documents"):
+    if reading.get("documents"):
         receipt = reading["documents"][0]
-        first = [*check_kr_bill(receipt.get("kr_bill") or {}),
-                 *check_kr_lines(receipt)]
+        first = receipt_checks(receipt)
         if not all_passed(first):
             seen = len(provider.calls)
             verified = verify_receipt(receipt, image, provider)
@@ -72,7 +71,7 @@ def run_pair(case: dict[str, Any], round_no: int,
         reading = provider.read_documents(images, READING_INSTRUCTIONS,
                                           reading_schema(), cache_tag=tag)
         calls += [vars(c) for c in provider.calls[seen:]]
-        final, stopped = _verify_final(truth, reading, images[0], provider, calls)
+        final, stopped = _verify_final(reading, images[0], provider, calls)
         finals.append(final)
         stopped_each.append(stopped)
     values = [hard_eval.field_values(final) for final in finals]
@@ -140,12 +139,13 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
     return results
 
 
-def estimate_text(name: str, cases: int, kr_cases: int, repeat: int) -> str:
-    reads = cases * repeat * 2
-    rereads = kr_cases * repeat * 2
-    return (f"{name}: {cases} cases x{repeat} = {cases * repeat} pairs, "
-            f"{reads} reads + up to {rereads} re-reads; "
-            f"estimate ${reads * BASE_EST:.2f}-${reads * BASE_EST + rereads * REREAD_EST:.2f}.")
+def estimate_text(name: str, cases: int, repeat: int) -> str:
+    pairs = cases * repeat
+    reads = pairs * 2
+    verify_max = pairs * 2
+    return (f"{name}: {cases} cases x{repeat} = {pairs} pairs, "
+            f"{reads} reads + up to {verify_max} verify re-reads; "
+            f"estimate ${reads * BASE_EST:.2f}-${reads * BASE_EST + verify_max * REREAD_EST:.2f}.")
 
 
 def format_summary(results: dict[str, Any]) -> str:

@@ -8,7 +8,7 @@ def test_eval_sample_has_open_columns():
     opened = row["open"]
     assert opened["total"] == "ok"
     assert opened["lines"] == "6/6"
-    assert opened["checks"] == "n/a"
+    assert opened["checks"] == "pass"
     assert "reasoning" in opened["tokens"]
     assert opened["latency_ms"] > 0
 

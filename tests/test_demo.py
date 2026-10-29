@@ -176,8 +176,8 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     assert [r["sample"] for r in evaluation["rows"]] == ["A", "B", "C", "S2", "S3"]
     assert (evaluation["rows"][0]["lines"], evaluation["rows"][0]["pii"]) == ("6/6", "4/4")
     b, c, s2 = evaluation["rows"][1], evaluation["rows"][2], evaluation["rows"][3]
-    assert (b["lines"], b["diags"], b["checks"], b["pii"]) == ("7/7", "2/2", "n/a", "4/4")
-    assert (c["lines"], c["diags"], c["checks"], c["pii"]) == ("7/7", "2/2", "n/a", "4/4")
+    assert (b["lines"], b["diags"], b["checks"], b["pii"]) == ("7/7", "2/2", "pass", "4/4")
+    assert (c["lines"], c["diags"], c["checks"], c["pii"]) == ("7/7", "2/2", "pass", "4/4")
     assert (s2["lines"], s2["diags"], s2["checks"], s2["pii"]) == ("5/5", "1/1", "10/10 pass", "2/2")
     s3 = evaluation["rows"][4]
     assert (s3["total"], s3["lines"], s3["diags"], s3["checks"], s3["pii"]) == (
@@ -188,7 +188,7 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
         "3/4",
     )
     assert evaluation["open_line"] == (
-        "Open weights match hosted on A/B; differ on C total, S2 checks, S3 checks."
+        "Open weights match hosted on A/B; differ on C total, C checks, S2 checks, S3 checks."
     )
 
 
