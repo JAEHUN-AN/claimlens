@@ -100,8 +100,8 @@ def test_real_lines_are_pinned():
     entries = headline.lines(ROOT)
     assert entries[0]["en"] == (
         "Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the "
-        "double-read gate (38/72 pairs stopped, live gate); clean documents: 2 left, "
-        "1/30 stopped")
+        "double-read gate (39/72 pairs stopped, live gate); clean documents: 1 left, "
+        "5/30 stopped")
     assert entries[1]["en"].startswith("Agent scorecard: 8/8")
     assert entries[2]["en"] == "15 fault cases injected, no wrong number"
     assert entries[3]["en"] == (

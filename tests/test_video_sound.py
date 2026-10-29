@@ -111,3 +111,42 @@ def test_check_first_frame_matches_and_catches_mismatch(tmp_path):
     Image.new("RGB", (64, 36), (10, 200, 90)).save(ref)
     with pytest.raises(RuntimeError, match="does not match"):
         V.check_first_frame(mp4, board, tmp_path, "t-")
+
+
+def _make_vertical_fixture(tmp_path: Path):
+    """360x640 silent webm, like the vertical recorder now records."""
+    webm = tmp_path / "vert.webm"
+    subprocess.run(
+        [V.ffmpeg_bin(), "-y", "-f", "lavfi",
+         "-i", "testsrc=duration=8:size=360x640:rate=10",
+         "-c:v", "libvpx", str(webm)],
+        check=True, capture_output=True,
+    )
+    return webm
+
+
+def test_mux_scale_delivers_720x1280(tmp_path):
+    from PIL import Image
+
+    webm = _make_vertical_fixture(tmp_path)
+    small = tmp_path / "recorded.png"
+    V.extract_frame(webm, 4.0, small)
+    assert Image.open(small).size == (360, 640)
+    mp4 = tmp_path / "vert.mp4"
+    V.mux_sound(webm, mp4, 8.0, scale=(720, 1280))
+    big = tmp_path / "delivered.png"
+    V.extract_frame(mp4, 4.0, big)
+    assert Image.open(big).size == (720, 1280)
+
+
+def test_frame_check_matches_upscaled_output(tmp_path):
+    from PIL import Image
+
+    webm = _make_vertical_fixture(tmp_path)
+    mp4 = tmp_path / "vert.mp4"
+    V.mux_sound(webm, mp4, 8.0, scale=(720, 1280))
+    board = {"segments": [{"id": "vhook", "duration": 8.0}]}
+    ref = tmp_path / "vv-vhook_mid.png"
+    V.extract_frame(mp4, 4.0, ref)
+    assert Image.open(ref).size == (720, 1280)
+    assert V.check_first_frame(mp4, board, tmp_path, "vv-") < 1.0

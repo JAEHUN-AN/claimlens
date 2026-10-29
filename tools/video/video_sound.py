@@ -15,6 +15,7 @@ __all__ = [
     "have_ffmpeg",
     "mean_frame_diff",
     "mux_sound",
+    "scale_filter",
     "speed_filter",
     "speed_spans",
     "voice_at",
@@ -29,8 +30,15 @@ def have_ffmpeg() -> bool:
     return shutil.which(ffmpeg_bin()) is not None
 
 
+def scale_filter(width: int, height: int) -> str:
+    """Video filter: scale to width x height with lanczos resampling."""
+    if width <= 0 or height <= 0:
+        raise ValueError(f"bad scale target {width}x{height}")
+    return f"scale={width}:{height}:flags=lanczos"
+
+
 def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None,
-              lead: float | None = None) -> None:
+              lead: float | None = None, scale: tuple[int, int] | None = None) -> None:
     """Mux voice and/or music beds onto the silent webm. Raises on failure.
 
     voice: (wav_path, start_s, len_s). music: path or None. Music bed at
@@ -38,6 +46,8 @@ def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None,
     output at video length when a bed is short. H.264 + AAC out.
     lead: measured pre-roll seconds (context creation to first segment);
     cut exactly that and keep `total`. None keeps the legacy full-length mux.
+    scale: (width, height) to upscale in post (vertical: record 360x640,
+    deliver 720x1280); None keeps the recorded size.
     """
     cmd: list[str] = [ffmpeg_bin(), "-y", "-i", str(webm)]
     filters: list[str] = []
@@ -71,6 +81,8 @@ def mux_sound(webm: Path, out_mp4: Path, total: float, voice=None, music=None,
     if filters:
         cmd += ["-filter_complex", ";".join(filters)]
     cmd += maps + ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "veryfast"]
+    if scale is not None:
+        cmd += ["-vf", scale_filter(*scale)]
     if filters:
         cmd += ["-c:a", "aac", "-b:a", "128k", "-shortest"]
     else:

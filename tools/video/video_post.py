@@ -128,11 +128,14 @@ def resolve_post_inputs(board: dict, out_dir: Path, webm_name: str, actuals_name
 
 def run_post(board: dict, out_dir: Path, webm: Path, actuals: list[tuple[str, float, float]],
              lead: float, total: float | None, music: Path | None, prefix: str,
-             timeline_name: str, limit: float, voice=None) -> int:
+             timeline_name: str, limit: float, voice=None,
+             scale: tuple[int, int] | None = None) -> int:
     """Rush, mux, and frame-check a recorded webm. Returns an exit code.
 
     total=None keeps the exact cut length (vertical); otherwise -t total.
-    Every failure prints the full command and stderr.
+    scale=(width, height) upscales in the mux (vertical 360x640 -> 720x1280);
+    None keeps the recorded size. Every failure prints the full command
+    and stderr.
     """
     sped_path = webm.with_name(webm.stem + "_sped.mp4")
     try:
@@ -151,7 +154,8 @@ def run_post(board: dict, out_dir: Path, webm: Path, actuals: list[tuple[str, fl
     mp4 = webm.with_name(webm.stem + ".mp4")
     keep = total if total is not None else final_len - lead
     try:
-        VS.mux_sound(video_src, mp4, keep, voice=voice, music=music, lead=lead)
+        VS.mux_sound(video_src, mp4, keep, voice=voice, music=music, lead=lead,
+                     scale=scale)
     except subprocess.CalledProcessError as exc:
         _show("mux", exc)
         return 2

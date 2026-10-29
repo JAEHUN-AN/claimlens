@@ -327,6 +327,37 @@ def test_mux_sound_legacy_without_lead(monkeypatch, tmp_path):
     assert "-t" not in cmds[0]
 
 
+def test_scale_filter_pins_lanczos():
+    assert V.scale_filter(720, 1280) == "scale=720:1280:flags=lanczos"
+    with pytest.raises(ValueError, match="bad scale target"):
+        V.scale_filter(0, 1280)
+
+
+def test_mux_sound_upscales_only_when_asked(monkeypatch, tmp_path):
+    cmds = []
+
+    def fake_run(cmd, **kwargs):
+        cmds.append(cmd)
+
+    monkeypatch.setattr(VS.subprocess, "run", fake_run)
+    webm = tmp_path / "in.webm"
+    webm.write_bytes(b"fake")
+    V.mux_sound(webm, tmp_path / "out.mp4", 45.0, scale=(720, 1280))
+    assert "-vf" in cmds[0]
+    assert cmds[0][cmds[0].index("-vf") + 1] == "scale=720:1280:flags=lanczos"
+    V.mux_sound(webm, tmp_path / "out2.mp4", 45.0)
+    assert "-vf" not in cmds[1]
+
+
+def test_vertical_records_viewport_size_upscales_in_post():
+    import record_vertical as RV
+
+    assert (RV.VIEWPORT_W, RV.VIEWPORT_H) == (360, 640)
+    assert (RV.RECORD_W, RV.RECORD_H) == (360, 640)
+    assert (RV.RECORD_W, RV.RECORD_H) == (RV.VIEWPORT_W, RV.VIEWPORT_H)
+    assert (RV.OUTPUT_W, RV.OUTPUT_H) == (720, 1280)
+
+
 def test_mean_frame_diff_same_and_different(tmp_path):
     from PIL import Image
 

@@ -16,7 +16,7 @@ Theme: Build for Your World.
 
 <!-- measured:start -->
 **Measured:**
-- Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the double-read gate (38/72 pairs stopped, live gate); clean documents: 2 left, 1/30 stopped
+- Hard documents ×3 runs: 47 wrong numbers left single read, 2 with the double-read gate (39/72 pairs stopped, live gate); clean documents: 1 left, 5/30 stopped
 - Agent scorecard: 8/8 (asks when it must, never invents a number)
 - 15 fault cases injected, no wrong number
 - Per claim: p50 22.97 s, p95 30.32 s, $0.0355 (5 concurrent live runs)
@@ -248,6 +248,20 @@ on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 
 The demo video is recorded by `uv run python tools/video/record.py main|vertical`
 from the replay caches plus one live run.
 
+## Data sources and rights
+
+- **Documents:** every receipt, certificate and voice sample in `samples/` is synthetic.
+- **Diagnosis codes:** no code table is shipped. `codes.py` holds a handful of code identifiers
+  inside its conversion rules. ICD-10 © World Health Organization. ICD-10-CM is published by
+  CDC/NCHS and CMS; its use here does not imply endorsement by CDC/HHS or the U.S. Government.
+  KCD (Korean Standard Classification of Diseases) is issued by Statistics Korea.
+- **Policy terms:** the engine reads the Korean standard insurance terms from the National Law
+  Information Center open data (non-commercial use, source attributed). The demo and recordings
+  show clause numbers and titles only, never the clause text.
+- **Engine:** [clausegraph](https://github.com/JAEHUN-AN/clausegraph), pre-existing and pinned to
+  a tag. Its code is MIT; the data it collects follows each source's terms, listed in its LICENSE.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The license covers this repository's code; the sources above keep
+their own terms.

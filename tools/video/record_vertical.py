@@ -27,6 +27,13 @@ import video_post as P
 ROOT = Path(__file__).resolve().parent.parent.parent
 CARDS = ROOT / "tools" / "video" / "cards" / "cards.html"
 
+# Playwright does not scale video up: record at the viewport size and
+# upscale to the delivery size in post (lanczos). Screenshots stay sharp
+# via device_scale_factor=2, so they already match the delivery size.
+VIEWPORT_W, VIEWPORT_H = 360, 640
+RECORD_W, RECORD_H = 360, 640
+OUTPUT_W, OUTPUT_H = 720, 1280
+
 
 def dry_run(board: dict) -> int:
     with tempfile.TemporaryDirectory() as tmp:
@@ -97,12 +104,12 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
             try:
                 browser = pw.chromium.launch(channel="msedge", headless=True)
                 context = browser.new_context(
-                    viewport={"width": 360, "height": 640},
+                    viewport={"width": VIEWPORT_W, "height": VIEWPORT_H},
                     device_scale_factor=2,
                     is_mobile=True,
                     has_touch=True,
                     record_video_dir=str(out_dir),
-                    record_video_size={"width": 720, "height": 1280},
+                    record_video_size={"width": RECORD_W, "height": RECORD_H},
                 )
                 page = context.new_page()
                 video_t0 = time.monotonic()
@@ -142,7 +149,8 @@ def record(root: Path, board_path: Path, out_dir: Path, music: str | None) -> in
     total = sum(seg["duration"] for seg in board["segments"])
     P.save_actuals(out_dir / "claimlens_vertical_v3_actuals.json", actuals, lead, total)
     return P.run_post(board, out_dir, webm, actuals, lead, None,
-                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45)
+                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45,
+                      scale=(OUTPUT_W, OUTPUT_H))
 
 
 def post_only(root: Path, board_path: Path, out_dir: Path, music: str | None,
@@ -163,7 +171,8 @@ def post_only(root: Path, board_path: Path, out_dir: Path, music: str | None,
         print(f"post-only: {exc}", file=sys.stderr)
         return 2
     return P.run_post(board, out_dir, webm, actuals, lead, None,
-                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45)
+                      Path(music) if music else None, "vv3-", "timeline_vertical_v3.txt", 45,
+                      scale=(OUTPUT_W, OUTPUT_H))
 
 
 def main(argv: list[str] | None = None) -> int:
