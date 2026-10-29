@@ -242,6 +242,10 @@ on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 
   input (one bundle went from 6 findings to 0 after re-recording on
   2026-10-28). Blockers rest on the deterministic layer, which is why
   precision/recall stays 1.000.
+- A Korean bill photographed sideways can come back with two charge columns swapped in both
+  reads (seen on the S3 rot90 hard variant in the live gate run). The sums still match, so the
+  checks and the double read pass it. Upright photos are not affected; a rotation probe is not
+  built yet.
 
 ## Demo video
 
