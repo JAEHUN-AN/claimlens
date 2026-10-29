@@ -143,37 +143,44 @@ def field_values(reading: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _numeric_wrongs(truth: dict[str, Any], reading: dict[str, Any],
-                    unreadable: dict[str, Any]) -> int:
-    """Wrong numbers in a final reading (guesses on cut cells count)."""
+def wrong_numeric_fields(truth: dict[str, Any], reading: dict[str, Any],
+                         unreadable: dict[str, Any]) -> list[str]:
+    """Names of the wrong numbers in a final reading (guesses on cut cells count)."""
     docs = reading.get("documents", [])
     receipt = docs[0] if docs else {}
-    wrongs = 0
+    wrong: list[str] = []
     total = receipt.get("total_amount")
     if unreadable.get("total"):
-        wrongs += total is not None
+        if total is not None:
+            wrong.append("total")
     elif total is None or not _close(total, truth["total"]):
-        wrongs += 1
+        wrong.append("total")
     if unreadable.get("line_amounts"):
-        wrongs += sum(1 for i in receipt.get("line_items", []) if i.get("amount") is not None)
+        wrong += [f"lines[{i}]" for i, item in enumerate(receipt.get("line_items", []))
+                  if item.get("amount") is not None]
     else:
         read = [float(i.get("amount", 0)) for i in receipt.get("line_items", [])]
         exp = truth["line_amounts"]
-        if len(read) != len(exp):
-            wrongs += abs(len(read) - len(exp)) + sum(
-                1 for a, b in zip(read, exp) if not _close(a, b))
-        else:
-            wrongs += sum(1 for a, b in zip(read, exp) if not _close(a, b))
+        for i in range(max(len(read), len(exp))):
+            if i >= len(read) or i >= len(exp) or not _close(read[i], exp[i]):
+                wrong.append(f"lines[{i}]")
     if truth["kr_cells"] is not None:
         bill = receipt.get("kr_bill") or {}
         cut = set(unreadable.get("kr_cells") or [])
         for n, exp in enumerate(truth["kr_cells"], start=1):
             value = bill.get(f"cell_{n}")
             if n in cut:
-                wrongs += value is not None
+                if value is not None:
+                    wrong.append(f"kr_cells[{n}]")
             elif value != exp:
-                wrongs += 1
-    return wrongs
+                wrong.append(f"kr_cells[{n}]")
+    return wrong
+
+
+def _numeric_wrongs(truth: dict[str, Any], reading: dict[str, Any],
+                    unreadable: dict[str, Any]) -> int:
+    """Wrong numbers in a final reading (guesses on cut cells count)."""
+    return len(wrong_numeric_fields(truth, reading, unreadable))
 
 
 def run_once(sample_id: str, images: list[Path], truth: dict[str, Any],

@@ -353,3 +353,47 @@ def test_execute_stub_writes_no_committed_cache(tmp_path, monkeypatch):
     assert results["sets"]["hard"]["agree"]["total"] == {"agree": 1, "n": 1}
     assert sorted((ROOT / "cache").rglob("*")) == before
     assert results["cache_before"] == results["cache_after"]
+
+
+def _plain_unreadable():
+    return {"total": False, "line_amounts": False, "kr_cells": []}
+
+
+def test_wrong_numeric_fields_names_lines_and_count_parity():
+    truth = {"total": 100, "line_amounts": [60, 40], "kr_cells": None}
+
+    def reading(lines, total=100):
+        return {"documents": [{"total_amount": total,
+                               "line_items": [{"amount": a} for a in lines]}]}
+
+    cases = [
+        ([60, 40], []),
+        ([60, 41], ["lines[1]"]),
+        ([60], ["lines[1]"]),
+        ([60, 40, 5], ["lines[2]"]),
+    ]
+    for lines, expected in cases:
+        got = hard_eval.wrong_numeric_fields(truth, reading(lines), _plain_unreadable())
+        assert got == expected
+        assert hard_eval._numeric_wrongs(truth, reading(lines), _plain_unreadable()) == len(got)
+    got = hard_eval.wrong_numeric_fields(truth, reading([60, 40], total=101),
+                                          _plain_unreadable())
+    assert got == ["total"]
+
+
+def test_wrong_numeric_fields_kr_and_cut_cell_guesses():
+    truth = {"total": 100, "line_amounts": [100],
+             "kr_cells": [10 * n for n in range(1, 11)]}
+    bill = {f"cell_{n}": 10 * n for n in range(1, 11)}
+    bill["cell_3"] = 31
+
+    def reading():
+        return {"documents": [{"total_amount": 100, "line_items": [{"amount": 100}],
+                               "kr_bill": dict(bill)}]}
+
+    assert hard_eval.wrong_numeric_fields(truth, reading(), _plain_unreadable()) == [
+        "kr_cells[3]"]
+    cut = {"total": False, "line_amounts": False, "kr_cells": [3]}
+    assert hard_eval.wrong_numeric_fields(truth, reading(), cut) == ["kr_cells[3]"]
+    bill["cell_3"] = None
+    assert hard_eval.wrong_numeric_fields(truth, reading(), cut) == []

@@ -40,6 +40,35 @@ def test_gate_line_live_drops_simulated(tmp_path):
     assert "40/72" in entry["en"]
 
 
+def _gate_file_with_details(old: dict) -> dict:
+    new = json.loads(json.dumps(old))
+    for summary in new["sets"].values():
+        summary["pair_details"] = [
+            {"round": 1,
+             "case": {"sample": "A_niseko_wrist", "variant": "photo"},
+             "tags": [".gate41c-r1a-x", ".gate41c-r1b-x"],
+             "agree": True, "stopped": False, "stopped_each": [False, False],
+             "reached": 0, "wrong_fields": [],
+             "values": [{"total": 235000}, {"total": 235000}], "calls": []},
+        ]
+    return new
+
+
+def test_gate_line_reads_old_and_new_format(tmp_path):
+    old = json.loads((ROOT / "data" / "gate_live_20261028T212938Z.json").read_text(
+        encoding="utf-8"))
+    roots = []
+    for name, payload in (("old", old), ("new", _gate_file_with_details(old))):
+        root = tmp_path / name
+        _fixture_hard(root)
+        (root / "data" / "gate_live_20261028T212938Z.json").write_text(
+            json.dumps(payload), encoding="utf-8")
+        roots.append(root)
+    assert headline.gate_line(roots[0]) == headline.gate_line(roots[1])
+    assert headline.eval_caption(roots[0]) == headline.eval_caption(roots[1])
+    assert "live gate" in headline.gate_line(roots[1])["en"]
+
+
 def test_agent_and_load_lines(tmp_path):
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     rows = [

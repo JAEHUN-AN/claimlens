@@ -2,7 +2,6 @@
 
 import json
 import os
-import subprocess
 
 from claimlens import meta_tiles
 from claimlens.demo import REPO_ROOT, export_demo
@@ -22,12 +21,11 @@ def test_tile_order_and_steps():
     assert all(t["step"]["en"] and t["step"]["ko"] for t in tiles)
 
 
-def test_code_fact_matches_git_log():
-    proc = subprocess.run(["git", "-c", f"safe.directory={ROOT}", "rev-list",
-                           "--count", "HEAD"], check=False, capture_output=True,
-                          text=True, cwd=ROOT)
-    assert _tiles()["code"]["fact"] == {"en": f"{proc.stdout.strip()} commits",
-                                        "ko": f"{proc.stdout.strip()}개 커밋"}
+def test_code_fact_counts_logged_sessions():
+    log = (ROOT / "docs" / "meta-tooling-log.md").read_text(encoding="utf-8")
+    sessions = sum(1 for line in log.splitlines() if line.startswith("## "))
+    assert _tiles()["code"]["fact"] == {"en": f"{sessions} logged sessions",
+                                        "ko": f"기록된 작업 {sessions}건"}
 
 
 def test_spark_fact_matches_recomputed_summaries():

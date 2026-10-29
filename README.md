@@ -97,7 +97,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How | Measured |
 |---|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 87 commits |
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 40 logged sessions |
 | Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3, 86% run-to-run agreement |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |

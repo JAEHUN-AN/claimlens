@@ -79,12 +79,15 @@ def run_pair(case: dict[str, Any], round_no: int,
     agree = hard_eval._gate_agree(values[0], values[1])
     if agree:
         stopped = stopped_each[0]
-        reached = 0 if stopped else hard_eval._numeric_wrongs(
+        wrong_fields = [] if stopped else hard_eval.wrong_numeric_fields(
             truth, finals[0], unreadable)
+        reached = 0 if stopped else len(wrong_fields)
     else:
-        stopped, reached = True, 0
-    return {"round": round_no, "tags": tags, "agree": agree, "stopped": stopped,
-            "reached": reached, "calls": calls}
+        stopped, reached, wrong_fields = True, 0, []
+    case_id = {k: case[k] for k in ("sample", "transform", "variant") if k in case}
+    return {"round": round_no, "case": case_id, "tags": tags, "agree": agree,
+            "stopped": stopped, "stopped_each": stopped_each, "reached": reached,
+            "wrong_fields": wrong_fields, "values": values, "calls": calls}
 
 
 def _call_cost(calls: list[dict]) -> float:
@@ -122,6 +125,7 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
                      if k in case}
                     for case in plan["cases"]
                 ],
+                "pair_details": pairs,
             }
             if results["aborted"]:
                 break

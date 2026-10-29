@@ -8,7 +8,6 @@ table, and the video Meta card.
 
 import json
 import os
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -31,16 +30,8 @@ TOOLS = {
 
 
 def _code_fact(root: Path) -> dict[str, str] | None:
-    try:
-        proc = subprocess.run(["git", "-c", "safe.directory=" + str(root),
-                               "rev-list", "--count", "HEAD"],
-                              check=False, capture_output=True, text=True, cwd=root,
-                              timeout=30)
-        count = int(proc.stdout.strip())
-    except (ValueError, OSError, subprocess.SubprocessError):
-        count = 0
-    if count > 0:
-        return {"en": f"{count} commits", "ko": f"{count}개 커밋"}
+    # Logged sessions, not git commits: a commit count moves with every commit
+    # (so a committed README could never match it) and includes non-Muse commits.
     log = root / "docs" / "meta-tooling-log.md"
     if not log.exists():
         return None

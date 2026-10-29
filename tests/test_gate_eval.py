@@ -97,7 +97,16 @@ def test_execute_stub_pairs(tmp_path):
     assert all(tag.startswith(".gate41c-r1") for tag in tags)
     files = list(tmp_path.glob("gate_live_*.json"))
     assert len(files) == 1
-    assert json.loads(files[0].read_text(encoding="utf-8"))["sets"]["normal"]["leaks"] == 1
+    stored = json.loads(files[0].read_text(encoding="utf-8"))["sets"]["normal"]
+    assert stored["leaks"] == 1
+    details = stored["pair_details"]
+    assert len(details) == 3
+    assert [d["reached"] for d in details] == [0, 1, 0]
+    assert details[1]["wrong_fields"] == ["total"]
+    assert details[1]["case"] == {"sample": "A_niseko_wrist", "variant": "photo"}
+    assert [v["total"] for v in details[1]["values"]] == [999999, 999999]
+    assert sum(d["reached"] for d in details) == stored["leaks"]
+    assert sum(d["stopped"] for d in details) == stored["stops"]
 
 
 def test_execute_aborts_past_max_cost(tmp_path):
@@ -136,3 +145,25 @@ def test_run_pair_disagree_never_passes():
     assert record["reached"] == 0
     assert record["tags"] == [".gate41c-r2a-A_niseko_wrist-photo",
                               ".gate41c-r2b-A_niseko_wrist-photo"]
+
+
+def test_run_pair_saves_case_values_and_wrong_fields():
+    bad = _a_reading(total=999999)
+    case = _case("A_niseko_wrist", None)
+    record = gate_eval.run_pair(case, 1, _factory([bad, bad], []))
+    assert record["agree"] is True
+    assert record["case"] == {"sample": "A_niseko_wrist", "variant": "photo"}
+    assert [v["total"] for v in record["values"]] == [999999, 999999]
+    assert record["wrong_fields"] == ["total"]
+    assert record["stopped_each"] == [False, False]
+    assert len(record["wrong_fields"]) == record["reached"] == 1
+
+
+def test_run_pair_clean_agree_saves_empty_wrong_fields():
+    good = _a_reading()
+    case = _case("A_niseko_wrist", None)
+    record = gate_eval.run_pair(case, 1, _factory([good, good], []))
+    assert record["agree"] is True
+    assert record["stopped"] is False
+    assert record["wrong_fields"] == []
+    assert len(record["values"]) == 2
