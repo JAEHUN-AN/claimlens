@@ -223,6 +223,11 @@ class _LiveStub:
         )
 
     def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
+        from claimlens.rotation import RotationProbe
+
+        if result_model is RotationProbe:
+            self._log(10)  # retake drops are probed; the probe is not a read
+            return {"rotation": 0}
         self.reads += 1
         self._log(100)
         return copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))

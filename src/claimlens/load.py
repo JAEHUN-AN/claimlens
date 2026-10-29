@@ -23,7 +23,9 @@ from typing import Any
 from claimlens.hard_eval import EVAL_MD_COSTS
 
 RUNS_DEFAULT = 5
-CALLS_PER_RUN_MAX = 7  # 2 reads + 2 verify + consistency + verifier + rationale
+# 2 rotation probes (byte-varied photos never match a sample) + 2 reads
+# + 2 verify + consistency + verifier + rationale.
+CALLS_PER_RUN_MAX = 9
 PHOTOS = ("S2_receipt_retake.jpg", "S2_medical_certificate_retake.jpg")
 SCENARIO = "S2_seoul_worker_bronchitis"
 

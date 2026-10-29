@@ -9,7 +9,7 @@ from claimlens import gate_eval
 from claimlens.cli import main
 from claimlens.engine import replay_reading
 from claimlens.eval import ground_truth, load_scenarios
-from claimlens.hard_eval import BASE_EST, REREAD_EST
+from claimlens.hard_eval import BASE_EST, PROBE_EST, REREAD_EST
 from claimlens.providers.meta import CallRecord
 from claimlens.reader import resolve_sample_images
 
@@ -22,7 +22,9 @@ def test_gate_plan_prints_and_stops(capsys, tmp_path):
     assert "normal: 10 cases x3" in out
     assert "hard: 24 cases x3" in out
     assert "Stopped before any API call" in out
-    assert f"${204 * BASE_EST:.2f}" in out
+    assert "144 rotation probes" in out  # hard pairs probe both pages
+    assert "60 rotation probes" in out  # clean pages too: false turns are measured
+    assert f"${204 * BASE_EST + 204 * PROBE_EST:.2f}" in out
     assert list(tmp_path.iterdir()) == []
 
 

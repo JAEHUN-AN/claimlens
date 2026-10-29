@@ -25,7 +25,7 @@ def test_load_plan_prints_and_stops(capsys, tmp_path):
     assert main(["load", "--output", str(tmp_path)]) == 0
     out = capsys.readouterr().out
     assert "5 concurrent live runs" in out
-    assert "35 calls" in out
+    assert "45 calls" in out
     assert "Stopped before any API call" in out
     assert list(tmp_path.iterdir()) == []
 
@@ -33,7 +33,7 @@ def test_load_plan_prints_and_stops(capsys, tmp_path):
 def test_load_plan_estimate_uses_committed_costs():
     text = load_mod.estimate_text(5)
     lo, hi = min(EVAL_MD_COSTS), max(EVAL_MD_COSTS)
-    assert f"${35 * lo:.2f}" in text and f"${35 * hi:.2f}" in text
+    assert f"${45 * lo:.2f}" in text and f"${45 * hi:.2f}" in text
 
 
 def test_vary_bytes_distinct_valid_jpeg(tmp_path):

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from claimlens import hard_eval
-from claimlens.hard_eval import BASE_EST, REREAD_EST, cache_dir_scope
+from claimlens.hard_eval import BASE_EST, PROBE_EST, REREAD_EST, cache_dir_scope
 
 TAG_PREFIX = ".gate41c"
 
@@ -51,29 +51,43 @@ def _verify_final(reading: dict[str, Any], image: Path,
 
 
 def run_pair(case: dict[str, Any], round_no: int,
-             provider_factory: Callable[[], Any]) -> dict[str, Any]:
-    """One gate pair: two fresh reads, verify, compare; never a wrong pass."""
+             provider_factory: Callable[[], Any],
+             probe_pages: bool = False) -> dict[str, Any]:
+    """One gate pair: two fresh reads, verify, compare; never a wrong pass.
+
+    With probe_pages, turned pages are rotated upright once and both
+    reads use the upright copy. Probe failures read as is and are noted.
+    """
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
 
-    images = case["images"]
     truth = case["truth"]
     unreadable = case["unreadable"]
     finals = []
     stopped_each = []
     calls: list[dict] = []
     tags = []
-    for side in ("a", "b"):
-        tag = f"{TAG_PREFIX}-r{round_no}{side}-{case['key']}"
-        tags.append(tag)
-        provider = provider_factory()
-        seen = len(provider.calls)
-        reading = provider.read_documents(images, READING_INSTRUCTIONS,
-                                          reading_schema(), cache_tag=tag)
-        calls += [vars(c) for c in provider.calls[seen:]]
-        final, stopped = _verify_final(reading, images[0], provider, calls)
-        finals.append(final)
-        stopped_each.append(stopped)
+    rot_notes: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="upright-") as tmp:
+        images = case["images"]
+        if probe_pages:
+            from claimlens.rotation import upright_pages
+
+            prover = provider_factory()
+            seen = len(prover.calls)
+            images, rot_notes = upright_pages(images, prover, Path(tmp))
+            calls += [vars(c) for c in prover.calls[seen:]]
+        for side in ("a", "b"):
+            tag = f"{TAG_PREFIX}-r{round_no}{side}-{case['key']}"
+            tags.append(tag)
+            provider = provider_factory()
+            seen = len(provider.calls)
+            reading = provider.read_documents(images, READING_INSTRUCTIONS,
+                                              reading_schema(), cache_tag=tag)
+            calls += [vars(c) for c in provider.calls[seen:]]
+            final, stopped = _verify_final(reading, images[0], provider, calls)
+            finals.append(final)
+            stopped_each.append(stopped)
     values = [hard_eval.field_values(final) for final in finals]
     agree = hard_eval._gate_agree(values[0], values[1])
     if agree:
@@ -86,7 +100,8 @@ def run_pair(case: dict[str, Any], round_no: int,
     case_id = {k: case[k] for k in ("sample", "transform", "variant") if k in case}
     return {"round": round_no, "case": case_id, "tags": tags, "agree": agree,
             "stopped": stopped, "stopped_each": stopped_each, "reached": reached,
-            "wrong_fields": wrong_fields, "values": values, "calls": calls}
+            "wrong_fields": wrong_fields, "values": values, "calls": calls,
+            "rotation": rot_notes}
 
 
 def _call_cost(calls: list[dict]) -> float:
@@ -104,7 +119,8 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
             pairs = []
             for case in plan["cases"]:
                 for round_no in range(1, repeat + 1):
-                    record = run_pair(case, round_no, provider_factory)
+                    record = run_pair(case, round_no, provider_factory,
+                                      probe_pages=plan.get("probe", name == "hard"))
                     pairs.append(record)
                     results["spent"] += _call_cost(record["calls"])
                     if results["spent"] > max_cost:
@@ -139,13 +155,18 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
     return results
 
 
-def estimate_text(name: str, cases: int, repeat: int) -> str:
+def estimate_text(name: str, cases: int, repeat: int, probes_per_pair: int = 0) -> str:
+    """Plan line; probes_per_pair is 2 for hard pairs, 0 for normal ones."""
     pairs = cases * repeat
     reads = pairs * 2
     verify_max = pairs * 2
-    return (f"{name}: {cases} cases x{repeat} = {pairs} pairs, "
-            f"{reads} reads + up to {verify_max} verify re-reads; "
-            f"estimate ${reads * BASE_EST:.2f}-${reads * BASE_EST + verify_max * REREAD_EST:.2f}.")
+    probes = pairs * probes_per_pair
+    lo = reads * BASE_EST + probes * PROBE_EST
+    parts = f"{reads} reads + up to {verify_max} verify re-reads"
+    if probes:
+        parts += f" + {probes} rotation probes"
+    return (f"{name}: {cases} cases x{repeat} = {pairs} pairs, {parts}; "
+            f"estimate ${lo:.2f}-${lo + verify_max * REREAD_EST:.2f}.")
 
 
 def format_summary(results: dict[str, Any]) -> str:

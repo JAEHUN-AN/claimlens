@@ -43,6 +43,9 @@ EVAL_MD_COSTS = [0.0099, 0.0090, 0.0127, 0.0107, 0.0125, 0.0102, 0.0137, 0.0135,
                  0.0171, 0.0142]
 BASE_EST = statistics.median(EVAL_MD_COSTS)
 REREAD_EST = 0.005
+# One rotation probe: a 768 px page plus a one-field schema -- cheaper
+# than a narrow re-read, priced as a stated flat allowance like it.
+PROBE_EST = 0.003
 
 FIELDS = ("docs", "currency", "total", "lines", "amounts", "diags", "kr_cells",
           "instit", "pii")
@@ -183,65 +186,120 @@ def _numeric_wrongs(truth: dict[str, Any], reading: dict[str, Any],
     return len(wrong_numeric_fields(truth, reading, unreadable))
 
 
+def _maybe_upright(images: list[Path], probe_pages: bool, replay_dir: Path | None,
+                   live_dir: Path, force_live: bool, provider_factory: Callable[[], Any],
+                   live_calls: list[dict], tmpdir: Path) -> tuple[list[Path], list[str]]:
+    """Upright images plus rotation notes; probe failures keep the original page.
+
+    Probes replay first (unless forced live) and fall back to a live
+    probe; only live probes land in live_calls. Never raises ProbeError.
+    """
+    if not probe_pages:
+        return list(images), []
+    from claimlens.rotation import (
+        FAILED_NOTE,
+        ProbeError,
+        probe_rotation,
+        turned_note,
+        upright_copy,
+    )
+
+    upright = list(images)
+    notes: list[str] = []
+    for pos, image in enumerate(images):
+        rotation: int | None = None
+        if not force_live:
+            with cache_dir_scope(replay_dir):
+                try:
+                    rotation = probe_rotation(image, ReplayProvider())
+                except ProbeError as exc:
+                    if not exc.missing:
+                        notes.append(FAILED_NOTE)
+                        continue
+        if rotation is None:
+            with cache_dir_scope(live_dir):
+                prover = provider_factory()
+                seen = len(prover.calls)
+                try:
+                    rotation = probe_rotation(image, prover)
+                except ProbeError:
+                    notes.append(FAILED_NOTE)
+                    continue
+                finally:
+                    live_calls += [vars(c) for c in prover.calls[seen:]]
+        if rotation:
+            dest = tmpdir / f"upright_{pos}_{image.stem}.jpg"
+            upright[pos] = upright_copy(image, rotation, dest)
+            notes.append(turned_note(rotation))
+    return upright, list(dict.fromkeys(notes))
+
+
 def run_once(sample_id: str, images: list[Path], truth: dict[str, Any],
              unreadable: dict[str, Any], replay_dir: Path | None, live_dir: Path,
              force_live: bool,
-             provider_factory: Callable[[], Any]) -> dict[str, Any]:
+             provider_factory: Callable[[], Any],
+             probe_pages: bool = False) -> dict[str, Any]:
     """One read plus the check/re-read pipeline; returns the run record.
 
     Run 1 replays from replay_dir (committed cache, or hard/ for hard
     cases) and falls back to a live call stored under live_dir; later
     runs are always live into the scratch dir. Only live calls land in
-    the record's calls list, so replayed runs cost nothing.
+    the record's calls list, so replayed runs cost nothing. With
+    probe_pages, turned pages are rotated upright before the read.
     """
     live_calls: list[dict] = []
-    result: dict[str, Any] | None = None
-    provider = "replay"
-    if not force_live:
-        with cache_dir_scope(replay_dir):
-            try:
-                result, _ = _try_replay(images)
-            except CacheMissError:
-                result = None
-    if result is None:
-        with cache_dir_scope(live_dir):
-            live = provider_factory()
-            seen = len(live.calls)
-            result = live.read_documents(images, READING_INSTRUCTIONS,
-                                         reading_schema())
-            live_calls += [vars(c) for c in live.calls[seen:]]
-            provider = live.name
-    record: dict[str, Any] = {
-        "provider": provider, "calls": live_calls,
-        "base": compare_hard(sample_id, truth, result, unreadable),
-        "values": field_values(result),
-        "base_wrongs": _numeric_wrongs(truth, result, unreadable),
-    }
-    receipt = result["documents"][0] if result.get("documents") else {}
-    record["verify"] = None
-    record["checks_first"] = None
-    record["stopped"] = False
-    final = result
-    first = receipt_checks(receipt)
-    record["checks_first"] = "pass" if all_passed(first) else "FAIL"
-    if not all_passed(first):
-        with cache_dir_scope(live_dir):
-            verifier = provider_factory()
-            seen = len(verifier.calls)
-            verified = verify_receipt(receipt, images[0], verifier)
-            live_calls += [vars(c) for c in verifier.calls[seen:]]
-        record["verify"] = {
-            "status": verified["status"],
-            "corrected": verified.get("corrected", []),
+    with tempfile.TemporaryDirectory(prefix="upright-") as tmp:
+        images, rot_notes = _maybe_upright(images, probe_pages, replay_dir, live_dir,
+                                           force_live, provider_factory, live_calls,
+                                           Path(tmp))
+        result: dict[str, Any] | None = None
+        provider = "replay"
+        if not force_live:
+            with cache_dir_scope(replay_dir):
+                try:
+                    result, _ = _try_replay(images)
+                except CacheMissError:
+                    result = None
+        if result is None:
+            with cache_dir_scope(live_dir):
+                live = provider_factory()
+                seen = len(live.calls)
+                result = live.read_documents(images, READING_INSTRUCTIONS,
+                                             reading_schema())
+                live_calls += [vars(c) for c in live.calls[seen:]]
+                provider = live.name
+        record: dict[str, Any] = {
+            "provider": provider, "calls": live_calls,
+            "base": compare_hard(sample_id, truth, result, unreadable),
+            "values": field_values(result),
+            "base_wrongs": _numeric_wrongs(truth, result, unreadable),
         }
-        rest = result.get("documents", [])[1:]
-        final = {"documents": [verified["receipt"], *rest]}
-        record["stopped"] = verified["status"] == "needs_manual_check"
-    record["final"] = compare_hard(sample_id, truth, final, unreadable)
-    record["final_values"] = field_values(final)
-    wrongs = _numeric_wrongs(truth, final, unreadable)
-    record["reached"] = 0 if record["stopped"] else wrongs
-    record["wrong_numbers"] = wrongs
+        receipt = result["documents"][0] if result.get("documents") else {}
+        record["verify"] = None
+        record["checks_first"] = None
+        record["stopped"] = False
+        final = result
+        first = receipt_checks(receipt)
+        record["checks_first"] = "pass" if all_passed(first) else "FAIL"
+        if not all_passed(first):
+            with cache_dir_scope(live_dir):
+                verifier = provider_factory()
+                seen = len(verifier.calls)
+                verified = verify_receipt(receipt, images[0], verifier)
+                live_calls += [vars(c) for c in verifier.calls[seen:]]
+            record["verify"] = {
+                "status": verified["status"],
+                "corrected": verified.get("corrected", []),
+            }
+            rest = result.get("documents", [])[1:]
+            final = {"documents": [verified["receipt"], *rest]}
+            record["stopped"] = verified["status"] == "needs_manual_check"
+        record["final"] = compare_hard(sample_id, truth, final, unreadable)
+        record["final_values"] = field_values(final)
+        wrongs = _numeric_wrongs(truth, final, unreadable)
+        record["reached"] = 0 if record["stopped"] else wrongs
+        record["wrong_numbers"] = wrongs
+        record["rotation"] = rot_notes
     return record
 
 
@@ -263,6 +321,7 @@ def plan_hard(seed: int, out_dir: Path, samples_dir: Path, repeat: int,
         "base_live": canonical_live + n * (repeat - 1),
         "base_replay": n - canonical_live,
         "reread_max": n * repeat,
+        "probes_live": n * repeat * 2,
     }
 
 
@@ -285,19 +344,25 @@ def plan_normal(samples_dir: Path, repeat: int,
         "base_live": missing + n * (repeat - 1),
         "base_replay": n - missing,
         "reread_max": n * repeat,
+        # Committed sample photos are known upright: the normal set
+        # skips the rotation probe, so replay needs no new recordings.
+        "probes_live": 0,
     }
 
 
 def estimate_text(plan: dict[str, Any], label: str) -> str:
     base, re_max = plan["base_live"], plan["reread_max"]
-    lo = base * BASE_EST
-    hi = base * BASE_EST + re_max * REREAD_EST
+    probes = plan.get("probes_live", 0)
+    lo = base * BASE_EST + probes * PROBE_EST
+    hi = lo + re_max * REREAD_EST
     lines = [
         f"{label}: {len(plan['cases'])} cases",
         f"  base reads: {base} live + {plan['base_replay']} replay",
+        f"  rotation probes: {probes} live",
         f"  narrow re-reads: up to {re_max} (only on failed checks)",
         (f"  estimate: ${lo:.2f}-${hi:.2f} "
-         f"({base} x ${BASE_EST:.4f} + up to {re_max} x ${REREAD_EST:.4f})"),
+         f"({base} x ${BASE_EST:.4f} + {probes} x ${PROBE_EST:.4f} "
+         f"+ up to {re_max} x ${REREAD_EST:.4f})"),
     ]
     return "\n".join(lines)
 
@@ -353,6 +418,7 @@ def execute(plans: dict[str, Any], repeat: int, max_cost: float,
                         case["sample"], case["images"], case["truth"],
                         case["unreadable"], replay_dir, live_dir,
                         force_live=run != 1, provider_factory=provider_factory,
+                        probe_pages=name == "hard",
                     )
                     record["run"] = run
                     record["canonical"] = canonical

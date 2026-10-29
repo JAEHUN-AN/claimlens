@@ -345,6 +345,15 @@ def run_live(
 
         started = time.monotonic()
         marks = [len(p.calls) for p in providers]
+        # Committed sample photos are known upright: skip the rotation
+        # probe, so replay needs no new recordings.
+        matched = match_sample(blobs)
+        if matched is None:
+            from claimlens.rotation import upright_pages
+
+            paths, rot_notes = upright_pages(paths, providers[0], Path(tmp))
+        else:
+            rot_notes = []
         raws = _read_twice()
         if all(raw is None for raw in raws):
             raise RuntimeError("Both reads failed; nothing to compare.")
@@ -352,7 +361,10 @@ def run_live(
         reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
         meta = REUSED_LABEL if reused_only else f"{tokens} tokens (live)"
         tokens_total += 0 if reused_only else tokens
-        _step(steps, "reading", "Reading", "2 documents read twice by Muse Spark",
+        detail = "2 documents read twice by Muse Spark"
+        if rot_notes:
+            detail += "; " + "; ".join(rot_notes)
+        _step(steps, "reading", "Reading", detail,
               meta, time.monotonic() - started, 0 if reused_only else tokens)
         readings: list[dict[str, Any]] = []
         order_failed = False
@@ -404,7 +416,6 @@ def run_live(
         _step(steps, "checks", "Checks", detail, meta, time.monotonic() - started,
               0 if reused_only else tokens)
 
-        matched = match_sample(blobs)
         if verify_failed:
             return {
                 "steps": steps,

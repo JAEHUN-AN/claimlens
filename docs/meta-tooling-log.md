@@ -1286,3 +1286,29 @@ HUMAN_REVIEW badge. No API calls, no cache writes, video untouched.
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 41f rotation probe (uncommitted)
+
+New `src/claimlens/rotation.py`: one small `probe_rotation(image)` call
+per page on a 768 px copy, strict `{"rotation": 0|90|180|270}` schema,
+own prompt and cache key. The reading schema, reading instructions and
+reader are byte-identical, so every committed recording still replays.
+Nonzero rotations are corrected in code (Pillow) and both reads use the
+upright copy; the Reading row shows "page turned 90 upright".
+Sample-matched uploads skip the probe (no new replay recordings);
+probe failures read as is and are noted, never blocking. Wired into
+serve, gate-eval and hard-eval; plan estimates include the probes.
+
+### Muse Code (coding agent)
+
+- Tests: new `tests/test_rotation.py` (20 tests: probe/0/sample-match/
+  failure for serve, gate-eval and hard-eval, estimate math). Existing
+  estimate assertions updated (gate-eval, hard-eval, load); the browser
+  live stub answers the probe. Full suite green, `ruff check` clean.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+- Owner checks: approve one `gate-eval --execute` (~$3.6+) to measure:
+  hard leaks should drop, clean stops must not rise.
+
+### Model APIs
+
+- Live calls: none in the sandbox.

@@ -142,9 +142,12 @@ def cmd_repeat_eval(args: argparse.Namespace) -> int:
         lines.append(hard_eval.estimate_text(plan, f"{name} set x{args.repeat}"))
     base = sum(p["base_live"] for p in plans.values())
     re_max = sum(p["reread_max"] for p in plans.values())
-    lines.append(f"TOTAL live calls: {base} base + up to {re_max} re-reads; "
-                 f"estimate ${base * hard_eval.BASE_EST:.2f}"
-                 f"-${base * hard_eval.BASE_EST + re_max * hard_eval.REREAD_EST:.2f} "
+    probes = sum(p.get("probes_live", 0) for p in plans.values())
+    lo = base * hard_eval.BASE_EST + probes * hard_eval.PROBE_EST
+    lines.append(f"TOTAL live calls: {base} base + up to {re_max} re-reads"
+                 f" + {probes} rotation probes; "
+                 f"estimate ${lo:.2f}"
+                 f"-${lo + re_max * hard_eval.REREAD_EST:.2f} "
                  f"(base reads at the ${hard_eval.BASE_EST:.4f} median of docs/eval.md).")
     if not args.execute:
         lines.append("Stopped before any API call. Re-run with --execute to run it.")
@@ -459,15 +462,20 @@ def cmd_gate_eval(args: argparse.Namespace) -> int:
              "fresh live reads only, unique cache tags, temp cache dir;",
              "committed cache/ stays untouched.",
              f"git status cache/: {hard_eval.git_cache_status()}"]
-    total_reads = total_verify = 0
+    total_reads = total_verify = total_probes = 0
     for name, plan in plans.items():
         cases = plan["cases"]
-        lines.append(gate_eval.estimate_text(name, len(cases), args.repeat))
+        plan["probe"] = True  # real uploads are always probed; clean pages measure false turns
+        per_pair = 2
+        lines.append(gate_eval.estimate_text(name, len(cases), args.repeat, per_pair))
         total_reads += len(cases) * args.repeat * 2
         total_verify += len(cases) * args.repeat * 2
-    lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_verify} verify re-reads; "
-                 f"estimate ${total_reads * hard_eval.BASE_EST:.2f}"
-                 f"-${total_reads * hard_eval.BASE_EST + total_verify * hard_eval.REREAD_EST:.2f}.")
+        total_probes += len(cases) * args.repeat * per_pair
+    lo = total_reads * hard_eval.BASE_EST + total_probes * hard_eval.PROBE_EST
+    lines.append(f"TOTAL live calls: {total_reads} reads + up to {total_verify} verify re-reads"
+                 f" + {total_probes} rotation probes; "
+                 f"estimate ${lo:.2f}"
+                 f"-${lo + total_verify * hard_eval.REREAD_EST:.2f}.")
     if not args.execute:
         lines.append("Stopped before any API call. Re-run with --execute to run it.")
         _emit("\n".join(lines))

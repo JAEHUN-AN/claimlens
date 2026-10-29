@@ -97,7 +97,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How | Measured |
 |---|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 40 logged sessions |
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 41 logged sessions |
 | Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3, 86% run-to-run agreement |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |
@@ -244,8 +244,10 @@ on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 
   precision/recall stays 1.000.
 - A Korean bill photographed sideways can come back with two charge columns swapped in both
   reads (seen on the S3 rot90 hard variant in the live gate run). The sums still match, so the
-  checks and the double read pass it. Upright photos are not affected; a rotation probe is not
-  built yet.
+  checks and the double read pass it. Live runs and the hard/gate evals now probe each page's
+  rotation first and read the upright copy; uploads matching a committed sample photo skip the
+  probe. Whether this closes the 4 remaining hard leaks is unmeasured until the next live
+  gate-eval run.
 
 ## Demo video
 
