@@ -572,8 +572,12 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
             detail = "engine skipped: Neo4j unreachable"
             meta = "deterministic"
     elif eligibility["outcome"] == "not_member_or_unknown" and matched:
+        from claimlens.letter import build_letter
+
         pack = build_pack(matched, "photo", provider)
-        decision = {"badge": "claim_pack", "title": "Claim Pack built (sample-matched)."}
+        letter = build_letter(matched, "photo", pack, provider)
+        decision = {"badge": "claim_pack", "title": "Claim Pack built (sample-matched).",
+                    "letter": letter["text"], "letter_source": letter["source"]}
         detail = f"{len(pack['items'])} lines, total {pack['total_krw']:,} KRW"
         meta = "sample-matched pack"
     else:

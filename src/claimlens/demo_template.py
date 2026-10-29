@@ -107,6 +107,7 @@ margin:0 .25rem .25rem 0;border:1px solid var(--line)}
 .strip{margin:.3rem 0}
 .panel{background:var(--paper);border-radius:8px;padding:.8rem 1rem}
 .panel h4:first-child{margin-top:0}
+.letter{white-space:pre-line;line-height:1.5}
 table.bill{border-collapse:collapse;width:100%;font-size:.9rem;margin:.3rem 0}
 table.bill td,table.bill th{border-bottom:1px solid var(--line);padding:.2rem .4rem;
 text-align:left}
@@ -253,6 +254,7 @@ h_diag:["Diagnosis codes","진단 코드"],
 h_bill:["Itemized bill (KRW)","세부 청구서 (KRW)"],
 h_checklist:["Checklist before leaving","떠나기 전 확인 목록"],
 h_deadlines:["Filing deadlines","제출 기한"],
+h_letter:["Draft — for the patient to review and send","초안 — 환자가 검토 후 발송"],
 h_agent:["Agent timeline","에이전트 타임라인"],
 h_voice:["Voice intake","음성 접수"],
 h_eval:["Reading accuracy (offline eval)","판독 정확도 (오프라인 평가)"],
@@ -678,7 +680,8 @@ function renderLive(j){
   ).join('');
   document.getElementById('flow-result').innerHTML=`<div class="flow-result"><p>${badge(j.result.badge)}</p>`
     +resultTitle(j.result.title)
-    +(j.result.note?`<p><small class="dim">${esc(j.result.note)}</small></p>`:'')+`</div>`;
+    +(j.result.note?`<p><small class="dim">${esc(j.result.note)}</small></p>`:'')
+    +(j.result.letter?`<div class="panel">${letterPanel({text:j.result.letter})}</div>`:'')+`</div>`;
   personRunId=j.run_id||null;
   const qs=j.questions||[];
   document.getElementById('flow-questions').innerHTML=!qs.length?''
@@ -957,7 +960,11 @@ function packPanel(p){
   <ul class="tight"><li>${esc(t('receipt_ok'))}${p.checks_passed?esc(t('pass_w')):esc(t('fail_w'))}</li>
   <li>${esc(p.translation_note)}</li></ul>
   <h4>${esc(t('h_checklist'))}</h4><ul class="tight">${list(p.checklist)}</ul>
-  <h4>${esc(t('h_deadlines'))}</h4><ul class="tight"><li>${esc(p.deadline)}</li></ul></div>`;
+  <h4>${esc(t('h_deadlines'))}</h4><ul class="tight"><li>${esc(p.deadline)}</li></ul>${letterPanel(p.letter)}</div>`;
+}
+function letterPanel(l){
+  if(!l||!l.text)return '';
+  return `<h4>${esc(t('h_letter'))}</h4><div class="letter noprov">${esc(l.text)}</div>`;
 }
 function images(s){
   return (s.images||[]).map(

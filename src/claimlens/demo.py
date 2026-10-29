@@ -19,6 +19,7 @@ from claimlens.claimpack import (
 from claimlens.demo_template import render_page
 from claimlens.eligibility import check_eligibility
 from claimlens.engine import copay_rate_from_bill, load_scenarios, replay_reading
+from claimlens.letter import build_letter
 from claimlens.provenance import ProvBuilder
 from claimlens.providers.replay import ReplayProvider
 from claimlens.rationale import build_rationale
@@ -413,9 +414,13 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
     if sample_id == "S3_us_tourist_hip_fracture":
         pack_provider = ReplayProvider()
         pack = build_pack(sample_id, "photo", pack_provider)
+        # Missing letter recording replays as the code-only template, so
+        # the demo stays offline until the owner records the S3 drafts.
+        letter = build_letter(sample_id, "photo", pack, pack_provider)
         flow_tokens["pack"] = sum(c.total_tokens for c in pack_provider.calls)
         rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
         payload["pack"] = _pack_section(pack, rows, prov, prefix)
+        payload["pack"]["letter"] = {"text": letter["text"], "source": letter["source"]}
         payload["recovery"] = _recovery_section(
             sample_id, scenarios, prov, prefix, dst
         )

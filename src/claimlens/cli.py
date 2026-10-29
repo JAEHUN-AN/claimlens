@@ -226,6 +226,45 @@ def cmd_record_read2(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_record_letter(args: argparse.Namespace) -> int:
+    from claimlens import hard_eval
+    from claimlens.letter import LETTER_EST, plan_drafts, record_drafts
+    from claimlens.providers.meta import MODEL
+
+    cases = [("S3_us_tourist_hip_fracture", "photo"),
+             ("S3_us_tourist_hip_fracture", "clean")]
+    plan = plan_drafts(cases, MODEL)
+    missing = plan["missing"]
+    lines = ["S3 cover-letter drafts for the foreign insurer (new keys only):",
+             (f"{missing} of {len(plan['drafts'])} drafts missing; "
+              "recorded drafts are skipped, existing files never overwritten."),
+             f"git status cache/: {hard_eval.git_cache_status()}",
+             (f"estimate: {missing} base + up to {missing} retries x "
+              f"${LETTER_EST:.4f} = ${missing * LETTER_EST:.2f}"
+              f"-${2 * missing * LETTER_EST:.2f}.")]
+    for draft in plan["drafts"]:
+        lines.append(f"  {draft['sample']} {draft['variant']}: "
+                     + ("recorded" if draft["cached"]
+                        else f"missing (key {draft['key']}...)"))
+    if not args.execute:
+        lines.append("Stopped before any API call. Re-run with --execute to record, "
+                     "then re-run `claimlens demo` so the page picks up the drafts.")
+        _emit("\n".join(lines))
+        return 0
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    before = hard_eval.git_cache_status()
+    done = record_drafts(cases, hard_eval.default_provider_factory())
+    for name in done["stored"]:
+        lines.append(f"recorded {name}: source {done['sources'][name]}.")
+    lines.append(f"spent ${done['spent']:.4f}.")
+    lines.append(f"cache/ before: {before}")
+    lines.append(f"cache/ after: {hard_eval.git_cache_status()}")
+    _emit("\n".join(lines))
+    return 0
+
+
 def cmd_agent_eval(args: argparse.Namespace) -> int:
     from claimlens.agent_eval import eval_all, format_markdown
 
@@ -568,6 +607,10 @@ def build_parser() -> argparse.ArgumentParser:
     read2.add_argument("--execute", action="store_true",
                        help="Actually record; without it only the plan prints.")
     read2.set_defaults(func=cmd_record_read2)
+    letter = sub.add_parser("record-letter", help="Record S3 cover-letter drafts.")
+    letter.add_argument("--execute", action="store_true",
+                        help="Actually record; without it only the plan prints.")
+    letter.set_defaults(func=cmd_record_letter)
     decide = sub.add_parser("adjudicate", help="Run one sample through the pinned engine.")
     decide.add_argument("sample_id", help="Sample id, e.g. A_niseko_wrist.")
     decide.add_argument("--variant", choices=["photo", "clean"], default="photo")
