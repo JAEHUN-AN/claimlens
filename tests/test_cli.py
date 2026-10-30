@@ -60,3 +60,27 @@ def test_remeasure_plan_matches_single_set_plans(capsys):
     for line in both.splitlines() + unseen.splitlines() + trips.splitlines():
         if line.startswith(("normal:", "hard:", "unseen:", "trips:")):
             assert line in bundle
+
+
+def test_no_key_falls_back_to_replay(monkeypatch, capsys):
+    # README: the offline commands work on a fresh clone with no key.
+    from claimlens import cli
+
+    monkeypatch.delenv("CLAIMLENS_PROVIDER", raising=False)
+    monkeypatch.delenv("META_API_KEY", raising=False)
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
+    cli._default_to_replay()
+    import os
+    assert os.environ["CLAIMLENS_PROVIDER"] == "replay"
+    assert "committed recordings" in capsys.readouterr().err
+
+
+def test_key_or_choice_is_left_alone(monkeypatch):
+    from claimlens import cli
+
+    monkeypatch.delenv("CLAIMLENS_PROVIDER", raising=False)
+    monkeypatch.setenv("META_API_KEY", "test-key")
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
+    cli._default_to_replay()
+    import os
+    assert "CLAIMLENS_PROVIDER" not in os.environ

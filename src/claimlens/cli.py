@@ -857,8 +857,25 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _default_to_replay() -> None:
+    """No key and no provider chosen: run from the committed recordings, and say so.
+
+    README promises the offline commands work on a fresh clone with no key.
+    """
+    import os
+
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    if not os.environ.get("CLAIMLENS_PROVIDER") and not os.environ.get("META_API_KEY"):
+        os.environ["CLAIMLENS_PROVIDER"] = "replay"
+        print("claimlens: no META_API_KEY, so running from the committed recordings "
+              "(CLAIMLENS_PROVIDER=replay).", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    _default_to_replay()
     return args.func(args)
 
 
