@@ -380,9 +380,13 @@ def test_trips_check_plan_text(capsys):
     assert "T9_nope" in capsys.readouterr().err
 
 
-def test_trips_check_unrecorded_photos_stop_at_probe():
+def test_trips_check_unrecorded_photos_stop_at_probe(monkeypatch):
     # Trips photos have no recordings: replay probes miss, so every trip
     # stops at the rotation probe (C4) with no live call and no spend.
+    # Set here, not inherited: a fresh clone has no key and no env. serve builds
+    # its provider from a key, so a dummy key keeps every call on the replay path.
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    monkeypatch.setenv("META_API_KEY", "BOGUS")
     for cid in ("T1_bangkok_food_poisoning", "T4_paris_pharmacy",
                 "T5_honolulu_urgent"):
         record = trips_check.run_case(cid)
