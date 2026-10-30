@@ -28,7 +28,7 @@ def test_gate_line_simulated_from_fixture(tmp_path):
     assert "시뮬레이션" in entry["ko"]
 
 
-def test_gate_line_live_drops_simulated(tmp_path):
+def test_gate_line_live_opens_with_conclusion(tmp_path):
     _fixture_hard(tmp_path)
     (tmp_path / "data" / "gate_live_20261028T000000Z.json").write_text(
         json.dumps({"repeat": 3, "sets": {"hard": {"pairs": 72, "stops": 40,
@@ -36,13 +36,34 @@ def test_gate_line_live_drops_simulated(tmp_path):
         encoding="utf-8")
     entry = headline.gate_line(tmp_path)
     assert "simulated" not in entry["en"]
-    assert "Live double-read gate" in entry["en"]
+    assert entry["en"].startswith("Live double-read gate")
+    assert "0 wrong amounts left" in entry["en"]
     assert "40 stopped for a person" in entry["en"]
-    assert "old pipeline" in entry["en"]
     assert "current pipeline" in entry["en"]
-    assert "Fields scored: total, line amounts, Korean bill cells" in entry["en"]
+    assert "old pipeline" not in entry["en"]  # legacy_line holds it now
+    assert "Fields scored" not in entry["en"]  # footnote holds it now
     assert "normal documents" not in entry["en"]  # fixture has no normal set
+    legacy = headline.legacy_line(tmp_path)
+    assert legacy["en"].startswith("Single read, 2026-10-28 run on the old pipeline")
+    footnote = headline.scope_footnote(tmp_path)
+    assert footnote["en"] == (
+        "Fields scored: total, line amounts, Korean bill cells.")
 
+
+def test_measured_block_opens_with_conclusion_and_footnote(tmp_path):
+    _fixture_hard(tmp_path)
+    (tmp_path / "data" / "gate_live_20261028T000000Z.json").write_text(
+        json.dumps({"repeat": 3, "sets": {"hard": {"pairs": 72, "stops": 40,
+                                                  "leaks": 0}}}),
+        encoding="utf-8")
+    entries = headline.lines(tmp_path)
+    assert entries[0]["en"].startswith("Live double-read gate")
+    assert entries[1]["en"].startswith("Single read, 2026-10-28")
+    footnote = headline.scope_footnote(tmp_path)
+    block = headline.render_readme_block(entries, footnote)
+    assert block.splitlines()[2].startswith("- Live double-read gate")
+    assert block.splitlines()[-2] == footnote["en"]
+    assert block.splitlines()[-1] == "<!-- measured:end -->"
 
 def _gate_file_with_details(old: dict) -> dict:
     new = json.loads(json.dumps(old))
@@ -69,6 +90,8 @@ def test_gate_line_reads_old_and_new_format(tmp_path):
             json.dumps(payload), encoding="utf-8")
         roots.append(root)
     assert headline.gate_line(roots[0]) == headline.gate_line(roots[1])
+    assert headline.legacy_line(roots[0]) == headline.legacy_line(roots[1])
+    assert headline.scope_footnote(roots[0]) == headline.scope_footnote(roots[1])
     assert headline.eval_caption(roots[0]) == headline.eval_caption(roots[1])
     assert "Live double-read gate" in headline.gate_line(roots[1])["en"]
 
@@ -94,6 +117,8 @@ def test_agent_and_load_lines(tmp_path):
 def test_missing_data_omits_lines(tmp_path):
     (tmp_path / "data").mkdir(exist_ok=True)
     assert headline.gate_line(tmp_path) is None
+    assert headline.legacy_line(tmp_path) is None
+    assert headline.scope_footnote(tmp_path) is None
     assert headline.agent_line(tmp_path) is None
     assert headline.load_line(tmp_path) is None
     assert headline.after_n(tmp_path) is None
@@ -103,28 +128,34 @@ def test_missing_data_omits_lines(tmp_path):
 def test_real_lines_are_pinned():
     entries = headline.lines(ROOT)
     assert entries[0]["en"] == (
+        "Live double-read gate, 2026-10-30 run on the current pipeline "
+        "(24 cases ×3 = 72 pairs): 0 wrong amounts left (40 stopped for a "
+        "person); normal documents: 0 left, 6/30 stopped.")
+    assert entries[1]["en"] == (
         "Single read, 2026-10-28 run on the old pipeline (before the line-sum "
         "check and rotation probe): 47 wrong amounts left (hard set, 23/24 "
-        "cases ×3). Live double-read gate, 2026-10-30 run on the current "
-        "pipeline (24 cases ×3 = 72 pairs): 0 left (40 stopped for a person); "
-        "normal documents: 0 left, 6/30 stopped. "
-        "Fields scored: total, line amounts, Korean bill cells, currency, country, "
-        "service date, inpatient stay, diagnosis codes, charge rows.")
-    assert entries[1]["en"] == (
+        "cases ×3).")
+    assert entries[2]["en"] == (
         "Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong "
         "amounts left over 84 pairs (30 stopped for a person); after fixes "
         "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).")
-    assert entries[2]["en"] == (
+    assert entries[3]["en"] == (
         "Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed "
         "once from its recording)")
-    assert entries[3]["en"] == (
-        "15 fault cases injected in tests (no live calls), no wrong number")
     assert entries[4]["en"] == (
+        "15 fault cases injected in tests (no live calls), no wrong number")
+    assert entries[5]["en"] == (
         "Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, "
-        "p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2; "
+        "p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2 "
+        "(PARTIAL = partly paid, needs_manual_check = stopped for a person); "
         "median run needs_manual_check")
-    assert len(entries) == 5
-
+    assert len(entries) == 6
+    footnote = headline.scope_footnote(ROOT)
+    assert footnote["en"] == (
+        "Fields scored in the current runs: total, line amounts, Korean bill cells, "
+        "currency, country, service date, inpatient stay, diagnosis codes, charge rows. "
+        "Older runs (the single-read line and the first run before fixes) scored "
+        "total, line amounts, Korean bill cells only.")
 
 def test_scope_labels_track_gate_fields():
     from claimlens.hard_eval import GATE_FIELDS
@@ -138,17 +169,10 @@ def test_heldout_line_omitted_without_data(tmp_path):
     assert headline.heldout_line(tmp_path) is None
 
 
-def test_after_scope_pins_photos_and_median():
-    scope = headline.after_scope(ROOT)
-    assert scope is not None
-    assert scope["en"] == (
-        " (S2 retake photos; the median run ended needs_manual_check)")
-    assert scope["ko"] == " (S2 재촬영 사진; 중앙값 실행 needs_manual_check)"
+def test_after_sentence_drops_scope_paren():
     assert headline.after_sentence(ROOT) == (
-        "Bill photo → checked claim in about 22.97 s "
-        "(S2 retake photos; the median run ended needs_manual_check), "
-        "every number traceable.")
-
+        "Bill photo → checked claim in about 22.97 s, every number traceable.")
+    assert "(" not in headline.after_sentence(ROOT)
 
 def test_eval_caption_pinned():
     caption = headline.eval_caption(ROOT)
@@ -167,6 +191,7 @@ def test_apply_readme_inserts_and_idempotent(tmp_path):
     text = readme.read_text(encoding="utf-8")
     assert "<!-- measured:start -->" in text
     assert "Agent scorecard: 8/8" in text
+    assert "Fields scored in the current runs: total, line amounts" in text
     assert headline.apply_readme(readme, ROOT) is False
 
 
@@ -197,6 +222,8 @@ def test_demo_carries_measured_payload(tmp_path):
     assert "단일 판독, 2026-10-28 구 파이프라인 실행" in text
     assert "Unseen layouts + real trips, first run before fixes (2026-10-29)" in text
     assert '"after_n": "22.97"' in text
+    assert '"measured_footnote"' in text
+    assert "after_scope" not in text
     assert "why_after_n" in text
 
 

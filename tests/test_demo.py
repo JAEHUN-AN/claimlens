@@ -225,6 +225,18 @@ def test_live_ui_has_picker_panels_and_resolutions(tmp_path, monkeypatch):
     assert "mergeHtml(j.merge)" in text
 
 
+def test_flow_view_section_order_is_static():
+    """C4: tagline, Why, strip, examples + Play, measured, eval, in order."""
+    import claimlens.demo_template as template
+
+    text = Path(template.__file__).read_text(encoding="utf-8")
+    markers = ['<p class="tagline">', "+whyHtml()",
+               '<ol class="strip3">', '<button id="flow-play"',
+               "+measuredHtml(f)", "+evalBlock(f.eval)"]
+    positions = [text.index(marker) for marker in markers]
+    assert positions == sorted(positions)
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_demo_renders_in_node_harness(tmp_path, monkeypatch):
     monkeypatch.delenv("META_API_KEY", raising=False)

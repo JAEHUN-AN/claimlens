@@ -366,7 +366,7 @@ why_before2:["2.01 million foreign patients were treated in Korea in 2025.","202
 why_src2:["Source: Ministry of Health and Welfare, reported 2026-04-24","출처: 보건복지부, 2026-04-24 보도"],
 why_own:["ClaimLens works on the paperwork step.","ClaimLens는 서류 단계에 집중합니다."],
 why_after:["Bill photo → checked claim, every number traceable","청구서 사진 → 검증된 청구, 모든 숫자는 추적 가능"],
-why_after_n:["Bill photo → checked claim in about {n} s{scope}, every number traceable","청구서 사진 → 약 {n}초 만에{scope} 검증된 청구, 모든 숫자는 추적 가능"],
+why_after_n:["Bill photo → checked claim in about {n} s, every number traceable","청구서 사진 → 약 {n}초 만에 검증된 청구, 모든 숫자는 추적 가능"],
 h_measured:["Measured","측정 결과"],
 h_metatools:["Built with Meta","Built with Meta"],
 why_theme:["Theme: Build for Your World.","테마: Build for Your World."],
@@ -520,14 +520,13 @@ function whyHtml(){
 function afterLine(){
   const n=data.flow&&data.flow.after_n;
   if(!n)return t('why_after');
-  const sc=data.flow.after_scope;
-  const scope=sc?(sc[LANG]||sc.en):"";
-  return t('why_after_n').replace('{n}',n).replace('{scope}',scope);
+  return t('why_after_n').replace('{n}',n);
 }
 function measuredHtml(f){
   const items=(f.measured||[]).map(m=>`<li>${esc(m[LANG]||m.en)}</li>`).join('');
   if(!items)return '';
-  return `<h3>${esc(t('h_measured'))}</h3><ul class="measured">${items}</ul>`;
+  const ft=f.measured_footnote?`<p><small class="dim">${esc(f.measured_footnote[LANG]||f.measured_footnote.en)}</small></p>`:'';
+  return `<h3>${esc(t('h_measured'))}</h3><ul class="measured">${items}</ul>${ft}`;
 }
 function metaToolsHtml(f){
   const tiles=(f.meta_tools||[]).map(m=>{
@@ -549,7 +548,6 @@ function flowView(f){
   return `<div id="flow-view">`
     +`<p class="tagline">${esc(t('tagline'))}</p>`
     +whyHtml()
-    +measuredHtml(f)
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
@@ -563,6 +561,7 @@ function flowView(f){
     +`<div id="flow-merge"></div>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
+    +measuredHtml(f)
     +evalBlock(f.eval)+metaToolsHtml(f)+scopeFooter()+`</div>`;
 }
 function evalBlock(e){

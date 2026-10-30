@@ -655,12 +655,17 @@ def _run_live_guarded(
             readings[pos]["documents"][0] = verified["receipt"]
             detail = f"{names}; re-read: {verified['status']}"
             adjust = verified["receipt"].get("adjustment_lines") or []
-            if adjust:
+            subtotal = verified["receipt"].get("subtotal")
+            if adjust or subtotal is not None:
                 shown = ", ".join(
                     f"{a.get('kind')} {_fmt_value(a.get('amount'))}"
                     for a in adjust)
-                detail += (f"; adjustments: {shown} "
-                           f"({adjust[0].get('source', 'narrow re-read')})")
+                if subtotal is not None:
+                    shown += (", " if shown else "") + (
+                        f"subtotal {_fmt_value(subtotal)}")
+                source = (adjust[0].get("source", "narrow re-read") if adjust
+                          else "narrow re-read")
+                detail += f"; adjustments: {shown} ({source})"
             details.append(detail)
             if verified["status"] == "needs_manual_check":
                 verify_failed.append((pos, verified.get("failing", [])))
@@ -819,12 +824,17 @@ def _merge_payables(payables: list[tuple[int, dict[str, Any]]],
         kept.append((photo, doc))
         note = ""
         doc_adjust = doc.get("adjustment_lines") or []
-        if doc_adjust:
+        doc_subtotal = doc.get("subtotal")
+        if doc_adjust or doc_subtotal is not None:
             shown = ", ".join(
                 f"{a.get('kind')} {_fmt_value(a.get('amount'))}"
                 for a in doc_adjust)
-            note = (f"adjustments: {shown} "
-                    f"({doc_adjust[0].get('source', 'narrow re-read')})")
+            if doc_subtotal is not None:
+                shown += (", " if shown else "") + (
+                    f"subtotal {_fmt_value(doc_subtotal)}")
+            source = (doc_adjust[0].get("source", "narrow re-read")
+                      if doc_adjust else "narrow re-read")
+            note = f"adjustments: {shown} ({source})"
         photos.append({"photo": photo, "file": names[photo - 1],
                        "total": total, "currency": doc.get("currency"),
                        "status": "kept", "note": note})
@@ -1124,6 +1134,10 @@ def _run_live_multi(
                 adjust_notes.append(
                     f"photo {photo}: {a.get('kind')} "
                     f"{_fmt_value(a.get('amount'))}")
+            subtotal = verified[photo][0].get("subtotal")
+            if subtotal is not None:
+                adjust_notes.append(
+                    f"photo {photo} subtotal {_fmt_value(subtotal)}")
         if adjust_notes:
             detail += (f"; adjustments ({adjust_source}): "
                        + "; ".join(adjust_notes))

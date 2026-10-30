@@ -298,11 +298,76 @@ def test_adjustment_reread_uses_given_cache_tag():
 
 
 def test_adjustment_reread_has_own_schema():
-    """56: the adjustment call asks only for adjustment lines."""
+    """56: the adjustment call asks only for adjustment lines + subtotal."""
     from claimlens.verify import adjustment_schema
 
     schema = adjustment_schema()
-    assert list(schema["properties"]) == ["adjustment_lines"]
+    assert list(schema["properties"]) == ["adjustment_lines", "subtotal"]
+
+
+def _t5_bill_receipt():
+    """Statement with a subtotal row: items 1,905.50, total 1,333.85."""
+    return {
+        "doc_type": "receipt", "country": "US", "currency": "USD",
+        "total_amount": 1333.85, "service_date": "2026-09-26",
+        "inpatient": False,
+        "line_items": [{"description": label, "category": "other",
+                        "amount": amount} for label, amount in
+                       [("Urgent care visit", 950.0),
+                        ("X-ray ankle", 620.0),
+                        ("Lab tests", 240.0),
+                        ("Medication", 95.5)]],
+    }
+
+
+def test_adjustment_subtotal_chain_passes():
+    """G1: items = subtotal and subtotal + adjustments = total verifies."""
+    provider = StubProvider(
+        _t5_bill_receipt(),
+        {"subtotal": 1905.5,
+         "adjustment_lines": [{"label": "Insurance adjustment",
+                               "kind": "adjustment", "amount": -571.65}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "verified"
+    assert result["receipt"]["subtotal"] == 1905.5
+    assert result["corrected"] == ["adjustment_lines", "subtotal"]
+
+
+def test_adjustment_subtotal_misclassified_rejected():
+    """G1: a subtotal filed as an adjustment never reconciles."""
+    receipt = _t5_bill_receipt()
+    mistaken = StubProvider(
+        receipt, {"adjustment_lines": [{"label": "Charges subtotal",
+                                       "kind": "adjustment",
+                                       "amount": 1905.5}]})
+    result = verify_receipt(_read_initial(mistaken), Path("receipt.jpg"),
+                            mistaken)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["lines_sum_total"]
+    double = StubProvider(
+        receipt, {"subtotal": 1905.5,
+                  "adjustment_lines": [{"label": "Charges subtotal",
+                                        "kind": "adjustment",
+                                        "amount": 1905.5}]})
+    result = verify_receipt(_read_initial(double), Path("receipt.jpg"), double)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["lines_sum_total"]
+
+
+def test_adjustment_subtotal_items_mismatch_stops():
+    """G1: the chain rejects a misread item even with a true subtotal."""
+    receipt = _t5_bill_receipt()
+    receipt["line_items"][3]["amount"] = 955.0
+    provider = StubProvider(
+        receipt,
+        {"subtotal": 1905.5,
+         "adjustment_lines": [{"label": "Insurance adjustment",
+                               "kind": "adjustment", "amount": -571.65}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["lines_sum_total"]
 
 
 def test_s3_clean_recovers_lines_through_reread():

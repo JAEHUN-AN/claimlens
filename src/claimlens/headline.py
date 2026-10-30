@@ -24,6 +24,12 @@ SCOPE_LABELS_KO = {"total": "합계", "lines": "항목 금액", "kr_cells": "한
 HELDOUT_LABELS = {"unseen": "Unseen layouts", "trips": "real trips"}
 HELDOUT_LABELS_KO = {"unseen": "새 양식", "trips": "실제 여행"}
 
+# Short glosses for badges a first-time reader meets in the block; only
+# badges listed here are annotated, and only when the data behind the
+# line actually shows them.
+BADGE_GLOSS = {"PARTIAL": ("partly paid", "일부 지급"),
+               "needs_manual_check": ("stopped for a person", "사람 확인 중단")}
+
 
 def _newest(root: Path, pattern: str) -> Path | None:
     files = sorted((root / "data").glob(pattern))
@@ -106,19 +112,15 @@ def _live_case_count(entry: dict[str, Any], repeat: int) -> int:
 
 
 def gate_line(root: Path) -> dict[str, str] | None:
-    """Single read vs double-read gate, with each number's own source (H1)."""
+    """Conclusion first: the current pipeline's live gate numbers."""
     hard = _hard_sets(root)
     gate_path = _newest_gate(root)
     live = _read(gate_path)["sets"].get("hard") if gate_path else None
     if hard is None and live is None:
         return None
-    scope_en, scope_ko = _scope_text(_read(gate_path) if gate_path else None)
-    if live is not None and hard is not None:
-        ref = hard["hard"]
+    if live is not None:
         gate_data = _read(gate_path)
         normal = gate_data["sets"].get("normal")
-        hard_path = _newest(root, "hard_eval_*.json")
-        hard_date = _run_date(hard_path) if hard_path else None
         gate_date = _run_date(gate_path) if gate_path else None
         rep = gate_data.get("repeat", 0)
         live_cases = _live_case_count(live, rep)
@@ -129,49 +131,65 @@ def gate_line(root: Path) -> dict[str, str] | None:
             ko_normal = (f"; 일반 서류: {normal['leaks']}건 유출, "
                          f"{normal['pairs']}쌍 중 {normal['stops']}쌍 중단")
         return {
-            "en": (f"Single read, {hard_date or 'undated'} run on the old pipeline "
-                   "(before the line-sum check and rotation probe): "
-                   f"{ref['reached']} wrong amounts left "
-                   f"(hard set, {ref['cases']}/{_planned_hard_cases()} cases "
-                   f"×{ref['repeat']}). "
-                   f"Live double-read gate, {gate_date or 'undated'} run on the "
-                   f"current pipeline ({live_cases} cases ×{rep} = "
-                   f"{live['pairs']} pairs): {live['leaks']} left "
-                   f"({live['stops']} stopped for a person){en_normal}. "
-                   f"Fields scored: {scope_en}."),
-            "ko": (f"단일 판독, {hard_date or '날짜 없음'} 구 파이프라인 실행"
-                   "(합계 검사·회전 확인 이전): "
-                   f"{ref['reached']}건 유출 "
-                   f"(hard, {ref['cases']}/{_planned_hard_cases()}건 "
-                   f"×{ref['repeat']}회). "
-                   f"실시간 이중 판독 관문, {gate_date or '날짜 없음'} 현 파이프라인 "
-                   f"실행 ({live_cases}건 ×{rep}회 = "
+            "en": (f"Live double-read gate, {gate_date or 'undated'} run on the "
+                   f"current pipeline ({live_cases} cases \u00d7{rep} = "
+                   f"{live['pairs']} pairs): {live['leaks']} wrong amounts left "
+                   f"({live['stops']} stopped for a person){en_normal}."),
+            "ko": (f"실시간 이중 판독 관문, {gate_date or '날짜 없음'} 현 파이프라인 "
+                   f"실행 ({live_cases}건 \u00d7{rep}회 = "
                    f"{live['pairs']}쌍): {live['leaks']}건 유출 "
-                   f"({live['stops']}쌍 중단){ko_normal}. "
-                   f"채점 범위: {scope_ko}."),
-        }
-    if live is not None:
-        rep = _read(gate_path)["repeat"]
-        return {
-            "en": (f"Live double-read gate: {live['leaks']} wrong amounts left over "
-                   f"{live['pairs']} pairs ({live['stops']} stopped, ×{rep} runs). "
-                   f"Fields scored: {scope_en}."),
-            "ko": (f"실시간 이중 판독 관문: {live['pairs']}쌍 중 {live['leaks']}건 유출"
-                   f"({live['stops']}쌍 중단, ×{rep}회). "
-                   f"채점 범위: {scope_ko}."),
+                   f"({live['stops']}쌍 중단){ko_normal}."),
         }
     ref = hard["hard"]
     return {
-        "en": (f"Hard documents ×{ref['repeat']} runs: {ref['reached']} wrong amounts "
-               f"left single read, {ref['leaks']} with the double-read gate "
-               f"({ref['stops']}/{ref['pairs']} pairs stopped, simulated from "
-               "recorded runs). "
-               f"Fields scored: {scope_en}."),
-        "ko": (f"어려운 서류 ×{ref['repeat']}회: 단일 판독 {ref['reached']}건 유출, "
-               f"이중 판독 관문 {ref['leaks']}건"
-               f"({ref['pairs']}쌍 중 {ref['stops']}쌍 중단, 기록된 실행에서 시뮬레이션). "
-               f"채점 범위: {scope_ko}."),
+        "en": (f"Double-read gate, simulated from recorded runs (hard set "
+               f"\u00d7{ref['repeat']} runs): {ref['leaks']} wrong amounts left "
+               f"({ref['stops']}/{ref['pairs']} pairs stopped)."),
+        "ko": (f"이중 판독 관문, 기록된 실행에서 시뮬레이션 (hard "
+               f"\u00d7{ref['repeat']}회): {ref['leaks']}건 유출 "
+               f"({ref['pairs']}쌍 중 {ref['stops']}쌍 중단)."),
     }
+
+
+def legacy_line(root: Path) -> dict[str, str] | None:
+    """The old pipeline's single-read number, kept as a later line."""
+    hard = _hard_sets(root)
+    if hard is None:
+        return None
+    ref = hard["hard"]
+    hard_path = _newest(root, "hard_eval_*.json")
+    hard_date = _run_date(hard_path) if hard_path else None
+    return {
+        "en": (f"Single read, {hard_date or 'undated'} run on the old pipeline "
+               "(before the line-sum check and rotation probe): "
+               f"{ref['reached']} wrong amounts left "
+               f"(hard set, {ref['cases']}/{_planned_hard_cases()} cases "
+               f"\u00d7{ref['repeat']})."),
+        "ko": (f"단일 판독, {hard_date or '날짜 없음'} 구 파이프라인 실행"
+               "(합계 검사·회전 확인 이전): "
+               f"{ref['reached']}건 유출 "
+               f"(hard, {ref['cases']}/{_planned_hard_cases()}건 "
+               f"\u00d7{ref['repeat']}회)."),
+    }
+
+
+def scope_footnote(root: Path) -> dict[str, str] | None:
+    """Fields-scored footnote, from the run behind the numbers."""
+    hard = _hard_sets(root)
+    gate_path = _newest_gate(root)
+    if hard is None and gate_path is None:
+        return None
+    scope_en, scope_ko = _scope_text(_read(gate_path) if gate_path else None)
+    legacy_en, legacy_ko = _scope_text({})
+    if scope_en == legacy_en:
+        return {"en": f"Fields scored: {scope_en}.",
+                "ko": f"채점 범위: {scope_ko}."}
+    # Only the current runs scored the wider set; older lines scored amounts only.
+    return {"en": (f"Fields scored in the current runs: {scope_en}. "
+                   f"Older runs (the single-read line and the first run before fixes) "
+                   f"scored {legacy_en} only."),
+            "ko": (f"현재 실행의 채점 범위: {scope_ko}. "
+                   f"이전 실행(단일 판독 줄, 고치기 전 첫 실행)은 {legacy_ko}만 채점.")}
 
 
 def _set_runs(root: Path, name: str) -> list[Path]:
@@ -257,8 +275,16 @@ def _load_scope(data: dict[str, Any]) -> dict[str, str] | None:
     for run in results:
         badge = str(run.get("badge", "?"))
         counts[badge] = counts.get(badge, 0) + 1
-    outcomes = ", ".join(f"{badge} {counts[badge]}"
-                         for badge in sorted(counts, key=lambda b: (-counts[b], b)))
+    order = sorted(counts, key=lambda b: (-counts[b], b))
+    outcomes = ", ".join(f"{badge} {counts[badge]}" for badge in order)
+    glossed = [(badge, BADGE_GLOSS[badge]) for badge in order
+               if badge in BADGE_GLOSS]
+    gloss_en = (" (" + ", ".join(f"{badge} = {gloss[0]}"
+                                 for badge, gloss in glossed) + ")"
+                if glossed else "")
+    gloss_ko = (" (" + ", ".join(f"{badge} = {gloss[1]}"
+                                 for badge, gloss in glossed) + ")"
+                if glossed else "")
     median = next((str(run.get("badge")) for run in results
                    if run.get("seconds") == data.get("p50_s")), None)
     med_en = f"; median run {median}" if median else ""
@@ -268,8 +294,8 @@ def _load_scope(data: dict[str, Any]) -> dict[str, str] | None:
     return {
         "en": f"({sample} {kind_en}, {data['runs']} concurrent live runs)",
         "ko": f"({sample} {kind_ko}, 동시 실시간 {data['runs']}회)",
-        "outcomes_en": f"outcomes {outcomes}{med_en}",
-        "outcomes_ko": f"결과 {outcomes}{med_ko}",
+        "outcomes_en": f"outcomes {outcomes}{gloss_en}{med_en}",
+        "outcomes_ko": f"결과 {outcomes}{gloss_ko}{med_ko}",
     }
 
 
@@ -300,8 +326,8 @@ def load_line(root: Path) -> dict[str, str] | None:
 def lines(root: Path) -> list[dict[str, str]]:
     """Measured lines in order; only lines with data appear."""
     out = []
-    for entry in (gate_line(root), heldout_line(root), agent_line(root),
-                  fault_line(), load_line(root)):
+    for entry in (gate_line(root), legacy_line(root), heldout_line(root),
+                  agent_line(root), fault_line(), load_line(root)):
         if entry is not None:
             out.append(entry)
     return out
@@ -315,40 +341,19 @@ def after_n(root: Path) -> str | None:
     return f"{_read(path)['p50_s']:g}"
 
 
-def after_scope(root: Path) -> dict[str, str] | None:
-    """Parenthetical for the After line (H8): photos + median-run outcome."""
-    path = _newest(root, "load_*.json")
-    if path is None:
-        return None
-    data = _read(path)
-    results = data.get("results")
-    if not results:
-        return None
-    sample = str(data.get("scenario", "")).split("_")[0] or "?"
-    photos = data.get("photos") or []
-    retake = any("retake" in str(photo) for photo in photos)
-    median = next((str(run.get("badge")) for run in results
-                   if run.get("seconds") == data.get("p50_s")), None)
-    kind_en = "retake photos" if retake else "photos"
-    kind_ko = "재촬영 사진" if retake else "사진"
-    med_en = f"; the median run ended {median}" if median else ""
-    med_ko = f"; 중앙값 실행 {median}" if median else ""
-    return {"en": f" ({sample} {kind_en}{med_en})",
-            "ko": f" ({sample} {kind_ko}{med_ko})"}
-
-
 def after_sentence(root: Path) -> str:
-    """After line with N and, when known, the load scope (H8)."""
+    """After line with N; the load scope lives only in the Measured block."""
     n = after_n(root)
     if not n:
         return AFTER_NLESS
-    scope = after_scope(root)
-    core = f"in about {n} s" + (scope["en"] if scope else "")
-    return f"Bill photo → checked claim {core}, every number traceable."
+    return f"Bill photo \u2192 checked claim in about {n} s, every number traceable."
 
 
-def render_readme_block(entries: list[dict[str, str]]) -> str:
+def render_readme_block(entries: list[dict[str, str]],
+                        footnote: dict[str, str] | None = None) -> str:
     body = "\n".join(f"- {entry['en']}" for entry in entries)
+    if footnote is not None:
+        body += f"\n{footnote['en']}"
     return f"{MEASURED_START}\n**Measured:**\n{body}\n{MEASURED_END}\n"
 
 
@@ -377,7 +382,7 @@ def apply_readme(readme: Path, root: Path) -> bool:
     text = readme.read_text(encoding="utf-8")
     updated = AFTER_RE.sub(after_sentence(root), text)
     updated = apply_eval_tables(updated, root)
-    block = render_readme_block(lines(root))
+    block = render_readme_block(lines(root), scope_footnote(root))
     if MEASURED_START in updated:
         pattern = re.compile(f"{re.escape(MEASURED_START)}.*?"
                              f"{re.escape(MEASURED_END)}\n?", re.DOTALL)

@@ -11,25 +11,27 @@ see first-hand. Korea, 2022: an estimated ₩251.2 billion of private medical in
 went unclaimed ([estimate from NHIS and insurer statistics](https://www.fnnews.com/news/202309060625012843)).
 2.01 million foreign patients were treated in Korea in 2025
 ([Ministry of Health and Welfare](https://v.daum.net/v/20260424060102461)).
-ClaimLens works on the paperwork step. Bill photo → checked claim in about 22.97 s (S2 retake photos; the median run ended needs_manual_check), every number traceable.
+ClaimLens works on the paperwork step. Bill photo → checked claim in about 22.97 s, every number traceable.
 Theme: Build for Your World.
-
-<!-- measured:start -->
-**Measured:**
-- Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3). Live double-read gate, 2026-10-30 run on the current pipeline (24 cases ×3 = 72 pairs): 0 left (40 stopped for a person); normal documents: 0 left, 6/30 stopped. Fields scored: total, line amounts, Korean bill cells, currency, country, service date, inpatient stay, diagnosis codes, charge rows.
-- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).
-- Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
-- 15 fault cases injected in tests (no live calls), no wrong number
-- Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2; median run needs_manual_check
-<!-- measured:end -->
-
-**Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
 
 Medical paperwork that crosses borders — in both directions.
 ClaimLens reads hospital bills and medical certificates for people whose care crosses a border
 (Koreans treated abroad, foreigners treated in Korea). When a Korean policy applies, it prepares a
 claim decision with the cited policy clauses. When no policy applies, it does not decide — it builds
 a claim pack the person can take to their own insurer (English, Vietnamese on request).
+
+<!-- measured:start -->
+**Measured:**
+- Live double-read gate, 2026-10-30 run on the current pipeline (24 cases ×3 = 72 pairs): 0 wrong amounts left (40 stopped for a person); normal documents: 0 left, 6/30 stopped.
+- Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3).
+- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).
+- Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
+- 15 fault cases injected in tests (no live calls), no wrong number
+- Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2 (PARTIAL = partly paid, needs_manual_check = stopped for a person); median run needs_manual_check
+Fields scored in the current runs: total, line amounts, Korean bill cells, currency, country, service date, inpatient stay, diagnosis codes, charge rows. Older runs (the single-read line and the first run before fixes) scored total, line amounts, Korean bill cells only.
+<!-- measured:end -->
+
+**Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
 
 Built for the **Meta Global AI Developer Hackathon** (Indie track, Oct 27 – Nov 4, 2026).
 All documents used in this repository are **synthetic**. ClaimLens processes insurance paperwork;

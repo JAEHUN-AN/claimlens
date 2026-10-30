@@ -986,8 +986,8 @@ def export_demo(dst: Path | str = "docs/demo.html", root: Path | None = None) ->
         "person_presets": _person_presets(),
         "products": _product_names(),
         "measured": headline.lines(repo),
+        "measured_footnote": headline.scope_footnote(repo),
         "after_n": headline.after_n(repo),
-        "after_scope": headline.after_scope(repo),
         "meta_tools": meta_tiles.tiles(repo),
     }
     dst.parent.mkdir(parents=True, exist_ok=True)

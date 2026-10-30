@@ -108,10 +108,11 @@ def default_provider_factory() -> Callable[[], Any]:
 
 def _verify_final(reading: dict[str, Any], image: Path,
                   provider: Any, calls: list[dict], pos: int = 0,
+                  round_no: int = 1,
                   ) -> tuple[dict[str, Any], bool]:
     """Verified final reading + stopped flag (every receipt)."""
     from claimlens.checks import all_passed, receipt_checks
-    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
+    from claimlens.verify import verify_receipt
 
     final = reading
     stopped = False
@@ -120,7 +121,10 @@ def _verify_final(reading: dict[str, Any], image: Path,
         first = receipt_checks(receipt)
         if not all_passed(first):
             seen = len(provider.calls)
-            tag = "" if pos == 0 else REREAD_READ2_TAG
+            # G4: every round re-reads fresh; no round replays another
+            # round's (or the other read's) re-read recording.
+            side = "a" if pos == 0 else "b"
+            tag = f".reread-r{round_no}{side}"
             verified = verify_receipt(receipt, image, provider, cache_tag=tag)
             calls += [vars(c) for c in provider.calls[seen:]]
             rest = reading.get("documents", [])[1:]
@@ -174,7 +178,8 @@ def run_pair(case: dict[str, Any], round_no: int,
                                               reading_schema(), cache_tag=tag)
             calls += [vars(c) for c in provider.calls[seen:]]
             final, stopped = _verify_final(reading, images[0], provider,
-                                           calls, pos=pos)
+                                           calls, pos=pos,
+                                           round_no=round_no)
             finals.append(final)
             stopped_each.append(stopped)
     values = [hard_eval.field_values(final) for final in finals]

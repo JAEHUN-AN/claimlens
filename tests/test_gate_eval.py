@@ -141,8 +141,19 @@ def test_pair_rereads_use_per_read_tags(tmp_path):
     assert record["stopped"] is True
     first_tags = [t for t in stubs[0].tags if not t.startswith(".gate41c")]
     second_tags = [t for t in stubs[1].tags if not t.startswith(".gate41c")]
-    assert first_tags == [""]
-    assert second_tags == [".read2"]
+    assert first_tags == [".reread-r1a"]
+    assert second_tags == [".reread-r1b"]
+
+
+def test_pair_rereads_use_per_round_tags():
+    """G4: every round re-reads fresh; round tags never repeat."""
+    bad = _a_reading(total=999999)
+    case = _case("A_niseko_wrist", None)
+    stubs = []
+    gate_eval.run_pair(case, 2, _factory([bad, bad], stubs))
+    reread_tags = [t for stub in stubs for t in stub.tags
+                   if not t.startswith(".gate41c")]
+    assert reread_tags == [".reread-r2a", ".reread-r2b"]
 
 
 def test_execute_aborts_past_max_cost(tmp_path):
@@ -211,7 +222,7 @@ def test_agreeing_pair_stops_when_either_read_failed_verify(monkeypatch):
     good = _a_reading()
     outcomes = iter([False, True])  # read 1 passes verify, read 2 does not
 
-    def fake_verify(reading, image, provider, calls, pos=0):
+    def fake_verify(reading, image, provider, calls, pos=0, round_no=1):
         return reading, next(outcomes)
 
     monkeypatch.setattr(gate_eval, "_verify_final", fake_verify)

@@ -180,4 +180,7 @@ def _measured_block(root: Path) -> str:
     for entry in headline.lines(root):
         mark = " class=\"gate-line\"" if "double-read gate" in entry["en"] else ""
         items.append(f"<li{mark}>{_inline(entry['en'])}</li>")
+    foot = headline.scope_footnote(root)
+    if foot is not None:
+        items.append(f"<li>{_inline(foot['en'])}</li>")
     return "<ul>" + "".join(items) + "</ul>"

@@ -921,8 +921,8 @@ class _AdjustStub(_PhotoStub):
         if result_model is AdjustmentReread:
             self._log(10)
             idx = int(images[0].stem.split("_")[1])
-            return {"adjustment_lines":
-                    copy.deepcopy(self.adjustments.get(idx, []))}
+            return copy.deepcopy(self.adjustments.get(
+                idx, {"adjustment_lines": []}))
         return super().read_documents(images, instructions, schema, result_model,
                                       cache_tag=cache_tag)
 
@@ -933,8 +933,10 @@ def test_multi_receipt_with_tax_line_merges(stubbed, monkeypatch):
                                    ("Medicine", 6700.0)])
     plain = _jpy_tax_photo(5000, [("Follow-up", 5000.0)])
     photos = {0: [taxed], 1: [plain], 2: [_thb_cert()]}
-    adjustments = {0: [{"label": "Consumption tax", "kind": "tax",
-                        "amount": 330.0}]}
+    adjustments = {0: {"subtotal": 11700.0,
+                       "adjustment_lines": [
+                           {"label": "Consumption tax", "kind": "tax",
+                            "amount": 330.0}]}}
     monkeypatch.setattr(stubbed, "live_provider",
                         lambda: _AdjustStub(photos, adjustments))
     status, result = _run(stubbed, {"images": _multi_images(3),
@@ -943,10 +945,12 @@ def test_multi_receipt_with_tax_line_merges(stubbed, monkeypatch):
     assert result["result"]["badge"] == "engine_unreachable"
     checks = next(s for s in result["steps"] if s["key"] == "checks")
     assert "photo 1: tax 330" in checks["detail"]
+    assert "photo 1 subtotal 11,700" in checks["detail"]
     assert "narrow re-read" in checks["detail"]
     assert result["merge"]["merged_total"] == 17030.0
     kept = [p for p in result["merge"]["photos"] if p["status"] == "kept"]
     assert "tax 330" in kept[0]["note"]
+    assert "subtotal 11,700" in kept[0]["note"]
 
 
 def test_two_image_tax_recovery_shows_in_checks(stubbed, monkeypatch):
@@ -967,9 +971,10 @@ def test_two_image_tax_recovery_shows_in_checks(stubbed, monkeypatch):
                 return {"rotation": 0}
             self._log(100)
             if result_model is AdjustmentReread:
-                return {"adjustment_lines": [
-                    {"label": "Consumption tax", "kind": "tax",
-                     "amount": 330.0}]}
+                return {"subtotal": 11700.0,
+                        "adjustment_lines": [
+                            {"label": "Consumption tax", "kind": "tax",
+                             "amount": 330.0}]}
             return {"documents": [copy.deepcopy(receipt),
                                   copy.deepcopy(cert)]}
 
@@ -980,7 +985,8 @@ def test_two_image_tax_recovery_shows_in_checks(stubbed, monkeypatch):
     assert status == 200
     assert result["result"]["badge"] == "engine_unreachable"
     checks = next(s for s in result["steps"] if s["key"] == "checks")
-    assert "adjustments: tax 330 (narrow re-read)" in checks["detail"]
+    assert "adjustments: tax 330, subtotal 11,700 (narrow re-read)" in checks[
+        "detail"]
 
 
 def test_multi_gate_merge_conflict_repauses(stubbed, monkeypatch):

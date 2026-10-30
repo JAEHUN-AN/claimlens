@@ -154,12 +154,18 @@ def check_receipt_total(receipt: dict[str, Any]) -> list[BillCheck]:
     bill with a printed tax or adjustment block can pass. Readings never
     carry that key (the reading schema is unchanged), so the first pass
     behaves exactly as before.
+
+    G1: when the re-read also brings a printed subtotal, the chain is
+    verified leg by leg - items must equal the subtotal, and the
+    subtotal plus adjustments must equal the total. A subtotal filed as
+    an adjustment line can never satisfy both legs at once.
     """
     total = _number_or_none(receipt.get("total_amount"))
     lines = receipt.get("line_items") or []
     amounts = [_number_or_none(i.get("amount")) for i in lines]
     adjust = [_number_or_none(a.get("amount"))
               for a in receipt.get("adjustment_lines") or []]
+    subtotal = _number_or_none(receipt.get("subtotal"))
     if any(a is None for a in amounts):
         lines_sum = BillCheck("lines_sum_total", total, None, False, "missing line amount")
     elif total is None:
@@ -167,8 +173,12 @@ def check_receipt_total(receipt: dict[str, Any]) -> list[BillCheck]:
     elif any(a is None for a in adjust):
         lines_sum = BillCheck("lines_sum_total", total, None, False,
                               "missing adjustment amount")
+    elif subtotal is not None and abs(sum(amounts) - subtotal) >= 0.01:
+        lines_sum = BillCheck("lines_sum_total", subtotal, sum(amounts), False,
+                              f"expected subtotal {subtotal}, read {sum(amounts)}")
     else:
-        found = sum(amounts) + sum(adjust)
+        base = subtotal if subtotal is not None else sum(amounts)
+        found = base + sum(adjust)
         ok = abs(found - total) < 0.01
         lines_sum = BillCheck(
             "lines_sum_total", total, found, ok,

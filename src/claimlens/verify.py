@@ -204,10 +204,12 @@ ADJUSTMENT_INSTRUCTIONS = (
     "printed total. Re-read ONLY the printed tax, discount and adjustment "
     "lines from the same image (for example consumption-tax, service-tax, "
     "discount, insurance-adjustment or patient-responsibility lines) — "
-    "never the item lines and never the total. Copy each printed amount "
-    "exactly with its printed sign: amounts that lower the total are "
-    "negative. Return an empty list when no such line is printed. Never "
-    "compute or infer."
+    "never the item lines and never the total. If the receipt also prints "
+    "a charges subtotal (the item total before those lines), copy it into "
+    "subtotal, otherwise leave it null; never file the subtotal itself as "
+    "an adjustment line. Copy each printed amount exactly with its printed "
+    "sign: amounts that lower the total are negative. Return an empty list "
+    "when no such line is printed. Never compute or infer."
 )
 
 
@@ -226,6 +228,10 @@ class AdjustmentReread(BaseModel):
         default_factory=list,
         description="Re-read tax/discount/adjustment lines, one entry per row.",
     )
+    subtotal: float | None = Field(
+        default=None,
+        description="Printed charges subtotal before those lines, if shown.",
+    )
 
 
 def adjustment_schema() -> dict[str, Any]:
@@ -242,7 +248,8 @@ def needs_adjustment_reread(receipt: dict[str, Any],
     help (the total is already there), so the one re-read asks for the
     tax/discount/adjustment lines instead.
     """
-    if receipt.get("kr_bill") or receipt.get("adjustment_lines"):
+    if (receipt.get("kr_bill") or receipt.get("adjustment_lines")
+            or receipt.get("subtotal") is not None):
         return False
     names = {c.name for c in failed}
     if "lines_sum_total" not in names or "total_positive" in names:
@@ -273,10 +280,15 @@ def merge_adjustments(
             "amount": float(amount),
             "source": ADJUSTMENT_SOURCE,
         })
-    if not normalized:
-        return merged, []
-    merged["adjustment_lines"] = normalized
-    return merged, ["adjustment_lines"]
+    corrected: list[str] = []
+    if normalized:
+        merged["adjustment_lines"] = normalized
+        corrected.append("adjustment_lines")
+    subtotal = reread.get("subtotal")
+    if (isinstance(subtotal, (int, float)) and not isinstance(subtotal, bool)):
+        merged["subtotal"] = float(subtotal)
+        corrected.append("subtotal")
+    return merged, sorted(corrected)
 
 
 def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any,
