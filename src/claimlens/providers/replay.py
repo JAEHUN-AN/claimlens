@@ -24,9 +24,10 @@ class ReplayProvider:
         instructions: str,
         schema: dict[str, Any],
         result_model: type[BaseModel] | None = None,
+        cache_tag: str = "",
     ) -> dict[str, Any]:
         blobs = [prepare_image(p) for p in images]
-        key = replay_cache.cache_key(blobs, instructions, schema, self.model)
+        key = replay_cache.cache_key(blobs, instructions, schema, self.model) + cache_tag
         payload = replay_cache.load(key)
         usage = payload.get("usage", {})
         in_tokens = int(usage.get("input_tokens", 0))

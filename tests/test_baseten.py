@@ -102,7 +102,8 @@ def test_verify_loop_runs_on_open_reading(monkeypatch):
     ]
 
     class StubProvider:
-        def read_documents(self, images, instructions, schema, result_model=None):
+        def read_documents(self, images, instructions, schema, result_model=None,
+                           cache_tag=""):
             return {"line_items": fixed_lines}
 
     result = verify_receipt(receipt, images[0], StubProvider())

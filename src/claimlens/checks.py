@@ -153,17 +153,65 @@ def check_receipt_total(receipt: dict[str, Any]) -> list[BillCheck]:
             "lines_sum_total", total, found, ok,
             "ok" if ok else f"expected {total}, read {found}",
         )
-    return [check_total_positive(receipt), lines_sum]
+    return [check_total_positive(receipt), lines_sum,
+            check_country_currency(receipt)]
+
+
+# C1: every country/currency pair the pipeline has ever seen. A pair
+# outside this table stops for a person instead of converting blind
+# (a wrong currency is a ~147x error no amount check can catch).
+COUNTRY_CURRENCY = {
+    "KR": "KRW",
+    "JP": "JPY",
+    "US": "USD",
+    "TH": "THB",
+    "VN": "VND",
+    "CN": "CNY",
+    "FR": "EUR",
+}
+
+
+def check_country_currency(receipt: dict[str, Any]) -> BillCheck:
+    """The receipt's country and currency form a listed pair."""
+    country = receipt.get("country")
+    currency = receipt.get("currency")
+    if not country or not currency:
+        return BillCheck("country_currency", None, None, False,
+                         "missing country or currency")
+    ok = COUNTRY_CURRENCY.get(country) == currency
+    detail = "ok" if ok else f"{country} does not use {currency}"
+    return BillCheck("country_currency", COUNTRY_CURRENCY.get(country),
+                     currency, ok, detail)
 
 
 def receipt_checks(receipt: dict[str, Any]) -> list[BillCheck]:
     """The check set for what was read: Korean cells, or receipt totals."""
     bill = receipt.get("kr_bill")
     if bill:
-        # Korean totals already recompute from cells (6/7/8/10); keep this
-        # set byte-stable so recorded agent turns keyed on it still replay.
-        return [*check_kr_bill(bill), *check_kr_lines(receipt)]
+        # check_kr_bill/check_kr_lines stay byte-stable: recorded agent
+        # turns are keyed on them. The cross-checks below are
+        # serve/gate/verify only (C2, C1).
+        return [*check_kr_bill(bill), *check_kr_lines(receipt),
+                check_kr_printed_total(receipt),
+                check_country_currency(receipt)]
     return check_receipt_total(receipt)
+
+
+def check_kr_printed_total(receipt: dict[str, Any]) -> BillCheck:
+    """C2: the printed patient total matches the patient-borne cell.
+
+    total_amount is the patient burden as printed; for Korean bills that
+    is cell 8 (환자부담 총액). A mismatch means one of the two was misread.
+    """
+    total = _number_or_none(receipt.get("total_amount"))
+    cell8 = cell_value(receipt.get("kr_bill") or {}, 8)
+    if total is None:
+        return BillCheck("printed_total_8", cell8, None, False, "missing total_amount")
+    if cell8 is None:
+        return BillCheck("printed_total_8", None, total, False, "missing cell_8")
+    ok = abs(total - cell8) < 0.01
+    detail = "ok" if ok else f"expected {cell8}, read {total}"
+    return BillCheck("printed_total_8", cell8, total, ok, detail)
 
 
 def check_kr_lines(receipt: dict[str, Any]) -> list[BillCheck]:

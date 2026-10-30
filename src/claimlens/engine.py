@@ -220,7 +220,7 @@ def load_result(sample_id: str, variant: str, inputs: dict[str, Any]) -> dict[st
 
 def adjudicate_sample(sample_id: str, variant: str = "photo") -> dict[str, Any]:
     """Eligibility gate, then the engine (live) or its recording (replay)."""
-    from claimlens.eligibility import check_eligibility
+    from claimlens.eligibility import check_eligibility, service_date_of
 
     scenarios, inbound = load_scenarios()
     reading = replay_reading(sample_id, variant)
@@ -232,7 +232,7 @@ def adjudicate_sample(sample_id: str, variant: str = "photo") -> dict[str, Any]:
         "inputs": inputs,
     }
     if sample_id in inbound:
-        service_date = reading["documents"][0].get("service_date") or ""
+        service_date = service_date_of(reading["documents"][0])
         eligibility = check_eligibility(scenarios[sample_id]["person"], service_date)
         envelope["eligibility"] = eligibility
         if eligibility["outcome"] != "nhi_member":

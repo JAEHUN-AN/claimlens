@@ -133,9 +133,15 @@ def field_values(reading: dict[str, Any]) -> dict[str, Any]:
     receipt = docs[0] if docs else {}
     cert = docs[1] if len(docs) > 1 else {}
     bill = receipt.get("kr_bill") or {}
+    rows = bill.get("charge_rows")
     return {
         "docs": [d.get("doc_type") for d in docs],
         "currency": receipt.get("currency"),
+        "country": receipt.get("country"),
+        "service_date": receipt.get("service_date"),
+        "inpatient": receipt.get("inpatient"),
+        "charge_rows": ([[r.get(f"col_{n}") for n in range(1, 5)] for r in rows]
+                        if isinstance(rows, list) else None),
         "total": receipt.get("total_amount"),
         "lines": [i.get("amount") for i in receipt.get("line_items", [])],
         "amounts": [i.get("amount") for i in receipt.get("line_items", [])],
@@ -148,9 +154,16 @@ def field_values(reading: dict[str, Any]) -> dict[str, Any]:
 
 def wrong_numeric_fields(truth: dict[str, Any], reading: dict[str, Any],
                          unreadable: dict[str, Any]) -> list[str]:
-    """Names of the wrong numbers in a final reading (guesses on cut cells count)."""
+    """Names of the wrong numbers in a final reading (guesses on cut cells count).
+
+    C1 also scores the identity fields the gate compares — currency,
+    country, inpatient stay, diagnosis codes, and charge rows — each
+    skipped when the truth does not carry it. Service dates stay
+    compare-only: printed formats vary (ISO vs US) too much to score.
+    """
     docs = reading.get("documents", [])
     receipt = docs[0] if docs else {}
+    cert = docs[1] if len(docs) > 1 else {}
     wrong: list[str] = []
     total = receipt.get("total_amount")
     if unreadable.get("total"):
@@ -179,6 +192,30 @@ def wrong_numeric_fields(truth: dict[str, Any], reading: dict[str, Any],
                     wrong.append(f"kr_cells[{n}]")
             elif value != exp:
                 wrong.append(f"kr_cells[{n}]")
+    if truth.get("currency") and receipt.get("currency") != truth["currency"]:
+        wrong.append("currency")
+    if truth.get("country") and receipt.get("country") != truth["country"]:
+        wrong.append("country")
+    if truth.get("inpatient") is not None and (
+            receipt.get("inpatient") != truth["inpatient"]):
+        wrong.append("inpatient")
+    if truth.get("diag_codes") is not None:
+        read_codes = [d.get("code") for d in cert.get("diagnoses", [])]
+        for i in range(max(len(read_codes), len(truth["diag_codes"]))):
+            if (i >= len(read_codes) or i >= len(truth["diag_codes"])
+                    or read_codes[i] != truth["diag_codes"][i]):
+                wrong.append(f"diag_codes[{i}]")
+    if truth.get("charge_rows") is not None:
+        bill = receipt.get("kr_bill") or {}
+        rows = bill.get("charge_rows")
+        read_rows = rows if isinstance(rows, list) else []
+        for i in range(max(len(read_rows), len(truth["charge_rows"]))):
+            if i >= len(read_rows) or i >= len(truth["charge_rows"]):
+                wrong.append(f"charge_rows[{i}]")
+                continue
+            for n, exp in enumerate(truth["charge_rows"][i], start=1):
+                if read_rows[i].get(f"col_{n}") != exp:
+                    wrong.append(f"charge_rows[{i}].col_{n}")
     return wrong
 
 
@@ -254,6 +291,18 @@ def run_once(sample_id: str, images: list[Path], truth: dict[str, Any],
         images, rot_notes = _maybe_upright(images, probe_pages, replay_dir, live_dir,
                                            force_live, provider_factory, live_calls,
                                            Path(tmp))
+        from claimlens.rotation import FAILED_NOTE
+
+        if FAILED_NOTE in rot_notes:
+            # C4: no orientation, no read; a stopped run leaks nothing.
+            empty: dict[str, Any] = {"documents": []}
+            base = compare_hard(sample_id, truth, empty, unreadable)
+            values = field_values(empty)
+            return {"provider": "none", "calls": live_calls, "base": base,
+                    "values": values, "base_wrongs": 0, "verify": None,
+                    "checks_first": None, "stopped": True, "final": base,
+                    "final_values": values, "reached": 0, "wrong_numbers": 0,
+                    "rotation": rot_notes}
         result: dict[str, Any] | None = None
         provider = "replay"
         if not force_live:
@@ -532,11 +581,18 @@ def summarize(cases: list[dict[str, Any]], repeat: int) -> dict[str, Any]:
             "calls": calls, "tokens": tokens, "spent": spent}
 
 
-GATE_FIELDS = ("total", "lines", "kr_cells")
+GATE_FIELDS = ("total", "lines", "kr_cells", "currency", "country",
+               "service_date", "inpatient", "diags", "charge_rows")
 
 
 def _gate_agree(left: dict[str, Any], right: dict[str, Any]) -> bool:
-    """Same numbers in both reads: total, line amounts, KR cells."""
+    """Same amounts and identity in both reads (C1).
+
+    Beyond the totals, the gate compares currency, country, service
+    date, inpatient stay, diagnosis codes, and charge rows: a JPY/USD
+    split or a swapped column must stop the pair even when the totals
+    agree.
+    """
     return all(left.get(f) == right.get(f) for f in GATE_FIELDS)
 
 

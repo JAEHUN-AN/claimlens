@@ -17,12 +17,10 @@ AFTER_RE = re.compile(
 MEASURED_START = "<!-- measured:start -->"
 MEASURED_END = "<!-- measured:end -->"
 
-# What the gate metric scores (C1 scope): amount fields only. Labels for
-# hard_eval.GATE_FIELDS; unknown fields fall back to their own names.
-SCOPE_LABELS = {"total": "total", "lines": "line amounts",
-                "kr_cells": "Korean bill cells"}
-SCOPE_LABELS_KO = {"total": "합계", "lines": "항목 금액",
-                   "kr_cells": "한국 영수증 칸"}
+# What the gate metric scores (C1 scope): amounts plus the identity
+# fields the gate compares. Labels for hard_eval.GATE_FIELDS;
+SCOPE_LABELS = {"total": "total", "lines": "line amounts", "kr_cells": "Korean bill cells", "currency": "currency", "country": "country", "service_date": "service date", "inpatient": "inpatient stay", "diags": "diagnosis codes", "charge_rows": "charge rows"}
+SCOPE_LABELS_KO = {"total": "합계", "lines": "항목 금액", "kr_cells": "한국 영수증 칸", "currency": "통화", "country": "국가", "service_date": "진료일", "inpatient": "입원 여부", "diags": "진단 코드", "charge_rows": "청구 행"}
 HELDOUT_LABELS = {"unseen": "Unseen layouts", "trips": "real trips"}
 HELDOUT_LABELS_KO = {"unseen": "새 양식", "trips": "실제 여행"}
 
@@ -59,12 +57,15 @@ def _planned_hard_cases() -> int:
     return len(HARD_SAMPLES) * len(TRANSFORMS)
 
 
-def _scope_text() -> tuple[str, str]:
-    """Metric scope (C1): amount fields only, labelled from GATE_FIELDS."""
-    from claimlens.hard_eval import GATE_FIELDS
+# Runs recorded before 54 (C1) scored amount fields only and carry no "fields" key.
+LEGACY_SCORED_FIELDS = ("total", "lines", "kr_cells")
 
-    en = ", ".join(SCOPE_LABELS.get(field, field) for field in GATE_FIELDS)
-    ko = ", ".join(SCOPE_LABELS_KO.get(field, field) for field in GATE_FIELDS)
+
+def _scope_text(data: dict[str, Any] | None = None) -> tuple[str, str]:
+    """Metric scope (C1): the fields the run behind the numbers actually scored."""
+    fields = (data or {}).get("fields") or LEGACY_SCORED_FIELDS
+    en = ", ".join(SCOPE_LABELS.get(field, field) for field in fields)
+    ko = ", ".join(SCOPE_LABELS_KO.get(field, field) for field in fields)
     return en, ko
 
 
@@ -111,7 +112,7 @@ def gate_line(root: Path) -> dict[str, str] | None:
     live = _read(gate_path)["sets"].get("hard") if gate_path else None
     if hard is None and live is None:
         return None
-    scope_en, scope_ko = _scope_text()
+    scope_en, scope_ko = _scope_text(_read(gate_path) if gate_path else None)
     if live is not None and hard is not None:
         ref = hard["hard"]
         gate_data = _read(gate_path)
@@ -137,7 +138,7 @@ def gate_line(root: Path) -> dict[str, str] | None:
                    f"current pipeline ({live_cases} cases ×{rep} = "
                    f"{live['pairs']} pairs): {live['leaks']} left "
                    f"({live['stops']} stopped for a person){en_normal}. "
-                   f"Amounts scored: {scope_en}."),
+                   f"Fields scored: {scope_en}."),
             "ko": (f"단일 판독, {hard_date or '날짜 없음'} 구 파이프라인 실행"
                    "(합계 검사·회전 확인 이전): "
                    f"{ref['reached']}건 유출 "
@@ -154,7 +155,7 @@ def gate_line(root: Path) -> dict[str, str] | None:
         return {
             "en": (f"Live double-read gate: {live['leaks']} wrong amounts left over "
                    f"{live['pairs']} pairs ({live['stops']} stopped, ×{rep} runs). "
-                   f"Amounts scored: {scope_en}."),
+                   f"Fields scored: {scope_en}."),
             "ko": (f"실시간 이중 판독 관문: {live['pairs']}쌍 중 {live['leaks']}건 유출"
                    f"({live['stops']}쌍 중단, ×{rep}회). "
                    f"채점 범위: {scope_ko}."),
@@ -165,7 +166,7 @@ def gate_line(root: Path) -> dict[str, str] | None:
                f"left single read, {ref['leaks']} with the double-read gate "
                f"({ref['stops']}/{ref['pairs']} pairs stopped, simulated from "
                "recorded runs). "
-               f"Amounts scored: {scope_en}."),
+               f"Fields scored: {scope_en}."),
         "ko": (f"어려운 서류 ×{ref['repeat']}회: 단일 판독 {ref['reached']}건 유출, "
                f"이중 판독 관문 {ref['leaks']}건"
                f"({ref['pairs']}쌍 중 {ref['stops']}쌍 중단, 기록된 실행에서 시뮬레이션). "

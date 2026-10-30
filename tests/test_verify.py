@@ -30,6 +30,8 @@ GOOD_BILL = {
 }
 
 GOOD_RECEIPT = {
+    "country": "KR",
+    "currency": "KRW",
     "total_amount": 100,
     "line_items": [{"description": "row-a", "category": "lab", "amount": 300}],
     "kr_bill": GOOD_BILL,
@@ -47,11 +49,13 @@ class StubProvider:
         self.reread_values = reread_values
         self.last_instructions = ""
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
         self.calls.append({"model": self.model, "input_tokens": 100, "output_tokens": 50})
         if result_model is None or result_model.__name__ == "ReadingResult":
             return {"documents": [copy.deepcopy(self.initial_receipt)]}
         self.last_instructions = instructions
+        self.last_tag = cache_tag
         return copy.deepcopy(self.reread_values)
 
 
@@ -112,6 +116,17 @@ def test_verified_without_reread_when_checks_pass():
     assert len(provider.calls) == 0
 
 
+def test_country_currency_failure_stops_without_reread():
+    """C1: a bad country/currency pair is unfixable by re-reading cells."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["currency"] = "USD"
+    provider = StubProvider(receipt, {})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"), provider)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["country_currency"]
+    assert len(provider.calls) == 1  # the initial read only; no re-read sent
+
+
 def test_involved_cells_and_tiny_schema_cover_only_failed():
     receipt = copy.deepcopy(GOOD_RECEIPT)
     receipt["kr_bill"]["cell_8"] = 999
@@ -169,6 +184,18 @@ def test_reread_without_lines_stays_manual():
     assert result["status"] == "needs_manual_check"
     assert "lines_present" in result["failing"]
     assert len(provider.calls) == 2
+
+
+def test_reread_uses_given_cache_tag():
+    """C5: the narrow re-read carries its own read's tag (read independence)."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["kr_bill"]["cell_8"] = 999
+    reread = {"cell_8": 100}
+    provider = StubProvider(receipt, reread)
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"), provider,
+                            cache_tag=".read2")
+    assert result["status"] == "verified"
+    assert provider.last_tag == ".read2"
 
 
 def test_s3_clean_recovers_lines_through_reread():

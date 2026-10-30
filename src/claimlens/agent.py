@@ -233,13 +233,13 @@ def tool_reread_cells(state: AgentState, cells: list[str], provider: Any) -> dic
 
 
 def tool_decide_eligibility(state: AgentState) -> dict[str, Any]:
-    from claimlens.eligibility import check_eligibility
+    from claimlens.eligibility import check_eligibility, service_date_of
     from claimlens.engine import load_scenarios
 
     if state.reading is None:
         return {"error": "no reading yet; call read_documents first."}
     scenarios, _ = load_scenarios()
-    service = state.reading["documents"][0].get("service_date") or ""
+    service = service_date_of(state.reading["documents"][0])
     result = check_eligibility(scenarios[state.sample_id]["person"], service)
     state.eligibility = result
     return result

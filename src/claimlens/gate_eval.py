@@ -107,10 +107,11 @@ def default_provider_factory() -> Callable[[], Any]:
 
 
 def _verify_final(reading: dict[str, Any], image: Path,
-                  provider: Any, calls: list[dict]) -> tuple[dict[str, Any], bool]:
+                  provider: Any, calls: list[dict], pos: int = 0,
+                  ) -> tuple[dict[str, Any], bool]:
     """Verified final reading + stopped flag (every receipt)."""
     from claimlens.checks import all_passed, receipt_checks
-    from claimlens.verify import verify_receipt
+    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
 
     final = reading
     stopped = False
@@ -119,7 +120,8 @@ def _verify_final(reading: dict[str, Any], image: Path,
         first = receipt_checks(receipt)
         if not all_passed(first):
             seen = len(provider.calls)
-            verified = verify_receipt(receipt, image, provider)
+            tag = "" if pos == 0 else REREAD_READ2_TAG
+            verified = verify_receipt(receipt, image, provider, cache_tag=tag)
             calls += [vars(c) for c in provider.calls[seen:]]
             rest = reading.get("documents", [])[1:]
             final = {"documents": [verified["receipt"], *rest]}
@@ -148,13 +150,22 @@ def run_pair(case: dict[str, Any], round_no: int,
     with tempfile.TemporaryDirectory(prefix="upright-") as tmp:
         images = case["images"]
         if probe_pages:
-            from claimlens.rotation import upright_pages
+            from claimlens.rotation import FAILED_NOTE, upright_pages
 
             prover = provider_factory()
             seen = len(prover.calls)
             images, rot_notes = upright_pages(images, prover, Path(tmp))
             calls += [vars(c) for c in prover.calls[seen:]]
-        for side in ("a", "b"):
+            if FAILED_NOTE in rot_notes:
+                # C4: no orientation, no reads; the pair stops for a person.
+                case_id = {k: case[k] for k in ("sample", "transform", "variant",
+                                               "receipt_file", "cert_file")
+                           if k in case}
+                return {"round": round_no, "case": case_id, "tags": [],
+                        "agree": False, "stopped": True, "stopped_each": [],
+                        "reached": 0, "wrong_fields": [], "values": [],
+                        "calls": calls, "rotation": rot_notes}
+        for pos, side in enumerate(("a", "b")):
             tag = f"{TAG_PREFIX}-r{round_no}{side}-{case['key']}"
             tags.append(tag)
             provider = provider_factory()
@@ -162,7 +173,8 @@ def run_pair(case: dict[str, Any], round_no: int,
             reading = provider.read_documents(images, READING_INSTRUCTIONS,
                                               reading_schema(), cache_tag=tag)
             calls += [vars(c) for c in provider.calls[seen:]]
-            final, stopped = _verify_final(reading, images[0], provider, calls)
+            final, stopped = _verify_final(reading, images[0], provider,
+                                           calls, pos=pos)
             finals.append(final)
             stopped_each.append(stopped)
     values = [hard_eval.field_values(final) for final in finals]
@@ -192,6 +204,7 @@ def execute(plans: dict[str, dict[str, Any]], repeat: int, max_cost: float,
             provider_factory: Callable[[], Any], out_dir: Path) -> dict[str, Any]:
     """Run every planned pair; aborts past max_cost with partial results."""
     results: dict[str, Any] = {"tool": "gate-eval", "repeat": repeat, "sets": {},
+                               "fields": list(hard_eval.GATE_FIELDS),
                                "spent": 0.0, "aborted": False,
                                "cache_before": hard_eval.git_cache_status()}
     with tempfile.TemporaryDirectory(prefix="gate-eval-") as tmp, cache_dir_scope(Path(tmp)):

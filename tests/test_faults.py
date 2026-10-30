@@ -237,7 +237,9 @@ def test_fault_pack_without_neo4j(monkeypatch):
     monkeypatch.setattr(serve, "neo4j_up", lambda: False)
     images = _images(("S3_us_tourist_hip_fracture", "receipt_photo.jpg"),
                      ("S3_us_tourist_hip_fracture", "medical_certificate_photo.jpg"))
-    status, result = _run(serve, {"images": images, "person": _person("S3_us_tourist_hip_fracture")})
+    person = _person("S3_us_tourist_hip_fracture")
+    person["alien_registration_date"] = "none"  # C7: never registered
+    status, result = _run(serve, {"images": images, "person": person})
     assert status == 200
     assert result["result"]["badge"] == "claim_pack"
     assert result["matched_sample"] == "S3_us_tourist_hip_fracture"

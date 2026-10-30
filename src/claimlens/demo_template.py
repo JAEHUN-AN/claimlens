@@ -347,6 +347,7 @@ person_visa:["Visa","비자"],
 person_employer:["Works for a Korean employer","한국 고용주에게 고용됨"],
 person_work:["Injured at work","업무 중 부상"],
 person_entry:["Entry date","입국일"],
+person_reg:["Foreign-resident registration date (YYYY-MM-DD or none)","외국인등록일(YYYY-MM-DD 또는 none)"],
 person_yn_y:["Yes","예"],
 person_yn_n:["No","아니요"],
 person_continue:["Continue","계속하기"],
@@ -599,7 +600,9 @@ function personPanel(){
     +`<label>${esc(t('person_work'))}`
     +`<select id="person-work" onchange="personEdited()">${yn}</select></label>`
     +`<label>${esc(t('person_entry'))}`
-    +`<input id="person-entry" type="date" onchange="personEdited()"/></label></div>`;
+    +`<input id="person-entry" type="date" onchange="personEdited()"/></label>`
+    +`<label>${esc(t('person_reg'))}`
+    +`<input id="person-reg" type="text" placeholder="YYYY-MM-DD or none" onchange="personEdited()"/></label></div>`;
 }
 function pickPreset(id){
   const p=(data.flow.person_presets||[]).find(q=>q.id===id);
@@ -608,6 +611,7 @@ function pickPreset(id){
   document.getElementById('person-employer').value=p.person.korean_employer?'yes':'no';
   document.getElementById('person-work').value=p.person.work_related?'yes':'no';
   document.getElementById('person-entry').value=p.person.entry_date||'';
+  document.getElementById('person-reg').value=p.person.alien_registration_date||'';
   personScenario=id;personExtras=p.person;
 }
 function personEdited(){personScenario='';personExtras=null;}
@@ -621,6 +625,7 @@ function readPerson(){
     korean_employer:personSel('person-employer'),
     work_related:personSel('person-work'),
     entry_date:document.getElementById('person-entry').value,
+    alien_registration_date:document.getElementById('person-reg').value,
   });
 }
 function liveProbe(){

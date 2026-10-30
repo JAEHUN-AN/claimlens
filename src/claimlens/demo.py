@@ -17,7 +17,7 @@ from claimlens.claimpack import (
     build_pack,
 )
 from claimlens.demo_template import render_page
-from claimlens.eligibility import check_eligibility
+from claimlens.eligibility import check_eligibility, service_date_of
 from claimlens.engine import copay_rate_from_bill, load_scenarios, replay_reading
 from claimlens.letter import build_letter
 from claimlens.provenance import ProvBuilder
@@ -397,7 +397,7 @@ def scene_payload(sample_id: str, title: str, dst: Path) -> dict[str, Any]:
         "images": [],
     }
     if sample_id in inbound:
-        service = receipt.get("service_date") or ""
+        service = service_date_of(receipt)
         payload["eligibility"] = check_eligibility(scenarios[sample_id]["person"], service)
     base = Path(os.environ.get("CLAIMLENS_SAMPLES_DIR", "samples")) / sample_id
     masked_doc, masked_name = MASKED_AFTER.get(sample_id, (None, None))

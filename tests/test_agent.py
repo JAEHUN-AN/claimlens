@@ -8,6 +8,7 @@ from claimlens.agent import (
     tool_adjudicate,
     tool_read_documents,
     tool_reread_cells,
+    tool_run_checks,
 )
 
 
@@ -78,3 +79,24 @@ def test_adjudicate_missing_copay():
     assert result["refused"] is True
     assert result["rule"] == "receipt_checks"
     assert "failing" in result["feedback"]
+
+
+def test_agent_run_checks_ignores_printed_total():
+    """C2: recorded agent turns stay keyed on the old fixed check set.
+
+    The serve/gate/verify path cross-checks total_amount against cell 8,
+    but the agent's run_checks result must not change shape, or the
+    committed agent recordings would miss and work must stop.
+    """
+    from claimlens.checks import receipt_checks
+
+    state = AgentState(sample_id="S2_seoul_worker_bronchitis", variant="photo")
+    tool_read_documents(state)
+    state.reading["documents"][0]["total_amount"] = 1.0
+    state.reading["documents"][0]["currency"] = "USD"
+    result = tool_run_checks(state)
+    assert result["all_passed"] is True
+    assert "printed_total_8" not in [c["name"] for c in result["checks"]]
+    assert "country_currency" not in [c["name"] for c in result["checks"]]
+    assert not all(c.passed for c in receipt_checks(
+        state.reading["documents"][0]))

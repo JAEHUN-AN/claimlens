@@ -32,6 +32,20 @@ def _visa_code(visa: Any) -> str:
     return code
 
 
+def service_date_of(receipt: dict[str, Any]) -> str:
+    """C7: the date eligibility compares; the bill's period starts it.
+
+    service_date is the visit date as read; when it is missing, the
+    Korean bill's printed treatment period (period_from) stands in, so
+    an unreadable date alone never flips the outcome to not_member.
+    """
+    service = receipt.get("service_date") or ""
+    if service:
+        return service
+    bill = receipt.get("kr_bill") or {}
+    return bill.get("period_from") or ""
+
+
 def check_eligibility(person: dict[str, Any], service_date: str) -> dict[str, str]:
     """Return one of nhi_member, not_member_or_unknown, work_injury with basis."""
     service = _parse(service_date)

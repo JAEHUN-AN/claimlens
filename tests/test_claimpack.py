@@ -5,6 +5,7 @@ import pytest
 from claimlens.claimpack import (
     POLICY_LINE,
     build_pack,
+    build_pack_from_reading,
     format_html,
     format_markdown,
     translate_labels,
@@ -39,6 +40,56 @@ def test_translate_fails_loud_on_missing_label():
 def test_pack_refuses_member_cases():
     with pytest.raises(ValueError, match="without an applicable policy"):
         build_pack("S2_seoul_worker_bronchitis", "photo", StubWriter([]))
+
+
+def test_pack_from_reading_uses_given_reading():
+    """C6: the pack copies the verified reading, not the recording."""
+    import copy
+
+    from claimlens.engine import replay_reading
+    from claimlens.providers.replay import ReplayProvider
+
+    reading = copy.deepcopy(replay_reading("S3_us_tourist_hip_fracture", "photo"))
+    for doc in reading["documents"]:
+        for item in doc.get("pii", []):
+            if item.get("kind") == "name":
+                item["value"] = "JANE R. DOE"
+    pack = build_pack_from_reading(reading, ReplayProvider(),
+                                   "S3_us_tourist_hip_fracture", "photo")
+    assert pack["patient"]["name"] == "JANE R. DOE"
+    assert pack["total_krw"] == 15000000
+    assert pack["checks_passed"] is True
+
+
+def test_pack_from_reading_refuses_failed_checks():
+    """C6: failed receipt checks mean no pack at all."""
+    import copy
+
+    from claimlens.engine import replay_reading
+    from claimlens.providers.replay import ReplayProvider
+
+    reading = copy.deepcopy(replay_reading("S3_us_tourist_hip_fracture", "photo"))
+    reading["documents"][0]["kr_bill"]["cell_8"] += 1
+    with pytest.raises(ValueError, match="checks failed"):
+        build_pack_from_reading(reading, ReplayProvider(),
+                                "S3_us_tourist_hip_fracture", "photo")
+
+
+def test_pack_refuses_blank_row_cells():
+    """H6: a blank charge cell is a refusal, never a silent zero."""
+    import copy
+
+    from claimlens.claimpack import _assemble_pack
+    from claimlens.engine import replay_reading
+
+    reading = copy.deepcopy(replay_reading("S3_us_tourist_hip_fracture", "photo"))
+    docs = reading["documents"]
+    rows = docs[0]["kr_bill"]["charge_rows"]
+    rows[0]["col_2"] = None
+    labels = [(r["label"], r["label"]) for r in rows]
+    with pytest.raises(ValueError, match="blank"):
+        _assemble_pack("S3_us_tourist_hip_fracture", "photo", StubWriter(labels),
+                       "en", docs, docs[0], docs[1])
 
 
 def test_s3_pack_markdown_from_replay():

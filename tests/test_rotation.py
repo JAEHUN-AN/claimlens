@@ -279,7 +279,8 @@ def test_serve_turned_upload_reads_upright(tmp_path, monkeypatch):
     assert result["result"]["badge"] == "engine_unreachable"
 
 
-def test_serve_probe_failure_reads_as_is(tmp_path, monkeypatch):
+def test_serve_probe_failure_stops_before_reading(tmp_path, monkeypatch):
+    """C4: a failed rotation probe stops the run; nothing is read."""
     from claimlens import serve
 
     class _FailingProbe(_ServeStub):
@@ -301,9 +302,12 @@ def test_serve_probe_failure_reads_as_is(tmp_path, monkeypatch):
                "origin": ""}
     status, result = serve.route_post("/api/run", raw, len(raw), headers, 8000)
     assert status == 200
-    assert stub.reads == 2  # the probe never blocks the read
+    assert stub.reads == 0
+    assert result["result"]["badge"] == "needs_manual_check"
     reading = next(s for s in result["steps"] if s["key"] == "reading")
     assert FAILED_NOTE in reading["detail"]
+    assert len(result["questions"]) == 1
+    assert "upright" in result["questions"][0]["question"]
 
 
 def _gate_case(images):
@@ -360,7 +364,8 @@ def test_gate_pair_probes_and_reads_upright(tmp_path):
     assert sum(s.probes for s in stubs) == 2
 
 
-def test_gate_pair_probe_failure_reads_as_is(tmp_path):
+def test_gate_pair_probe_failure_stops(tmp_path):
+    """C4: a failed probe stops the pair before either read."""
     turned = _turned_s2_copies(tmp_path)
     turned_sizes = _sizes(turned)
     good = replay_reading("S2_seoul_worker_bronchitis", "photo")
@@ -378,8 +383,10 @@ def test_gate_pair_probe_failure_reads_as_is(tmp_path):
     record = gate_eval.run_pair(_gate_case(turned), 1,
                                 lambda: _Failing(script, [], turned_sizes),
                                 probe_pages=True)
-    assert record["agree"] is True
+    assert record["stopped"] is True
+    assert record["reached"] == 0
     assert record["rotation"] == [FAILED_NOTE]
+    assert len(script) == 2  # neither read ran
 
 
 def test_gate_pair_default_skips_probe():
@@ -423,7 +430,8 @@ def test_hard_run_once_probes_and_reads_upright(tmp_path, monkeypatch):
     assert len(record["calls"]) == 3  # 2 probes + the base read
 
 
-def test_hard_run_once_probe_failure_reads_as_is(tmp_path, monkeypatch):
+def test_hard_run_once_probe_failure_stops(tmp_path, monkeypatch):
+    """C4: a failed probe stops the run; nothing is read."""
     from claimlens.hard_eval import cache_dir_scope
 
     monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(tmp_path / "cache"))
@@ -449,7 +457,8 @@ def test_hard_run_once_probe_failure_reads_as_is(tmp_path, monkeypatch):
         probe_pages=True,
     )
     assert record["rotation"] == [FAILED_NOTE]
-    assert record["checks_first"] == "pass"
+    assert record["stopped"] is True
+    assert record["reached"] == 0
 
 
 def test_hard_run_once_default_skips_probe(tmp_path, monkeypatch):

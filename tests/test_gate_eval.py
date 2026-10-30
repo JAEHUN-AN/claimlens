@@ -114,7 +114,8 @@ def test_execute_stub_pairs(tmp_path):
     assert summary["spent"] == 0.09
     assert summary["per_claim"] == 0.03
     assert results["aborted"] is False
-    tags = [tag for stub in stubs for tag in stub.tags if tag]
+    tags = [tag for stub in stubs for tag in stub.tags
+            if tag.startswith(".gate41c")]
     assert len(set(tags)) == 6
     assert all(tag.startswith(".gate41c-r1") for tag in tags)
     files = list(tmp_path.glob("gate_live_*.json"))
@@ -129,6 +130,19 @@ def test_execute_stub_pairs(tmp_path):
     assert [v["total"] for v in details[1]["values"]] == [999999, 999999]
     assert sum(d["reached"] for d in details) == stored["leaks"]
     assert sum(d["stopped"] for d in details) == stored["stops"]
+
+
+def test_pair_rereads_use_per_read_tags(tmp_path):
+    """C5: read 2's re-read never reuses read 1's re-read recording."""
+    bad = _a_reading(total=999999)
+    case = _case("A_niseko_wrist", None)
+    stubs = []
+    record = gate_eval.run_pair(case, 1, _factory([bad, bad], stubs))
+    assert record["stopped"] is True
+    first_tags = [t for t in stubs[0].tags if not t.startswith(".gate41c")]
+    second_tags = [t for t in stubs[1].tags if not t.startswith(".gate41c")]
+    assert first_tags == [""]
+    assert second_tags == [".read2"]
 
 
 def test_execute_aborts_past_max_cost(tmp_path):
@@ -197,7 +211,7 @@ def test_agreeing_pair_stops_when_either_read_failed_verify(monkeypatch):
     good = _a_reading()
     outcomes = iter([False, True])  # read 1 passes verify, read 2 does not
 
-    def fake_verify(reading, image, provider, calls):
+    def fake_verify(reading, image, provider, calls, pos=0):
         return reading, next(outcomes)
 
     monkeypatch.setattr(gate_eval, "_verify_final", fake_verify)

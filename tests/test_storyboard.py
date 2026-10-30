@@ -98,7 +98,7 @@ def test_measured_shot_has_gate_line(tmp_path):
     text = paths["measured"].read_text(encoding="utf-8")
     assert 'class="gate-line"' in text
     assert "47 wrong amounts" in text
-    assert "Amounts scored" in text
+    assert "Fields scored" in text
 
 
 def test_dry_run_validation_passes(tmp_path):

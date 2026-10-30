@@ -98,6 +98,132 @@ def test_static_demo_but_nothing_sensitive(stubbed):
     assert stubbed.route_get("/docs/missing.html")[0] == 404
 
 
+def test_static_get_rejects_unc_drive_and_nul(stubbed):
+    """S1: backslash, colon and NUL in the path are rejected outright."""
+    assert stubbed.route_get("/%5C%5Cevil%5Cshare")[0] == 400
+    assert stubbed.route_get("/docs%5Cdemo.html")[0] == 400
+    assert stubbed.route_get("/C:/Windows/x")[0] == 400
+    assert stubbed.route_get("/docs/demo.html%00")[0] == 400
+    assert stubbed.route_get("/docs/demo.html%00.png")[0] == 400
+
+
+def test_get_checks_host(stubbed):
+    """S1: GET enforces the same Host allow-list as POST."""
+    good = {"host": f"127.0.0.1:{PORT}", "port": PORT}
+    assert stubbed.route_get("/api/health", **good)[0] == 200
+    assert stubbed.route_get("/docs/demo.html", **good)[0] == 200
+    bad = {"host": "evil.example", "port": PORT}
+    assert stubbed.route_get("/api/health", **bad)[0] == 403
+    assert stubbed.route_get("/docs/demo.html", **bad)[0] == 403
+
+
+class _Gate:
+    """Semaphore stand-in that records entries."""
+
+    def __init__(self):
+        self.depth = 0
+        self.max_depth = 0
+
+    def __enter__(self):
+        self.depth += 1
+        self.max_depth = max(self.max_depth, self.depth)
+        return self
+
+    def __exit__(self, *args):
+        self.depth -= 1
+        return False
+
+
+def test_run_live_executes_inside_run_gate(stubbed, monkeypatch):
+    """S2: live runs are concurrency-limited."""
+    gate = _Gate()
+    monkeypatch.setattr(stubbed, "_RUN_SEMAPHORE", gate)
+    payload = {"images": _sample_images(), "person": _s2_person(),
+               "scenario": "S2_seoul_worker_bronchitis"}
+    status, _ = _run(stubbed, payload)
+    assert status == 200
+    assert gate.max_depth == 1
+    assert gate.depth == 0
+
+
+class _TagStub(StubProvider):
+    """Both full reads fail checks; the re-read fixes them. Records tags."""
+
+    def __init__(self):
+        super().__init__()
+        self.tags: list[str] = []
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        self.tags.append(cache_tag)
+        reading = copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
+        if result_model is None or result_model.__name__ == "ReadingResult":
+            reading["documents"][0]["kr_bill"]["cell_8"] = 999
+            self._log(100)
+            return reading
+        if result_model.__name__ == "RotationProbe":
+            self._log(10)
+            return {"rotation": 0}
+        self._log(50)
+        bill = reading["documents"][0]["kr_bill"]
+        return {k: v for k, v in bill.items() if k.startswith("cell_")}
+
+
+def test_serve_rereads_use_per_read_tags(stubbed, monkeypatch):
+    """C5: serve's two re-reads never share one recording."""
+    stub = _TagStub()
+    monkeypatch.setattr(stubbed, "live_provider", lambda: stub)
+    payload = {"images": _sample_images(), "person": _s2_person(),
+               "scenario": "S2_seoul_worker_bronchitis"}
+    status, _ = _run(stubbed, payload)
+    assert status == 200
+    reread_tags = stub.tags[-2:]
+    assert reread_tags == ["", ".read2"]
+
+
+class _NoBillStub(StubProvider):
+    """KR receipt without kr_bill but with passing totals."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        self._log(100)
+        reading = copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
+        receipt = reading["documents"][0]
+        receipt.pop("kr_bill", None)
+        receipt["country"] = "KR"
+        receipt["line_items"] = [
+            {"description": "care", "category": "other",
+             "amount": receipt["total_amount"]}
+        ]
+        return reading
+
+
+def test_serve_kr_without_copay_stops_like_agent(stubbed, monkeypatch):
+    """C3: a KR run with no copay rate is not adjudicated."""
+    monkeypatch.setattr(stubbed, "live_provider", _NoBillStub)
+    payload = {"images": _sample_images(), "person": _s2_person(),
+               "scenario": "S2_seoul_worker_bronchitis"}
+    status, result = _run(stubbed, payload)
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert any("cell" in q["question"] for q in result["questions"])
+
+
+def test_run_gate_capacity_is_four():
+    """S2: at most four live runs proceed; the fifth waits."""
+    assert serve.MAX_CONCURRENT_RUNS == 4
+    gate = serve._RUN_SEMAPHORE
+    held = 0
+    try:
+        for _ in range(4):
+            assert gate.acquire(blocking=False) is True
+            held += 1
+        assert gate.acquire(blocking=False) is False
+    finally:
+        for _ in range(held):
+            gate.release()
+
+
 def test_run_live_end_to_end_with_stub(stubbed):
     status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
@@ -179,7 +305,7 @@ def test_no_person_facts_pauses_with_questions(stubbed):
     assert status == 200
     assert result["result"]["badge"] == "need_facts"
     assert [s["key"] for s in result["steps"]] == ["reading", "checks", "double_read"]
-    assert len(result["questions"]) == 4
+    assert len(result["questions"]) == 5
     assert all(set(q) == {"question", "why_needed"} for q in result["questions"])
     assert all(q["question"] and q["why_needed"] for q in result["questions"])
     assert result["run_id"]
@@ -190,8 +316,54 @@ def test_partial_person_asks_only_what_is_missing(stubbed):
     status, result = _run(stubbed, {"images": _sample_images(), "person": person})
     assert status == 200
     assert result["result"]["badge"] == "need_facts"
-    assert len(result["questions"]) == 1
+    assert len(result["questions"]) == 2
     assert "enter Korea" in result["questions"][0]["question"]
+
+
+def test_person_facts_ask_registration_date(stubbed):
+    """C7: the worker's foreign-resident registration date is asked."""
+    person = {k: v for k, v in _s2_person().items() if k != "alien_registration_date"}
+    status, result = _run(stubbed, {"images": _sample_images(), "person": person})
+    assert status == 200
+    assert result["result"]["badge"] == "need_facts"
+    assert len(result["questions"]) == 1
+    assert "regist" in result["questions"][0]["question"]
+    assert result["run_id"]
+    status, continued = _run(stubbed, {
+        "run_id": result["run_id"],
+        "person": {"alien_registration_date": "2026-03-20"},
+    })
+    assert status == 200
+    assert "run_id" not in continued
+
+
+def test_registration_none_counts_as_answered(stubbed):
+    """C7: never-registered patients answer none and proceed."""
+    person = dict(_s2_person())
+    person["alien_registration_date"] = "none"
+    status, result = _run(stubbed, {"images": _sample_images(), "person": person})
+    assert status == 200
+    assert "run_id" not in result
+
+
+class _NoServiceDateStub(StubProvider):
+    """S2 reading with the service date unreadable."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        self._log(100)
+        reading = copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
+        reading["documents"][0]["service_date"] = None
+        return reading
+
+
+def test_service_date_falls_back_to_period_from(stubbed, monkeypatch):
+    """C7: a missing service date uses the bill's treatment period."""
+    monkeypatch.setattr(stubbed, "live_provider", _NoServiceDateStub)
+    status, result = _run(stubbed, {"images": _sample_images(),
+                                    "person": _s2_person()})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
 
 
 def test_continue_finishes_with_no_new_reading(stubbed, monkeypatch):
@@ -215,9 +387,24 @@ def test_continue_finishes_with_no_new_reading(stubbed, monkeypatch):
     assert "drop the photos again" in result["error"]
 
 
+class _ProbeAwareStub(StubProvider):
+    """Retake bytes are probed; the probe says upright, reads return S2."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        from claimlens.rotation import RotationProbe
+
+        if result_model is RotationProbe:
+            self._log(10)
+            return {"rotation": 0}
+        return super().read_documents(images, instructions, schema, result_model,
+                                      cache_tag)
+
+
 def test_preset_scenario_reaches_engine_without_byte_match(stubbed, monkeypatch):
     from claimlens import engine
 
+    monkeypatch.setattr(stubbed, "live_provider", _ProbeAwareStub)
     monkeypatch.setattr(serve, "neo4j_up", lambda: True)
     monkeypatch.setattr(engine, "live_adjudicate", lambda inputs: {"decision": "PARTIAL", "amount": 22500})
     status, result = _run(stubbed, {
@@ -247,7 +434,20 @@ def test_continue_rejects_bad_run_id_person_and_scenario(stubbed):
 
 
 class _SplitStub(StubProvider):
-    """Second read disagrees on the total; everything else identical."""
+    """Second read redistributes two line amounts; both reads verify clean."""
+
+    def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
+        reading = super().read_documents(images, instructions, schema, result_model,
+                                         cache_tag=cache_tag)
+        if result_model is None and cache_tag:
+            lines = reading["documents"][0]["line_items"]
+            lines[0]["amount"] += 1000
+            lines[1]["amount"] -= 1000
+        return reading
+
+
+class _TotalSplitStub(StubProvider):
+    """Second read disagrees on the total alone (C2: caught at verify)."""
 
     def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
         reading = super().read_documents(images, instructions, schema, result_model,
@@ -273,12 +473,24 @@ def test_gate_disagreement_stops_with_side_by_side_questions(stubbed, monkeypatc
     status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     assert [s["key"] for s in result["steps"]] == ["reading", "checks", "double_read"]
-    assert result["steps"][2]["detail"] == "1 field differ"
+    assert result["steps"][2]["detail"] == "2 fields differ"
     assert result["result"]["badge"] == "needs_manual_check"
-    assert len(result["questions"]) == 1
+    assert len(result["questions"]) == 2
     question = result["questions"][0]
     assert set(question) == {"question", "why_needed"}
-    assert "45,000" in question["question"] and "1" in question["question"]
+    assert "18,000" in question["question"] and "19,000" in question["question"]
+    assert "run_id" not in result
+
+
+def test_total_disagreement_stops_at_checks(stubbed, monkeypatch):
+    """C2: a total disagreeing with its own cells never reaches double_read."""
+    monkeypatch.setattr(serve, "live_provider", lambda: _TotalSplitStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    assert status == 200
+    assert [s["key"] for s in result["steps"]] == ["reading", "checks"]
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert len(result["questions"]) == 1
+    assert "printed_total_8" in result["questions"][0]["question"]
     assert "run_id" not in result
 
 
@@ -290,21 +502,49 @@ def test_gate_unorderable_read_stops(stubbed, monkeypatch):
     assert result["questions"][0]["question"].startswith("documents:")
 
 
+def _reading_of(receipt, diagnoses=None):
+    return {"documents": [receipt, {"doc_type": "medical_certificate",
+                                    "diagnoses": [{"code": c} for c in
+                                                  (diagnoses or ["J20.9"])]}]}
+
+
 def test_gate_diffs_pure():
     left = {"total_amount": 45000.0,
             "line_items": [{"amount": 18000.0}, {"amount": 9000.0}],
             "kr_bill": {"cell_1": 45000, "cell_6": 90000}}
     same = {"total_amount": 45000, "line_items": [{"amount": 18000}, {"amount": 9000}],
             "kr_bill": {"cell_1": 45000, "cell_6": 90000}}
-    assert serve.gate_diffs(left, same) == []
+    assert serve.gate_diffs(_reading_of(left), _reading_of(same)) == []
     right = {"total_amount": None, "line_items": [{"amount": 18000.0}],
              "kr_bill": {"cell_1": 45000, "cell_6": 1}}
-    diffs = serve.gate_diffs(left, right)
+    diffs = serve.gate_diffs(_reading_of(left), _reading_of(right))
     assert [d[0] for d in diffs] == ["total", "line count", "KR cell 6"]
     assert diffs[0][1:] == ("45,000", "unreadable")
     questions = serve.gate_questions(diffs)
     assert len(questions) == 3
     assert all(set(q) == {"question", "why_needed"} for q in questions)
+
+
+def test_gate_diffs_c1_identity_fields():
+    """C1: currency, country, dates, stay, codes, and rows must agree too."""
+    bill = {"cell_1": 45000, "cell_6": 90000,
+            "charge_rows": [{"label": "a", "col_1": 1, "col_2": 2,
+                             "col_3": 3, "col_4": 4}]}
+    base = {"total_amount": 45000.0, "currency": "KRW", "country": "KR",
+            "service_date": "2026-08-10", "inpatient": False,
+            "line_items": [{"amount": 45000.0}], "kr_bill": bill}
+    other_bill = {"cell_1": 45000, "cell_6": 90000,
+                  "charge_rows": [{"label": "a", "col_1": 1, "col_2": 2,
+                                   "col_3": 3, "col_4": 5}]}
+    other = {"total_amount": 45000.0, "currency": "JPY", "country": "JP",
+             "service_date": "2026-08-11", "inpatient": True,
+             "line_items": [{"amount": 45000.0}], "kr_bill": other_bill}
+    diffs = serve.gate_diffs(_reading_of(base), _reading_of(other, ["J20.8"]))
+    labels = [d[0] for d in diffs]
+    assert labels == ["currency", "country", "service date", "inpatient stay",
+                      "diagnosis code 1", "charge row 1 col 4"]
+    assert ("currency", "KRW", "JPY") in diffs
+    assert serve.gate_diffs(_reading_of(base), _reading_of(dict(base))) == []
 
 
 def test_run_rejects_non_images_and_wrong_counts(stubbed):

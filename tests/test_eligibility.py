@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from claimlens.eligibility import check_eligibility
+from claimlens.eligibility import check_eligibility, service_date_of
 
 SCENARIOS = Path(__file__).resolve().parents[1] / "samples" / "scenarios_inbound.json"
 
@@ -98,3 +98,11 @@ def test_basis_text_is_english():
     out = check_eligibility(persons["S2_seoul_worker_bronchitis"], "2026-08-10")
     assert out["basis"].isascii()
     assert "Legal basis" in out["basis"]
+
+
+def test_service_date_of_prefers_service_then_period():
+    """C7: eligibility dating falls back to the bill's treatment period."""
+    assert service_date_of({"service_date": "2026-08-10"}) == "2026-08-10"
+    assert service_date_of({"service_date": None,
+                            "kr_bill": {"period_from": "2026-08-10"}}) == "2026-08-10"
+    assert service_date_of({"service_date": "", "kr_bill": {}}) == ""

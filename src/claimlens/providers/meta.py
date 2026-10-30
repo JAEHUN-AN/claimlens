@@ -59,6 +59,9 @@ class CallRecord:
 
 def prepare_image(path: Path) -> bytes:
     """Downscale the long side to 1280 px and encode as JPEG bytes."""
+    from claimlens.images import check_image_size
+
+    check_image_size(path)
     with Image.open(path) as img:
         rgb = img.convert("RGB")
         rgb.thumbnail((IMAGE_LONG_SIDE, IMAGE_LONG_SIDE), Image.LANCZOS)

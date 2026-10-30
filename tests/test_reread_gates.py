@@ -42,7 +42,8 @@ class _RereadStub:
 
 def _c_like(total=0.0):
     return {
-        "doc_type": "receipt", "currency": "USD", "total_amount": total,
+        "doc_type": "receipt", "currency": "USD", "country": "US",
+        "total_amount": total,
         "line_items": [{"description": "ER facility fee", "amount": 3200.0,
                         "category": "consultation"}],
     }
@@ -57,10 +58,12 @@ def test_total_zero_fails_both_receipt_checks():
 
 def test_receipt_total_edges():
     assert not all_passed(receipt_checks({"total_amount": None, "line_items": []}))
-    missing_line = {"total_amount": 100.0, "line_items": [{"amount": None}]}
+    missing_line = {"country": "US", "currency": "USD", "total_amount": 100.0,
+                    "line_items": [{"amount": None}]}
     assert [c.name for c in receipt_checks(missing_line) if not c.passed] == [
         "lines_sum_total"]
-    close = {"total_amount": 100.0, "line_items": [{"amount": 60.0}, {"amount": 40.0}]}
+    close = {"country": "US", "currency": "USD", "total_amount": 100.0,
+             "line_items": [{"amount": 60.0}, {"amount": 40.0}]}
     assert all_passed(receipt_checks(close))
 
 
@@ -121,7 +124,8 @@ class _GateStub:
 
 def _gate_reading(total=100.0):
     return {"documents": [
-        {"doc_type": "receipt", "currency": "JPY", "total_amount": total,
+        {"doc_type": "receipt", "currency": "JPY", "country": "JP",
+         "total_amount": total, "inpatient": False,
          "line_items": [{"description": "care", "amount": 100.0,
                          "category": "consultation"}]},
         {"doc_type": "medical_certificate", "diagnoses": []},

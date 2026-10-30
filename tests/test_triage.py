@@ -61,7 +61,8 @@ class _StubProvider:
         self._pages = pages
         self.calls: list[list[Path]] = []
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
         self.calls.append(list(images))
         validated = TypeAdapter(result_model).validate_python({"pages": self._pages})
         return validated.model_dump(mode="json")

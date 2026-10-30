@@ -116,7 +116,39 @@ def ground_truth(scenario: dict[str, Any]) -> dict[str, Any]:
         "kr_cells": kr_cells,
         "institution": institution,
         "pii_values": pii_values,
+        "country": country_of_currency(currency),
+        "inpatient": inpatient_of_visit(receipt_data.get("visit")),
+        "charge_rows": charge_rows_of_items(items) if is_kr else None,
     }
+
+
+def country_of_currency(currency: str) -> str | None:
+    """C1: the canonical country for a truth currency (None when unknown)."""
+    from claimlens.checks import COUNTRY_CURRENCY
+
+    for country, listed in COUNTRY_CURRENCY.items():
+        if listed == currency:
+            return country
+    return None
+
+
+def inpatient_of_visit(visit: Any) -> bool | None:
+    """C1: truth stay from the scenario visit label (None when unknown)."""
+    if not isinstance(visit, str) or not visit.strip():
+        return None
+    text = visit.strip().lower()
+    if "입원" in text or "inpatient" in text:
+        return True
+    if "외래" in text or "outpatient" in text or "opd" in text:
+        return False
+    return None
+
+
+def charge_rows_of_items(items: list[dict[str, Any]]) -> list[list[int]]:
+    """C1: expected KR charge-row columns from scenario items."""
+    return [[int(i.get("copay", 0)), int(i.get("insurer", 0)),
+             int(i.get("full", 0)), int(i.get("non_covered", 0))]
+            for i in items]
 
 
 def _amounts_close(a: float, b: float) -> bool:
@@ -192,11 +224,12 @@ def read_with_fallback(sample: Path, variant: str) -> dict[str, Any]:
         calls = [vars(c) for c in replay.calls]
         return {"result": result, "calls": calls, "provider": "replay"}
     except CacheMissError:
-        pass
-    live = MetaProvider()
-    result = live.read_documents(images, READING_INSTRUCTIONS, schema)
-    calls = [vars(c) for c in live.calls]
-    return {"result": result, "calls": calls, "provider": "meta"}
+        if os.environ.get("CLAIMLENS_PROVIDER") == "replay":
+            raise
+        live = MetaProvider()
+        result = live.read_documents(images, READING_INSTRUCTIONS, schema)
+        calls = [vars(c) for c in live.calls]
+        return {"result": result, "calls": calls, "provider": "meta"}
 
 
 def read_open_with_fallback(sample: Path, variant: str) -> dict[str, Any]:

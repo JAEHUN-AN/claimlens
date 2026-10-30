@@ -85,8 +85,12 @@ class _Stub:
     name = "stub"
 
     def read_documents(self, images, instructions, schema, result_model=None, cache_tag=""):
+        from claimlens.rotation import RotationProbe
+
         self.calls.append(CallRecord(model="stub", input_tokens=100, output_tokens=0,
                                      total_tokens=100, cost_usd=None))
+        if result_model is RotationProbe:
+            return {"rotation": 0}
         if result_model is not None:
             return {}
         return copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))

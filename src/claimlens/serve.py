@@ -25,6 +25,9 @@ from urllib.parse import unquote, urlparse
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_BODY_BYTES = 14 * 1024 * 1024
 REUSED_LABEL = "recording reused — no model call"
+# S2: at most this many live runs decode images at once (memory bound).
+MAX_CONCURRENT_RUNS = 4
+_RUN_SEMAPHORE = threading.Semaphore(MAX_CONCURRENT_RUNS)
 
 JPEG_MAGIC = b"\xff\xd8\xff"
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -104,7 +107,8 @@ def order_docs(reading: dict[str, Any]) -> dict[str, Any]:
     return {"documents": [receipt, cert]}
 
 
-PERSON_FIELDS = ("visa", "korean_employer", "work_related", "entry_date")
+PERSON_FIELDS = ("visa", "korean_employer", "work_related", "entry_date",
+                 "alien_registration_date")
 
 FACT_QUESTIONS = {
     "visa": (
@@ -122,6 +126,11 @@ FACT_QUESTIONS = {
     "entry_date": (
         "When did the patient enter Korea (YYYY-MM-DD)?",
         "Coverage starts from entry or registration (rows 2-4).",
+    ),
+    "alien_registration_date": (
+        ("When did the patient register as a foreign resident (YYYY-MM-DD)? "
+         "Answer none when never registered."),
+        "Workplace and 6-month coverage start from registration (rows 1-4).",
     ),
 }
 
@@ -150,14 +159,30 @@ def _numbers_differ(left: Any, right: Any) -> bool:
         return left != right
 
 
+def _fmt_stay(value: Any) -> str:
+    if value is True:
+        return "inpatient"
+    if value is False:
+        return "outpatient"
+    return "unreadable"
+
+
 def gate_diffs(first: dict[str, Any], second: dict[str, Any]) -> list[tuple[str, str, str]]:
-    """Differing number fields between two verified receipts.
+    """Differing fields between two verified readings.
 
     Returns (label, first value, second value) for the total, each line
-    amount, and each KR cell that disagrees.
+    amount, and each KR cell that disagrees, then the C1 identity group:
+    currency, country, service date, inpatient stay, diagnosis codes,
+    and charge-row cells.
     """
-    from claimlens.checks import cell_value
+    from claimlens.checks import cell_value, row_value
 
+    first_docs = first.get("documents", [])
+    second_docs = second.get("documents", [])
+    first = first_docs[0] if first_docs else {}
+    second = second_docs[0] if second_docs else {}
+    first_cert = first_docs[1] if len(first_docs) > 1 else {}
+    second_cert = second_docs[1] if len(second_docs) > 1 else {}
     diffs = []
     if _numbers_differ(first.get("total_amount"), second.get("total_amount")):
         diffs.append(("total", _fmt_value(first.get("total_amount")),
@@ -180,6 +205,37 @@ def gate_diffs(first: dict[str, Any], second: dict[str, Any]) -> list[tuple[str,
             if cell_value(first_bill, n) != cell_value(second_bill, n):
                 diffs.append((f"KR cell {n}", _fmt_value(cell_value(first_bill, n)),
                               _fmt_value(cell_value(second_bill, n))))
+    for label, left, right in (
+        ("currency", first.get("currency"), second.get("currency")),
+        ("country", first.get("country"), second.get("country")),
+        ("service date", first.get("service_date"), second.get("service_date")),
+    ):
+        if left != right:
+            diffs.append((label, _fmt_value(left), _fmt_value(right)))
+    if first.get("inpatient") != second.get("inpatient"):
+        diffs.append(("inpatient stay", _fmt_stay(first.get("inpatient")),
+                      _fmt_stay(second.get("inpatient"))))
+    first_codes = [d.get("code") for d in first_cert.get("diagnoses", [])]
+    second_codes = [d.get("code") for d in second_cert.get("diagnoses", [])]
+    if len(first_codes) != len(second_codes):
+        diffs.append(("diagnosis code count", str(len(first_codes)),
+                      str(len(second_codes))))
+    for pos, (left, right) in enumerate(zip(first_codes, second_codes), start=1):
+        if left != right:
+            diffs.append((f"diagnosis code {pos}", _fmt_value(left),
+                          _fmt_value(right)))
+    if first_bill and second_bill:
+        first_rows = first_bill.get("charge_rows") or []
+        second_rows = second_bill.get("charge_rows") or []
+        if len(first_rows) != len(second_rows):
+            diffs.append(("charge row count", str(len(first_rows)),
+                          str(len(second_rows))))
+        for pos, (left, right) in enumerate(zip(first_rows, second_rows), start=1):
+            for n in range(1, 5):
+                if row_value(left, n) != row_value(right, n):
+                    diffs.append((f"charge row {pos} col {n}",
+                                  _fmt_value(row_value(left, n)),
+                                  _fmt_value(row_value(right, n))))
     return diffs
 
 
@@ -207,11 +263,18 @@ def verify_questions(failures: list[tuple[int, list[str]]]) -> list[dict[str, st
 
 
 def missing_facts(person: dict[str, Any] | None) -> list[str]:
-    """Panel fields with no answer yet. False is an answer; blank is not."""
+    """Panel fields with no answer yet. False is an answer; blank is not.
+
+    C7: never-registered patients answer "none" for the registration
+    date; that is an answer (eligibility reads it as unregistered).
+    """
     person = person or {}
     missing = []
     for key in PERSON_FIELDS:
         value = person.get(key)
+        if (key == "alien_registration_date" and isinstance(value, str)
+                and value.strip().lower() == "none"):
+            continue
         if value is None or (isinstance(value, str) and not value.strip()):
             missing.append(key)
     return missing
@@ -295,11 +358,20 @@ def run_live(
     ask_user questions instead of dead-ending; answering continues the
     same run (see run_continue) with no new reading call.
     """
+    with _RUN_SEMAPHORE:
+        return _run_live_guarded(images, person, scenario)
+
+
+def _run_live_guarded(
+    images: list[dict[str, str]],
+    person: dict[str, Any] | None = None,
+    scenario: str | None = None,
+) -> dict[str, Any]:
     from claimlens.checks import receipt_checks
     from claimlens.engine import load_scenarios
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
-    from claimlens.verify import verify_receipt
+    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
 
     if len(images) != 2:
         raise ValueError("Upload exactly 2 images: the receipt and the certificate.")
@@ -347,13 +419,39 @@ def run_live(
         marks = [len(p.calls) for p in providers]
         # Committed sample photos are known upright: skip the rotation
         # probe, so replay needs no new recordings.
+        from claimlens.rotation import FAILED_NOTE, upright_pages
+
         matched = match_sample(blobs)
         if matched is None:
-            from claimlens.rotation import upright_pages
-
             paths, rot_notes = upright_pages(paths, providers[0], Path(tmp))
         else:
             rot_notes = []
+        if FAILED_NOTE in rot_notes:
+            # C4: a page we cannot orient is never read; a turned page
+            # swaps charge columns identically in both reads.
+            tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
+            reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
+            tokens_total += 0 if reused_only else tokens
+            _step(steps, "reading", "Reading", f"{FAILED_NOTE}; stopped before reading",
+                  REUSED_LABEL if reused_only else f"{tokens} tokens (live)",
+                  time.monotonic() - started, 0 if reused_only else tokens)
+            return {
+                "steps": steps,
+                "result": {"badge": "needs_manual_check",
+                           "title": "Human review: the rotation check failed.",
+                           "note": ""},
+                "tokens_total": tokens_total,
+                "cost_usd": _run_spend(providers),
+                "retries_429": _run_retries(providers),
+                "matched_sample": matched,
+                "scenario": declared,
+                "questions": [{
+                    "question": "The rotation check failed; please re-upload "
+                                "the pages upright.",
+                    "why_needed": "A turned page can swap charge columns "
+                                  "identically in both reads, so nothing was read.",
+                }],
+            }
         raws = _read_twice()
         if all(raw is None for raw in raws):
             raise RuntimeError("Both reads failed; nothing to compare.")
@@ -395,7 +493,9 @@ def run_live(
         for pos, receipt in enumerate(receipts):
             checks = receipt_checks(receipt)
             names = f"{sum(c.passed for c in checks)}/{len(checks)} pass"
-            verified = verify_receipt(receipt, paths[receipt_images[pos]], providers[pos])
+            tag = "" if pos == 0 else REREAD_READ2_TAG
+            verified = verify_receipt(receipt, paths[receipt_images[pos]],
+                                      providers[pos], cache_tag=tag)
             receipts[pos] = verified["receipt"]
             readings[pos]["documents"][0] = verified["receipt"]
             details.append(f"{names}; re-read: {verified['status']}")
@@ -445,7 +545,7 @@ def run_live(
                 diffs = [("documents", f"{raw_counts[0]} documents",
                           f"{raw_counts[1]} documents")]
             else:
-                diffs = gate_diffs(receipts[0], receipts[1])
+                diffs = gate_diffs(readings[0], readings[1])
         if diffs:
             plural = "s" if len(diffs) != 1 else ""
             _step(steps, "double_read", "Double read", f"{len(diffs)} field{plural} differ",
@@ -512,10 +612,14 @@ def _pause_run(run: dict[str, Any], run_id: str | None = None) -> dict[str, Any]
 
 def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
     """Eligibility, consistency, and decision on a run with full facts."""
-    from claimlens.claimpack import build_pack
     from claimlens.consistency import deterministic_findings, spark_findings
-    from claimlens.eligibility import check_eligibility
-    from claimlens.engine import build_inputs, live_adjudicate, load_scenarios
+    from claimlens.eligibility import check_eligibility, service_date_of
+    from claimlens.engine import (
+        build_inputs,
+        copay_rate_from_bill,
+        live_adjudicate,
+        load_scenarios,
+    )
 
     reading = run["reading"]
     steps = run["steps"]
@@ -533,7 +637,7 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
         eligibility = {"outcome": "traveller_abroad", "rule": "engine_path",
                        "basis": "Korean traveller abroad — engine path."}
     else:
-        eligibility = check_eligibility(person, receipt.get("service_date") or "")
+        eligibility = check_eligibility(person, service_date_of(receipt))
     _step(steps, "eligibility", "Eligibility",
           f"{eligibility['outcome']} ({eligibility['rule']})",
           "deterministic", time.monotonic() - started)
@@ -552,12 +656,26 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
 
     started = time.monotonic()
     note = ""
+    stop_questions: list[dict[str, str]] = []
     if blockers:
         decision = {"badge": "blocked", "title": "Resolve the blocking questions first."}
         detail = f"{len(blockers)} blocking questions asked"
         meta = "stopped before decision"
     elif eligibility["outcome"] in ("nhi_member", "traveller_abroad") and context:
-        if neo4j_up():
+        # C3: same bar as the agent path (tool_adjudicate): a Korean claim
+        # without a copay rate is stopped, never adjudicated.
+        if receipt.get("country") == "KR" and copay_rate_from_bill(
+                receipt.get("kr_bill")) is None:
+            decision = {"badge": "needs_manual_check",
+                        "title": "Human review: the copay rate is missing."}
+            detail = "stopped: KR receipt without cells 1 and 2"
+            meta = "stopped before decision"
+            stop_questions = [{
+                "question": "What are receipt cells 1 and 2 (copay amounts)?",
+                "why_needed": "The copay rate (cell 1 / (cell 1 + cell 2)) "
+                              "is required to adjudicate a Korean claim.",
+            }]
+        elif neo4j_up():
             inputs = build_inputs(context, "photo", reading)
             output = live_adjudicate(inputs)
             decision = {"badge": output["decision"], "title": f"{output['amount']:,} KRW"}
@@ -572,14 +690,23 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
             detail = "engine skipped: Neo4j unreachable"
             meta = "deterministic"
     elif eligibility["outcome"] == "not_member_or_unknown" and matched:
+        from claimlens.claimpack import build_pack_from_reading
         from claimlens.letter import build_letter
 
-        pack = build_pack(matched, "photo", provider)
-        letter = build_letter(matched, "photo", pack, provider)
-        decision = {"badge": "claim_pack", "title": "Claim Pack built (sample-matched).",
-                    "letter": letter["text"], "letter_source": letter["source"]}
-        detail = f"{len(pack['items'])} lines, total {pack['total_krw']:,} KRW"
-        meta = "sample-matched pack"
+        try:
+            pack = build_pack_from_reading(reading, provider, matched, "photo")
+        except ValueError as exc:
+            decision = {"badge": "needs_manual_check",
+                        "title": f"Human review: {exc}"}
+            detail = "pack refused: receipt checks failed"
+            meta = "stopped before decision"
+        else:
+            letter = build_letter(matched, "photo", pack, provider)
+            decision = {"badge": "claim_pack",
+                        "title": "Claim Pack built (sample-matched).",
+                        "letter": letter["text"], "letter_source": letter["source"]}
+            detail = f"{len(pack['items'])} lines, total {pack['total_krw']:,} KRW"
+            meta = "sample-matched pack"
     else:
         decision = {"badge": "needs_review", "title": "Human review: no decision path."}
         detail = eligibility["basis"]
@@ -600,7 +727,7 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
         "questions": [
             {"question": f.get("question", ""), "why_needed": f.get("why_needed", "")}
             for f in blockers
-        ],
+        ] + stop_questions,
     }
 
 
@@ -633,11 +760,27 @@ def run_continue(
     return _finish_run(live_provider(), run)
 
 
-def route_get(path: str) -> tuple[int, bytes, str]:
-    """Pure GET routing: status, body bytes, media type. No sockets."""
+def _host_ok(host: str, port: int) -> bool:
+    """Same-machine allow-list shared by GET and POST (S1)."""
+    hosts = (f"127.0.0.1:{port}", f"localhost:{port}")
+    return host.strip().lower() in hosts
+
+
+def route_get(path: str, *, host: str = "", port: int = 0) -> tuple[int, bytes, str]:
+    """Pure GET routing: status, body bytes, media type. No sockets.
+
+    S1: the Host allow-list matches POST, and backslash, colon or NUL
+    anywhere in the path is rejected before any path join (UNC/drive/NUL).
+    Direct callers that pass no host skip the Host check; do_GET always
+    passes the real headers, so the HTTP boundary is always checked.
+    """
+    if host and not _host_ok(host, port):
+        return 403, b"bad host", "text/plain"
     if path == "/api/health":
         return 200, json.dumps({"ok": True, "mode": "live"}).encode("utf-8"), "application/json"
     target = unquote(path)
+    if "\\" in target or ":" in target or "\0" in target:
+        return 400, b"bad path", "text/plain"
     if target in ("", "/"):
         target = "/index.html"
     root = repo_root()
@@ -672,14 +815,14 @@ def route_post(
     """
     if path != "/api/run":
         return 404, {"error": "not found"}
-    hosts = (f"127.0.0.1:{port}", f"localhost:{port}")
-    if headers.get("host", "").strip().lower() not in hosts:
+    if not _host_ok(headers.get("host", ""), port):
         return 403, {"error": "forbidden host"}
     media = headers.get("content_type", "").split(";")[0].strip().lower()
     if media != "application/json":
         return 415, {"error": "Content-Type must be application/json."}
     origin = (headers.get("origin") or "").strip().lower()
-    if origin and origin not in (f"http://{h}" for h in hosts):
+    allowed = (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
+    if origin and origin not in allowed:
         return 403, {"error": "cross-origin posts are forbidden"}
     if declared > MAX_BODY_BYTES:
         return 413, {"error": "Uploads exceed the 10 MB limit."}
@@ -713,7 +856,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(status, json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json")
 
     def do_GET(self) -> None:
-        status, body, media = route_get(urlparse(self.path).path)
+        host = self.headers.get("Host") or ""
+        status, body, media = route_get(urlparse(self.path).path, host=host,
+                                        port=self.server.server_port)
         if media == "application/json":
             self._send_json(status, json.loads(body.decode("utf-8")))
         else:

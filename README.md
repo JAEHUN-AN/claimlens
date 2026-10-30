@@ -16,7 +16,7 @@ Theme: Build for Your World.
 
 <!-- measured:start -->
 **Measured:**
-- Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3). Live double-read gate, 2026-10-29 run on the current pipeline (24 cases ×3 = 72 pairs): 0 left (35 stopped for a person); normal documents: 0 left, 0/30 stopped. Amounts scored: total, line amounts, Korean bill cells.
+- Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3). Live double-read gate, 2026-10-29 run on the current pipeline (24 cases ×3 = 72 pairs): 0 left (35 stopped for a person); normal documents: 0 left, 0/30 stopped. Fields scored: total, line amounts, Korean bill cells.
 - Unseen layouts + real trips, first run (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person).
 - Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
 - 15 fault cases injected in tests (no live calls), no wrong number

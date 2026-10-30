@@ -40,7 +40,7 @@ def test_gate_line_live_drops_simulated(tmp_path):
     assert "40 stopped for a person" in entry["en"]
     assert "old pipeline" in entry["en"]
     assert "current pipeline" in entry["en"]
-    assert "Amounts scored: total, line amounts, Korean bill cells" in entry["en"]
+    assert "Fields scored: total, line amounts, Korean bill cells" in entry["en"]
     assert "normal documents" not in entry["en"]  # fixture has no normal set
 
 
@@ -108,7 +108,7 @@ def test_real_lines_are_pinned():
         "cases ×3). Live double-read gate, 2026-10-29 run on the current "
         "pipeline (24 cases ×3 = 72 pairs): 0 left (35 stopped for a person); "
         "normal documents: 0 left, 0/30 stopped. "
-        "Amounts scored: total, line amounts, Korean bill cells.")
+        "Fields scored: total, line amounts, Korean bill cells.")
     assert entries[1]["en"] == (
         "Unseen layouts + real trips, first run (2026-10-29): 0 wrong amounts "
         "left over 84 pairs (30 stopped for a person).")
@@ -196,3 +196,9 @@ def test_demo_carries_measured_payload(tmp_path):
     assert "Unseen layouts + real trips, first run (2026-10-29)" in text
     assert '"after_n": "22.97"' in text
     assert "why_after_n" in text
+
+
+def test_scope_comes_from_the_run_not_the_current_code():
+    # Runs recorded before C1 scored amounts only; the label must not claim more.
+    assert headline._scope_text({})[0] == "total, line amounts, Korean bill cells"
+    assert headline._scope_text({"fields": ["total", "currency"]})[0] == "total, currency"

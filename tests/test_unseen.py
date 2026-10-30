@@ -157,8 +157,12 @@ class _UnseenStub:
 
 
 def _reading_for(truth):
+    from claimlens.eval import country_of_currency
+
     receipt = {
-        "currency": truth["currency"], "total_amount": truth["total"],
+        "currency": truth["currency"],
+        "country": country_of_currency(truth["currency"]),
+        "total_amount": truth["total"],
         "service_date": "2026-09-15", "inpatient": False,
         "line_items": [{"label": f"line {n}", "amount": a}
                        for n, a in enumerate(truth["line_amounts"])],

@@ -183,8 +183,10 @@ def _s3_images():
 def _s3_person():
     scenarios = json.loads((ROOT / "samples" / "scenarios_inbound.json").read_text(
         encoding="utf-8"))["scenarios"]
-    return next(s for s in scenarios if s["id"] == "S3_us_tourist_hip_fracture")[
+    person = next(s for s in scenarios if s["id"] == "S3_us_tourist_hip_fracture")[
         "person"]
+    # C7: the tourist was never registered; "none" answers the question.
+    return {**person, "alien_registration_date": "none"}
 
 
 def test_serve_claim_pack_carries_filled_letter(monkeypatch):
@@ -228,6 +230,56 @@ def test_serve_claim_pack_carries_filled_letter(monkeypatch):
     assert result["result"]["letter_source"] == "spark"
     assert "15,000,000" in result["result"]["letter"]
     assert "Michael J. CARTER" in result["result"]["letter"]
+
+
+def test_serve_pack_and_letter_use_verified_reading(monkeypatch):
+    """C6: serve builds the pack/letter from this run's verified reading."""
+    from claimlens import serve
+    from claimlens.engine import replay_reading
+
+    class _NameStub:
+        name = "stub"
+        model = "stub"
+
+        def __init__(self):
+            self.calls = []
+
+        def _log(self, total):
+            self.calls.append(CallRecord(model=self.model, input_tokens=total,
+                                         output_tokens=0, total_tokens=total,
+                                         cost_usd=None))
+
+        def read_documents(self, images, instructions, schema, result_model=None,
+                           cache_tag=""):
+            self._log(100)
+            reading = copy.deepcopy(
+                replay_reading("S3_us_tourist_hip_fracture", "photo"))
+            for doc in reading["documents"]:
+                for item in doc.get("pii", []):
+                    if item.get("kind") == "name":
+                        item["value"] = "JANE R. DOE"
+            return reading
+
+        def write(self, instructions, schema, result_model=None):
+            self._log(50)
+            if result_model is LetterDraft:
+                return {"letter": GOOD_DRAFT}
+            if "findings" in str(schema):
+                return {"findings": []}
+            labels = [line[2:] for line in instructions.splitlines()
+                      if line.startswith("- ")]
+            return {"labels": [{"ko": label, "en": label} for label in labels]}
+
+    monkeypatch.setattr(serve, "live_provider", _NameStub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: False)
+    raw = json.dumps({"images": _s3_images(), "person": _s3_person()}).encode("utf-8")
+    headers = {"host": "127.0.0.1:8000", "content_type": "application/json",
+               "origin": ""}
+    status, result = serve.route_post("/api/run", raw, len(raw), headers, 8000)
+    assert status == 200
+    assert result["result"]["badge"] == "claim_pack"
+    assert "JANE R. DOE" in result["result"]["letter"]
+    assert "Michael J. CARTER" not in result["result"]["letter"]
 
 
 def test_demo_pack_carries_letter_and_headings(tmp_path, monkeypatch):

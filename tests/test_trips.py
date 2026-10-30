@@ -248,10 +248,13 @@ class _TripStub:
 
 
 def _reading_for(case, receipt_file, cert_file):
+    from claimlens.eval import country_of_currency
+
     docs = {d["file"]: d["data"] for d in case["documents"]}
     receipt_data = docs[receipt_file]
     receipt = {
         "doc_type": "receipt", "currency": case["currency"],
+        "country": country_of_currency(case["currency"]),
         "total_amount": receipt_data["total"], "service_date": "2026-09-18",
         "inpatient": False,
         "line_items": [{"label": f"line {n}", "amount": a}
@@ -262,7 +265,9 @@ def _reading_for(case, receipt_file, cert_file):
     }
     diags = docs[cert_file]["diagnoses"] if cert_file else []
     cert = {"doc_type": "medical_certificate",
-            "diagnoses": [{"label": "d", "code": c} for c in diags]}
+            "diagnoses": [{"label": "d",
+                           "code": c.get("code", c) if isinstance(c, dict) else c}
+                          for c in diags]}
     return {"documents": [receipt, cert]}
 
 

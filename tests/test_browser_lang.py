@@ -319,7 +319,7 @@ def test_live_questions_continue_in_browser(browser, monkeypatch):
         page.locator("#person-presets").wait_for(timeout=15000)
         page.evaluate(DROP_RETAKES)
         page.locator("#flow-questions li").first.wait_for(timeout=60000)
-        assert page.locator("#flow-questions li").count() == 4
+        assert page.locator("#flow-questions li").count() == len(serve.PERSON_FIELDS)  # visa, employer, work, entry, registration
         assert page.locator("#flow-result .badge").inner_text() == "need_facts"
         assert page.locator("#flow-result .amount").count() == 0
         assert stub.reads == 2

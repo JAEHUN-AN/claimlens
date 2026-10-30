@@ -4,7 +4,7 @@ import copy
 
 import pytest
 
-from claimlens.checks import all_passed, check_kr_bill
+from claimlens.checks import all_passed, check_kr_bill, receipt_checks
 
 S2_ROWS = [
     {"label": "label-a", "col_1": 9000, "col_2": 9000, "col_3": 0, "col_4": 0},
@@ -58,3 +58,65 @@ def test_missing_rows_fails():
     cells = copy.deepcopy(S2_CELLS)
     cells["charge_rows"] = []
     assert not all_passed(check_kr_bill(cells))
+
+
+def _s2_like_receipt(total=45000.0):
+    rows = copy.deepcopy(S2_CELLS)["charge_rows"]
+    lines = [
+        {"description": r["label"], "category": "other",
+         "amount": r["col_1"] + r["col_2"] + r["col_3"] + r["col_4"]}
+        for r in rows
+    ]
+    return {"country": "KR", "currency": "KRW", "total_amount": total,
+            "kr_bill": copy.deepcopy(S2_CELLS), "line_items": lines}
+
+
+def test_kr_printed_total_agrees_with_cell_8():
+    """C2: the printed patient total is cross-checked against cell 8."""
+    checks = receipt_checks(_s2_like_receipt())
+    assert all_passed(checks)
+    assert "printed_total_8" in [c.name for c in checks]
+
+
+def test_kr_printed_total_mismatch_fails():
+    """C2: total_amount disagreeing with cell 8 fails loudly."""
+    checks = receipt_checks(_s2_like_receipt(total=45001.0))
+    failed = [c.name for c in checks if not c.passed]
+    assert failed == ["printed_total_8"]
+
+
+def test_kr_printed_total_missing_total_fails():
+    """C2: a missing printed total cannot silently pass."""
+    checks = receipt_checks(_s2_like_receipt(total=None))
+    failed = [c.name for c in checks if not c.passed]
+    assert failed == ["printed_total_8"]
+
+
+def _plain_receipt(country="JP", currency="JPY"):
+    return {"country": country, "currency": currency, "total_amount": 100.0,
+            "line_items": [{"description": "care", "category": "other",
+                            "amount": 100.0}]}
+
+
+def test_country_currency_known_pairs_pass():
+    """C1: listed country/currency pairs pass on both receipt kinds."""
+    assert all_passed(receipt_checks(_plain_receipt("JP", "JPY")))
+    assert all_passed(receipt_checks(_plain_receipt("KR", "KRW")))
+    assert "country_currency" in [c.name for c in receipt_checks(
+        _plain_receipt("JP", "JPY"))]
+
+
+def test_country_currency_mismatch_fails():
+    """C1: JPY read on a JP receipt never matches USD."""
+    checks = receipt_checks(_plain_receipt("JP", "USD"))
+    assert [c.name for c in checks if not c.passed] == ["country_currency"]
+
+
+def test_country_currency_missing_or_unknown_fails():
+    """C1: a missing or unlisted pair stops instead of converting blind."""
+    assert [c.name for c in receipt_checks(_plain_receipt("JP", None))
+            if not c.passed] == ["country_currency"]
+    assert [c.name for c in receipt_checks(_plain_receipt(None, "JPY"))
+            if not c.passed] == ["country_currency"]
+    assert [c.name for c in receipt_checks(_plain_receipt("XX", "XXX"))
+            if not c.passed] == ["country_currency"]

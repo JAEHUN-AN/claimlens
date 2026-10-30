@@ -53,6 +53,9 @@ def rotation_schema() -> dict[str, Any]:
 
 def prepare_probe_copy(path: Path, dest: Path) -> bytes:
     """Downscale the long side to 768 px and save as JPEG; returns bytes."""
+    from claimlens.images import check_image_size
+
+    check_image_size(path)
     with Image.open(path) as img:
         small = img.convert("RGB")
         small.thumbnail((PROBE_LONG_SIDE, PROBE_LONG_SIDE), Image.LANCZOS)
@@ -88,6 +91,9 @@ _CORRECTION = {
 
 def upright_copy(path: Path, rotation: int, dest: Path) -> Path:
     """Rotate a turned page upright (Pillow); rotation is clockwise from upright."""
+    from claimlens.images import check_image_size
+
+    check_image_size(path)
     with Image.open(path) as img:
         img.transpose(_CORRECTION[rotation]).save(dest, format="JPEG", quality=90)
     return dest

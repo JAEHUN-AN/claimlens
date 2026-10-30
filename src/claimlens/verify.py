@@ -59,6 +59,10 @@ def involved_cells(failed: list[BillCheck], receipt: dict[str, Any]) -> list[str
                 keys.add(f"row_{i}_col_{n}")
         elif check.name in LINES_CHECKS:
             keys.add("line_items")
+        elif check.name == "country_currency":
+            pass  # C1: unfixable by re-reading cells; stops with no re-read.
+        elif check.name == "printed_total_8":
+            keys.update(["cell_8", "total_amount"])
         elif check.name in TOTAL_CHECKS:
             keys.add("total_amount")
     return sorted(keys)
@@ -181,17 +185,34 @@ def merge_reread(
     return merged, sorted(corrected)
 
 
-def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any) -> dict[str, Any]:
+# C5: read 1's re-read keeps the legacy "" tag so committed narrow
+# re-reads still replay; read 2's re-read gets its own tag so the two
+# reads can never share one re-read recording.
+REREAD_READ2_TAG = ".read2"
+
+
+def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any,
+                   cache_tag: str = "") -> dict[str, Any]:
     """Check once; on failure do one narrow re-read and check again."""
     first = receipt_checks(receipt)
     if all_passed(first):
         return {"status": "verified", "checks": first, "corrected": [], "receipt": receipt}
     failed = [c for c in first if not c.passed]
     keys = involved_cells(failed, receipt)
+    if not keys:
+        return {
+            "status": "needs_manual_check",
+            "checks": first,
+            "corrected": [],
+            "receipt": receipt,
+            "failed_before": [c.name for c in failed],
+            "failing": [c.name for c in failed],
+        }
     model = build_reread_model(keys)
     schema = strict_schema_of(model)
     instructions = build_reread_instructions(keys, receipt)
-    reread = provider.read_documents([image], instructions, schema, result_model=model)
+    reread = provider.read_documents([image], instructions, schema,
+                                    result_model=model, cache_tag=cache_tag)
     merged, corrected = merge_reread(receipt, reread)
     second = receipt_checks(merged)
     if all_passed(second):

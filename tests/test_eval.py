@@ -2,9 +2,35 @@
 
 from pathlib import Path
 
-from claimlens.eval import compare, eval_sample, format_markdown, ground_truth, load_scenarios
+import pytest
+
+from claimlens.cache import CacheMissError
+from claimlens.eval import (
+    compare,
+    eval_sample,
+    format_markdown,
+    ground_truth,
+    load_scenarios,
+    read_with_fallback,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+class _LiveBomb:
+    """Instantiated only when eval falls through to a billing call."""
+
+    def __init__(self, *args, **kwargs):
+        raise AssertionError("eval must not construct a live provider under replay")
+
+
+def test_read_with_fallback_fails_loud_under_replay(monkeypatch, tmp_path):
+    """H10: a cache miss under replay raises; it never bills a live call."""
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(tmp_path / "empty"))
+    monkeypatch.setattr("claimlens.eval.MetaProvider", _LiveBomb)
+    with pytest.raises(CacheMissError):
+        read_with_fallback(Path("samples/A_niseko_wrist"), "photo")
 
 
 def test_eval_sample_has_open_columns():

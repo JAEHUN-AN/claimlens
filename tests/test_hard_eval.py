@@ -98,7 +98,7 @@ def _s2_reading(**overrides):
             "charge_rows": [{"label": f"row{i}", "col_1": it.get("copay", 0),
                              "col_2": it.get("insurer", 0), "col_3": it.get("full", 0),
                              "col_4": it.get("non_covered", 0)} for i, it in enumerate(items)]}
-    receipt = {"doc_type": "receipt", "currency": "KRW", "total_amount": truth["total"],
+    receipt = {"doc_type": "receipt", "currency": "KRW", "country": "KR", "total_amount": truth["total"], "inpatient": False,
                "line_items": [{"description": f"d{i}", "category": "lab", "amount": a}
                               for i, a in enumerate(truth["line_amounts"])],
                "diagnoses": [], "pii": [], "kr_bill": bill}
@@ -118,7 +118,8 @@ class _Stub:
         self._reread = reread if reread is not None else {}
         self.calls = []
 
-    def read_documents(self, images, instructions, schema, result_model=None):
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
         self.calls.append(CallRecord(model="stub", input_tokens=5000, output_tokens=500,
                                      total_tokens=5500, cost_usd=0.01))
         if result_model is not None:
@@ -193,7 +194,7 @@ def test_non_kr_wrong_numbers_reach_when_checks_pass():
     scenarios = load_scenarios()
     truth = ground_truth(scenarios["A_niseko_wrist"])
     reading = {"documents": [
-        {"doc_type": "receipt", "currency": "JPY", "total_amount": 1.0,
+        {"doc_type": "receipt", "currency": "JPY", "country": "JP", "total_amount": 1.0, "inpatient": False,
          "line_items": [{"description": "x", "category": "lab", "amount": 1.0}],
          "diagnoses": [], "pii": [], "kr_bill": None},
         {"doc_type": "medical_certificate", "currency": "",
@@ -244,7 +245,7 @@ def test_kr_only_fields_skip_non_kr_cases():
     scenarios = load_scenarios()
     truth = ground_truth(scenarios["A_niseko_wrist"])
     reading = {"documents": [
-        {"doc_type": "receipt", "currency": "JPY", "total_amount": truth["total"],
+        {"doc_type": "receipt", "currency": "JPY", "country": "JP", "total_amount": truth["total"], "inpatient": False,
          "line_items": [{"description": f"d{i}", "category": "lab", "amount": a}
                         for i, a in enumerate(truth["line_amounts"])],
          "diagnoses": [], "pii": [], "kr_bill": None},
@@ -408,3 +409,85 @@ def test_null_line_amount_is_wrong_not_a_crash():
     reading = {"documents": [{"total_amount": 300.0,
                               "line_items": [{"amount": 100.0}, {"amount": None}]}]}
     assert hard_eval.wrong_numeric_fields(truth, reading, {}) == ["lines[1]"]
+
+
+def _c1_truth():
+    return {"total": 235000.0, "line_amounts": [235000.0], "kr_cells": None,
+            "currency": "JPY", "country": "JP", "inpatient": False,
+            "diag_codes": ["S62.0"], "charge_rows": None}
+
+
+def _c1_reading(**overrides):
+    receipt = {"currency": "JPY", "country": "JP", "total_amount": 235000.0,
+               "inpatient": False,
+               "line_items": [{"description": "care", "category": "other",
+                               "amount": 235000.0}]}
+    diags = overrides.pop("diags", ["S62.0"])
+    receipt.update(overrides)
+    cert = {"diagnoses": [{"code": c} for c in diags]}
+    return {"documents": [receipt, cert]}
+
+
+def test_wrong_numeric_fields_scores_c1_identity():
+    """C1: currency, country, stay, and codes join the leak metric."""
+    truth = _c1_truth()
+    assert hard_eval.wrong_numeric_fields(truth, _c1_reading(), {}) == []
+    cases = [
+        ({"currency": "USD"}, ["currency"]),
+        ({"country": "KR"}, ["country"]),
+        ({"inpatient": True}, ["inpatient"]),
+        ({"diags": ["S62.1"]}, ["diag_codes[0]"]),
+        ({"diags": []}, ["diag_codes[0]"]),
+    ]
+    for override, expected in cases:
+        got = hard_eval.wrong_numeric_fields(truth, _c1_reading(**override), {})
+        assert got == expected, override
+
+
+def test_wrong_numeric_fields_scores_charge_rows():
+    """C1: KR charge-row cells join the leak metric."""
+    truth = {"total": 100.0, "line_amounts": [100.0],
+             "kr_cells": [100, 0, 0, 0, 0, 100, 0, 100, 0, 100],
+             "currency": "KRW", "country": "KR", "inpatient": False,
+             "diag_codes": ["J20.9"], "charge_rows": [[100, 0, 0, 0]]}
+    good = {"documents": [
+        {"currency": "KRW", "country": "KR", "total_amount": 100.0,
+         "inpatient": False, "line_items": [{"amount": 100.0}],
+         "kr_bill": {f"cell_{n}": v for n, v in
+                     enumerate([100, 0, 0, 0, 0, 100, 0, 100, 0, 100], start=1)}
+         | {"charge_rows": [{"label": "a", "col_1": 100, "col_2": 0,
+                             "col_3": 0, "col_4": 0}]}},
+        {"diagnoses": [{"code": "J20.9"}]},
+    ]}
+    assert hard_eval.wrong_numeric_fields(truth, good, {}) == []
+    bad = copy.deepcopy(good)
+    bad["documents"][0]["kr_bill"]["charge_rows"][0]["col_2"] = 5
+    assert hard_eval.wrong_numeric_fields(truth, bad, {}) == [
+        "charge_rows[0].col_2"]
+
+
+def test_gate_agree_covers_c1_fields():
+    """C1: reads disagreeing on identity fields never pass the gate."""
+    base = {"total": 1.0, "lines": [1.0], "kr_cells": None, "currency": "JPY",
+            "country": "JP", "service_date": "2026-08-12", "inpatient": False,
+            "diags": ["S62.0"], "charge_rows": None}
+    assert hard_eval._gate_agree(base, dict(base)) is True
+    for field, other in (("currency", "USD"), ("country", "KR"),
+                         ("service_date", "2026-08-13"), ("inpatient", True),
+                         ("diags", ["S62.1"]), ("charge_rows", [[1]])):
+        left, right = dict(base), dict(base)
+        right[field] = other
+        assert hard_eval._gate_agree(left, right) is False, field
+
+
+def test_ground_truth_carries_c1_fields():
+    """C1: country, stay, and charge rows come from scenario data."""
+    s2 = ground_truth(load_scenarios()["S2_seoul_worker_bronchitis"])
+    assert s2["country"] == "KR"
+    assert s2["inpatient"] is False
+    assert len(s2["charge_rows"]) == 5
+    assert s2["charge_rows"][0] == [9000, 9000, 0, 0]
+    a = ground_truth(load_scenarios()["A_niseko_wrist"])
+    assert a["country"] == "JP"
+    assert a["inpatient"] is False
+    assert a["charge_rows"] is None

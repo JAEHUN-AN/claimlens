@@ -131,6 +131,7 @@
         "patient_id": "BR-2026-7718"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Jaeho PARK",
@@ -236,6 +237,7 @@
         "patient_id": "LN-2026-0917"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Minho CHOI",
@@ -351,6 +353,7 @@
         "patient_id": "SK-2026-1102"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Siwoo KIM",
@@ -420,6 +423,7 @@
         "patient_id": "PL-2026-0033"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Soobin LEE",
@@ -547,6 +551,7 @@
         "patient_id": "HP-2026-5519"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Dongmin HAN",
@@ -651,6 +656,7 @@
         "patient_id": "TB-2026-2204"
       },
       "person": {
+        "alien_registration_date": "n/a",
         "entry_date": "n/a",
         "korean_employer": false,
         "name": "Seungho YOON",

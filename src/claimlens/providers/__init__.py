@@ -16,6 +16,7 @@ class Provider(Protocol):
         instructions: str,
         schema: dict[str, Any],
         result_model: type[BaseModel] | None = None,
+        cache_tag: str = "",
     ) -> dict[str, Any]: ...
 
     def write(

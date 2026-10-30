@@ -133,9 +133,8 @@ def build_pack(
     sample_id: str, variant: str, provider: Any, lang: str = "en"
 ) -> dict[str, Any]:
     """Assemble the pack; refuses cases that have an applicable policy."""
-    from claimlens.eligibility import check_eligibility
+    from claimlens.eligibility import check_eligibility, service_date_of
     from claimlens.engine import load_scenarios, replay_reading
-    from claimlens.packlang import translate_pack
 
     if lang not in LANG_NAMES:
         raise ValueError(f"Unsupported pack language {lang!r}.")
@@ -144,15 +143,54 @@ def build_pack(
     docs = reading["documents"]
     receipt, cert = docs[0], docs[1]
     if sample_id in inbound:
-        service = receipt.get("service_date") or ""
+        service = service_date_of(receipt)
         eligibility = check_eligibility(scenarios[sample_id]["person"], service)
         if eligibility["outcome"] != "not_member_or_unknown":
             raise ValueError(
                 f"{sample_id} is {eligibility['outcome']}; the pack is only for "
                 "visitors without an applicable policy."
             )
+    return _assemble_pack(sample_id, variant, provider, lang, docs, receipt, cert)
+
+
+def build_pack_from_reading(
+    reading: dict[str, Any], provider: Any,
+    sample_id: str, variant: str, lang: str = "en",
+) -> dict[str, Any]:
+    """Assemble the pack from a verified reading; refuses failed checks.
+
+    C6: serve passes this run's verified reading so re-read corrections
+    reach the pack; a reading that fails its receipt checks yields no pack.
+    """
+    if lang not in LANG_NAMES:
+        raise ValueError(f"Unsupported pack language {lang!r}.")
+    docs = reading["documents"]
+    receipt, cert = docs[0], docs[1]
+    failing = [c.name for c in receipt_checks(receipt) if not c.passed]
+    if failing:
+        raise ValueError(
+            f"receipt checks failed ({', '.join(failing)}); "
+            "refusing the Claim Pack."
+        )
+    return _assemble_pack(sample_id, variant, provider, lang, docs, receipt, cert)
+
+
+def _assemble_pack(sample_id: str, variant: str, provider: Any, lang: str,
+                   docs: list[dict[str, Any]], receipt: dict[str, Any],
+                   cert: dict[str, Any]) -> dict[str, Any]:
+    """Shared assembly; each build_pack* caller decides refusal itself."""
+    from claimlens.packlang import translate_pack
+
     bill = receipt.get("kr_bill") or {}
     rows = bill.get("charge_rows") or []
+    for i, row in enumerate(rows, start=1):
+        for n in (1, 2, 3, 4):
+            if row.get(f"col_{n}") is None:
+                # H6: a blank cell is never a silent zero in the pack.
+                raise ValueError(
+                    f"charge row {i} col_{n} is blank; "
+                    "refusing the Claim Pack."
+                )
     if lang == "en":
         table = translate_labels([r.get("label", "") for r in rows], provider)
         items = [

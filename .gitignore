@@ -24,6 +24,8 @@ out/
 
 # Live server results (never committed; replay reads cache/ only)
 cache/live/
+# S6: runtime results at any depth (cache/hard/live/ slipped through once)
+**/live/
 # File ids are runtime-only; the index lives under cache/live/
 cache/files_index.json
 
