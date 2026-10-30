@@ -114,6 +114,16 @@ def check_kr_bill(cells: Any) -> list[BillCheck]:
     ]
 
 
+def printed_amounts(receipt: dict[str, Any]) -> list[Any]:
+    """Item line amounts followed by tax/discount/adjustment line amounts (56).
+
+    Ground truth lists a tax or discount row as a line; the pipeline reads it
+    as an adjustment line. Scoring and the double-read compare both together.
+    """
+    return ([i.get("amount") for i in receipt.get("line_items", [])]
+            + [a.get("amount") for a in receipt.get("adjustment_lines") or []])
+
+
 def all_passed(checks: list[BillCheck]) -> bool:
     return all(c.passed for c in checks)
 

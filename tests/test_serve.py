@@ -1207,3 +1207,16 @@ def test_real_http_round_trip(stubbed):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_gate_diffs_compare_adjustment_lines():
+    # 56: two reads that differ only in a discount line must not agree.
+    base = {"total_amount": 4037.5, "currency": "USD", "country": "US",
+            "line_items": [{"amount": 4250.0}]}
+    left = {**base, "adjustment_lines": [{"kind": "discount", "amount": -212.5}]}
+    right = {**base, "adjustment_lines": [{"kind": "discount", "amount": -21.25}]}
+    assert serve.gate_diffs(_reading_of(left), _reading_of(left)) == []
+    diffs = serve.gate_diffs(_reading_of(left), _reading_of(right))
+    assert [d[0] for d in diffs] == ["adjustment 1 amount"]
+    assert [d[0] for d in serve.gate_diffs(_reading_of(left), _reading_of(base))] == [
+        "adjustment line count"]

@@ -105,13 +105,15 @@ def test_real_lines_are_pinned():
     assert entries[0]["en"] == (
         "Single read, 2026-10-28 run on the old pipeline (before the line-sum "
         "check and rotation probe): 47 wrong amounts left (hard set, 23/24 "
-        "cases ×3). Live double-read gate, 2026-10-29 run on the current "
-        "pipeline (24 cases ×3 = 72 pairs): 0 left (35 stopped for a person); "
-        "normal documents: 0 left, 0/30 stopped. "
-        "Fields scored: total, line amounts, Korean bill cells.")
+        "cases ×3). Live double-read gate, 2026-10-30 run on the current "
+        "pipeline (24 cases ×3 = 72 pairs): 0 left (40 stopped for a person); "
+        "normal documents: 0 left, 6/30 stopped. "
+        "Fields scored: total, line amounts, Korean bill cells, currency, country, "
+        "service date, inpatient stay, diagnosis codes, charge rows.")
     assert entries[1]["en"] == (
-        "Unseen layouts + real trips, first run (2026-10-29): 0 wrong amounts "
-        "left over 84 pairs (30 stopped for a person).")
+        "Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong "
+        "amounts left over 84 pairs (30 stopped for a person); after fixes "
+        "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).")
     assert entries[2]["en"] == (
         "Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed "
         "once from its recording)")
@@ -152,7 +154,7 @@ def test_eval_caption_pinned():
     caption = headline.eval_caption(ROOT)
     assert caption == (
         "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; "
-        "the live gate (2026-10-29, current pipeline) leaves 0.")
+        "the live gate (2026-10-30, current pipeline) leaves 0.")
     assert len(caption) <= 190
 
 
@@ -193,7 +195,7 @@ def test_demo_carries_measured_payload(tmp_path):
     text = dst.read_text(encoding="utf-8")
     assert "Single read, 2026-10-28 run on the old pipeline" in text
     assert "단일 판독, 2026-10-28 구 파이프라인 실행" in text
-    assert "Unseen layouts + real trips, first run (2026-10-29)" in text
+    assert "Unseen layouts + real trips, first run before fixes (2026-10-29)" in text
     assert '"after_n": "22.97"' in text
     assert "why_after_n" in text
 

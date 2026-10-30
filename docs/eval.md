@@ -92,11 +92,12 @@ gate catches what the checks cannot.
 
 ## Live gate runs: normal + hard (repeat 3)
 
-Four live runs over the same A/S2/S3-derived normal (10 cases) and hard
+Five live runs over the same A/S2/S3-derived normal (10 cases) and hard
 (24 cases) images, fresh reads only (temp cache dirs; committed `cache/`
 untouched). Between runs the pipeline changed, not the documents — later
 runs measure fixes on the same document families, not new ones. The
-held-out unseen/trips sets below were measured once, after all fixes.
+held-out unseen/trips sets below were first measured before their fixes; later runs are
+listed as separate rows.
 
 | run (UTC) | normal pairs / stops / leaks | hard pairs / stops / leaks | spent | pipeline since previous run |
 |---|---|---|---|---|
@@ -104,11 +105,13 @@ held-out unseen/trips sets below were measured once, after all fixes.
 | 2026-10-29 00:48 | 30 / 5 / 1 | 72 / 39 / 2 | $3.57 | per-pair details saved (41d); same pipeline |
 | 2026-10-29 04:23 | 30 / 0 / 0 | 72 / 39 / 4 | $3.48 | line-sum check on every receipt (41e-a) |
 | 2026-10-29 07:08 | 30 / 0 / 0 | 72 / 35 / 0 | $3.70 | rotation probe before reading (41f) |
+| 2026-10-30 05:28 | 30 / 6 / 0 | 72 / 40 / 0 | $3.72 | 54–56 and 50: wider gate and scoring (currency, country, service date, inpatient, diagnosis codes, charge rows), per-read re-read tags, tax/adjustment re-read |
 
 Data: `data/gate_live_20261028T212938Z.json`,
 `data/gate_live_20261029T004823Z.json`,
 `data/gate_live_20261029T042335Z.json`,
-`data/gate_live_20261029T070828Z.json`.
+`data/gate_live_20261029T070828Z.json`,
+`data/gate_live_20261030T052815Z.json`.
 
 Run 2's per-pair data named the leaks it was re-run to find: C clean
 read total 0 with correct lines (normal), and both reads putting
@@ -180,3 +183,30 @@ retries with no new reading. Live re-measurement is an owner dawn run:
 `claimlens trips-check --execute` (plan estimate $0.32-$0.39;
 a live model may stop earlier, which still passes with a note).
 
+
+### After fixes (2026-10-30)
+
+Same held-out documents, re-measured after 54–56 and 50. The first-run rows above stay as they were.
+
+| run (UTC) | set | pairs | wrong values that left | pairs stopped | cost per claim | data | note |
+|---|---|---|---|---|---|---|---|
+| 2026-10-30 05:38 (superseded) | unseen | 36 | 12 | 2 | $0.0259 | `data/gate_live_20261030T053849Z.json` | scorer mismatch: truth lists tax/discount rows as lines, the pipeline now reads them as adjustment lines; all 12 flagged values were the missing last line (the tax/discount row) |
+| 2026-10-30 05:50 (superseded) | trips | 48 | 13 | 5 | $0.0234 | `data/gate_live_20261030T055051Z.json` | same mismatch for 12 of 13 flagged values (T3, T5 bill: missing last line); 1 was T5's card-slip pair (`lines[0]`), not explained by the mismatch |
+| 2026-10-30 06:07 | unseen | 36 | 0 | 3 | $0.0262 | `data/gate_live_20261030T060735Z.json` | after fixes 54–56 and 50; scorer counts item lines plus adjustment lines; fields scored include currency, country, service date, inpatient, diagnosis codes, charge rows |
+| 2026-10-30 06:20 | trips | 48 | 0 | 6 | $0.0234 | `data/gate_live_20261030T062012Z.json` | same |
+
+Each trip through the live upload path with the engine running (`claimlens trips-check`,
+`data/trips_check_20261030T055603Z.json`). Decided amounts are compared with the truth file's KRW
+total (local amount × the fixed demo rate), computed independently of the pipeline:
+
+| trip | outcome | shown | vs truth |
+|---|---|---|---|
+| T1_bangkok_food_poisoning | 200 PAID | 595,399 KRW | matches truth 595,399 KRW |
+| T2_danang_scooter | 200 PAID | 64,637 KRW | matches truth 64,637 KRW |
+| T3_setagaya_fever | 200 PAID | 113,443 KRW | matches truth 113,443 KRW |
+| T4_paris_pharmacy | 200 needs_manual_check | Human review: 1 receipt(s) read; no certificate.. |  |
+| T5_honolulu_urgent | 200 needs_manual_check | Human review: photo 1 failed its receipt checks.. |  |
+| T6_guam_dental | 200 needs_review | Flagged for a reviewer: dental treatment is never decided automatically. |  |
+
+Remaining stops: U2 (Korean inpatient bill) and T5 (Honolulu bill with an insurance adjustment
+and patient responsibility plus a card slip) — both stop for a person; neither leaked a value.

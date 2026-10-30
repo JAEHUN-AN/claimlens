@@ -327,7 +327,7 @@
         {
           "op": "select",
           "selector": "#person-product",
-          "value": "\uae30\ubcf8\ud615 \uc2e4\uc190\uc758\ub8cc\ubcf4\ud5d8(\uae09\uc5ec \uc2e4\uc190\uc758\ub8cc\ube44)"
+          "value": "기본형 실손의료보험(급여 실손의료비)"
         },
         {
           "op": "click",
@@ -534,7 +534,7 @@
           "op": "unzoom"
         }
       ],
-      "caption": "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; the live gate (2026-10-29, current pipeline) leaves 0.",
+      "caption": "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; the live gate (2026-10-30, current pipeline) leaves 0.",
       "duration": 8,
       "id": "eval",
       "page": "measured",

@@ -26,7 +26,7 @@ from typing import Any
 from claimlens import cache as replay_cache
 from claimlens import eval as base_eval
 from claimlens.cache import CacheMissError
-from claimlens.checks import all_passed, receipt_checks
+from claimlens.checks import all_passed, printed_amounts, receipt_checks
 from claimlens.hard_images import ensure_hard_set
 from claimlens.prompts import READING_INSTRUCTIONS
 from claimlens.providers.meta import MODEL, MetaProvider
@@ -143,8 +143,8 @@ def field_values(reading: dict[str, Any]) -> dict[str, Any]:
         "charge_rows": ([[r.get(f"col_{n}") for n in range(1, 5)] for r in rows]
                         if isinstance(rows, list) else None),
         "total": receipt.get("total_amount"),
-        "lines": [i.get("amount") for i in receipt.get("line_items", [])],
-        "amounts": [i.get("amount") for i in receipt.get("line_items", [])],
+        "lines": printed_amounts(receipt),
+        "amounts": printed_amounts(receipt),
         "diags": [d.get("code", "") for d in cert.get("diagnoses", [])],
         "kr_cells": [bill.get(f"cell_{n}") for n in range(1, 11)] if receipt.get("kr_bill") else None,
         "instit": bill.get("institution_type"),
@@ -172,11 +172,11 @@ def wrong_numeric_fields(truth: dict[str, Any], reading: dict[str, Any],
     elif total is None or not _close(total, truth["total"]):
         wrong.append("total")
     if unreadable.get("line_amounts"):
-        wrong += [f"lines[{i}]" for i, item in enumerate(receipt.get("line_items", []))
-                  if item.get("amount") is not None]
+        wrong += [f"lines[{i}]" for i, amount in enumerate(printed_amounts(receipt))
+                  if amount is not None]
     else:
         # A null amount is a wrong line, not a crash (live reads return explicit nulls).
-        read = [i.get("amount") for i in receipt.get("line_items", [])]
+        read = printed_amounts(receipt)
         exp = truth["line_amounts"]
         for i in range(max(len(read), len(exp))):
             if (i >= len(read) or i >= len(exp) or read[i] is None

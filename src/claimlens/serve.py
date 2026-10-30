@@ -200,6 +200,15 @@ def gate_diffs(first: dict[str, Any], second: dict[str, Any]) -> list[tuple[str,
         if _numbers_differ(left.get("amount"), right.get("amount")):
             diffs.append((f"line {pos} amount", _fmt_value(left.get("amount")),
                           _fmt_value(right.get("amount"))))
+    # 56: tax/discount/adjustment lines are printed amounts too.
+    first_adj = first.get("adjustment_lines") or []
+    second_adj = second.get("adjustment_lines") or []
+    if len(first_adj) != len(second_adj):
+        diffs.append(("adjustment line count", str(len(first_adj)), str(len(second_adj))))
+    for pos, (left, right) in enumerate(zip(first_adj, second_adj), start=1):
+        if _numbers_differ(left.get("amount"), right.get("amount")):
+            diffs.append((f"adjustment {pos} amount", _fmt_value(left.get("amount")),
+                          _fmt_value(right.get("amount"))))
     first_bill = first.get("kr_bill")
     second_bill = second.get("kr_bill")
     if (first_bill is None) != (second_bill is None):

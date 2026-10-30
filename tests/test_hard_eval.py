@@ -491,3 +491,16 @@ def test_ground_truth_carries_c1_fields():
     assert a["country"] == "JP"
     assert a["inpatient"] is False
     assert a["charge_rows"] is None
+
+
+def test_adjustment_lines_score_as_the_truth_lines():
+    # Truth lists a discount as a line; the pipeline reads it as an adjustment line.
+    from claimlens import hard_eval
+
+    truth = {"total": 4037.5, "line_amounts": [4250.0, -212.5], "kr_cells": None}
+    reading = {"documents": [{"total_amount": 4037.5, "line_items": [{"amount": 4250.0}],
+                              "adjustment_lines": [{"kind": "discount", "amount": -212.5}]}]}
+    assert hard_eval.wrong_numeric_fields(truth, reading, {}) == []
+    wrong_adj = copy.deepcopy(reading)
+    wrong_adj["documents"][0]["adjustment_lines"][0]["amount"] = -21.25
+    assert hard_eval.wrong_numeric_fields(truth, wrong_adj, {}) == ["lines[1]"]

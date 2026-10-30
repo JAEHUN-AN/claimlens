@@ -174,30 +174,48 @@ def gate_line(root: Path) -> dict[str, str] | None:
     }
 
 
-def heldout_line(root: Path) -> dict[str, str] | None:
-    """Unseen + trips first runs in one line, from their own data files."""
+def _set_runs(root: Path, name: str) -> list[Path]:
+    """Every live gate run that measured the named set, oldest first."""
+    files = sorted((root / "data").glob("gate_live_*.json"))
+    return [path for path in files if name in _read(path).get("sets", {})]
+
+
+def _heldout_totals(root: Path, pick: int) -> tuple[int, int, int, str] | None:
+    """(pairs, stops, leaks, date) over unseen + trips; pick 0 = first run, -1 = latest."""
     found = []
     for name in ("unseen", "trips"):
-        path = _newest_set_run(root, name)
-        if path is None:
-            continue
-        entry = _read(path)["sets"][name]
-        found.append({"name": name, "date": _run_date(path), "entry": entry})
+        runs = _set_runs(root, name)
+        if runs:
+            path = runs[pick]
+            found.append((_read(path)["sets"][name], _run_date(path)))
     if not found:
         return None
-    pairs = sum(item["entry"]["pairs"] for item in found)
-    stops = sum(item["entry"]["stops"] for item in found)
-    leaks = sum(item["entry"]["leaks"] for item in found)
-    dates = sorted({item["date"] for item in found if item["date"]})
-    when = dates[0] if len(dates) == 1 else "/".join(dates) if dates else "undated"
-    names = " + ".join(HELDOUT_LABELS[item["name"]] for item in found)
-    names_ko = " + ".join(HELDOUT_LABELS_KO[item["name"]] for item in found)
-    return {
-        "en": (f"{names}, first run ({when}): {leaks} wrong amounts left over "
-               f"{pairs} pairs ({stops} stopped for a person)."),
-        "ko": (f"{names_ko}, 첫 실행 ({when}): {pairs}쌍 중 {leaks}건 유출 "
-               f"({stops}쌍 중단)."),
-    }
+    dates = sorted({date for _, date in found if date})
+    when = "/".join(dates) if dates else "undated"
+    return (sum(e["pairs"] for e, _ in found), sum(e["stops"] for e, _ in found),
+            sum(e["leaks"] for e, _ in found), when)
+
+
+def heldout_line(root: Path) -> dict[str, str] | None:
+    """Unseen + trips: the first run before fixes and, if newer, the latest run."""
+    first = _heldout_totals(root, 0)
+    if first is None:
+        return None
+    latest = _heldout_totals(root, -1)
+    names = " + ".join(HELDOUT_LABELS[n] for n in ("unseen", "trips") if _set_runs(root, n))
+    names_ko = " + ".join(HELDOUT_LABELS_KO[n] for n in ("unseen", "trips") if _set_runs(root, n))
+    pairs, stops, leaks, when = first
+    en = (f"{names}, first run before fixes ({when}): {leaks} wrong amounts left over "
+          f"{pairs} pairs ({stops} stopped for a person)")
+    ko = (f"{names_ko}, 고치기 전 첫 실행 ({when}): {pairs}쌍 중 {leaks}건 유출 "
+          f"({stops}쌍 중단)")
+    if latest is not None and latest != first:
+        l_pairs, l_stops, l_leaks, l_when = latest
+        en += (f"; after fixes ({l_when}, wider scoring): {l_leaks} wrong values left over "
+               f"{l_pairs} pairs ({l_stops} stopped)")
+        ko += (f"; 고친 뒤 ({l_when}, 넓힌 채점): {l_pairs}쌍 중 {l_leaks}건 유출 "
+               f"({l_stops}쌍 중단)")
+    return {"en": en + ".", "ko": ko + "."}
 
 
 def agent_line(root: Path) -> dict[str, str] | None:
