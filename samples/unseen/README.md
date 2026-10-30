@@ -47,9 +47,10 @@ serve outcome — never a hand-computed payout.
 | T5_honolulu_urgent | bill with insurance adjustment + card slip (USD) | bill + payment + cert |
 | T6_guam_dental | dental receipt with CDT codes (USD) | receipt + cert |
 
-3+ receipts (T1, T5) and the missing certificate (T4) do not fit
-today's exactly-2-images upload: truth records the current 400 plus
-the desired behaviour. Gate pairs read one receipt with the
+3+ receipts (T1, T5) and the missing certificate (T4) once failed
+the old exactly-2-images upload; the multi-receipt path now takes one
+or more receipts with an optional certificate, so truth records the
+expected outcome per case. Gate pairs read one receipt with the
 certificate (T4 reads the receipt alone); the trips scenario check
 (`claimlens trips-check`) runs each case through the live page flow.
 

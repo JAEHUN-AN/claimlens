@@ -138,7 +138,7 @@ def test_real_lines_are_pinned():
     assert entries[2]["en"] == (
         "Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong "
         "amounts left over 84 pairs (30 stopped for a person); after fixes "
-        "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).")
+        "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (8 stopped).")
     assert entries[3]["en"] == (
         "Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed "
         "once from its recording)")

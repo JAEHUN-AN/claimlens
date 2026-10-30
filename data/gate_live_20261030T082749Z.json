@@ -1,0 +1,6359 @@
+{
+  "tool": "gate-eval",
+  "repeat": 3,
+  "sets": {
+    "trips": {
+      "pairs": 48,
+      "stops": 6,
+      "leaks": 0,
+      "spent": 1.129663,
+      "per_claim": 0.023535,
+      "cases": [
+        {
+          "sample": "T1_bangkok_food_poisoning",
+          "variant": "photo",
+          "receipt_file": "receipt_er",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T1_bangkok_food_poisoning",
+          "variant": "clean",
+          "receipt_file": "receipt_er",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T1_bangkok_food_poisoning",
+          "variant": "photo",
+          "receipt_file": "receipt_pharm",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T1_bangkok_food_poisoning",
+          "variant": "clean",
+          "receipt_file": "receipt_pharm",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T2_danang_scooter",
+          "variant": "photo",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T2_danang_scooter",
+          "variant": "clean",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T3_setagaya_fever",
+          "variant": "photo",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T3_setagaya_fever",
+          "variant": "clean",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T4_paris_pharmacy",
+          "variant": "photo",
+          "receipt_file": "receipt",
+          "cert_file": null
+        },
+        {
+          "sample": "T4_paris_pharmacy",
+          "variant": "clean",
+          "receipt_file": "receipt",
+          "cert_file": null
+        },
+        {
+          "sample": "T5_honolulu_urgent",
+          "variant": "photo",
+          "receipt_file": "receipt_bill",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T5_honolulu_urgent",
+          "variant": "clean",
+          "receipt_file": "receipt_bill",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T5_honolulu_urgent",
+          "variant": "photo",
+          "receipt_file": "receipt_cardpay",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T5_honolulu_urgent",
+          "variant": "clean",
+          "receipt_file": "receipt_cardpay",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T6_guam_dental",
+          "variant": "photo",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        },
+        {
+          "sample": "T6_guam_dental",
+          "variant": "clean",
+          "receipt_file": "receipt",
+          "cert_file": "medical_certificate"
+        }
+      ],
+      "pair_details": [
+        {
+          "round": 1,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo",
+            ".gate41c-r1b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 207,
+              "total_tokens": 813,
+              "cost_usd": 0.001637,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1034,
+              "total_tokens": 4633,
+              "cost_usd": 0.008893,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1408,
+              "total_tokens": 5007,
+              "cost_usd": 0.010483,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo",
+            ".gate41c-r2b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 207,
+              "total_tokens": 813,
+              "cost_usd": 0.001637,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1233,
+              "total_tokens": 4832,
+              "cost_usd": 0.009739,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1165,
+              "total_tokens": 4764,
+              "cost_usd": 0.00945,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo",
+            ".gate41c-r3b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 207,
+              "total_tokens": 813,
+              "cost_usd": 0.001637,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1146,
+              "total_tokens": 4745,
+              "cost_usd": 0.009369,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1045,
+              "total_tokens": 4644,
+              "cost_usd": 0.00894,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean",
+            ".gate41c-r1b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 201,
+              "total_tokens": 807,
+              "cost_usd": 0.001612,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1070,
+              "total_tokens": 4669,
+              "cost_usd": 0.009046,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1160,
+              "total_tokens": 4759,
+              "cost_usd": 0.009429,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean",
+            ".gate41c-r2b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 201,
+              "total_tokens": 807,
+              "cost_usd": 0.001612,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1015,
+              "total_tokens": 4614,
+              "cost_usd": 0.008813,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1161,
+              "total_tokens": 4760,
+              "cost_usd": 0.009433,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_er",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean",
+            ".gate41c-r3b-T1_bangkok_food_poisoning-receipt_er-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12550.0,
+              "lines": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "amounts": [
+                2500.0,
+                1800.0,
+                3200.0,
+                1450.0,
+                3600.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 201,
+              "total_tokens": 807,
+              "cost_usd": 0.001612,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1053,
+              "total_tokens": 4652,
+              "cost_usd": 0.008974,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1012,
+              "total_tokens": 4611,
+              "cost_usd": 0.0088,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo",
+            ".gate41c-r1b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 267,
+              "total_tokens": 873,
+              "cost_usd": 0.001892,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 709,
+              "total_tokens": 4308,
+              "cost_usd": 0.007512,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 927,
+              "total_tokens": 4526,
+              "cost_usd": 0.008439,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo",
+            ".gate41c-r2b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 267,
+              "total_tokens": 873,
+              "cost_usd": 0.001892,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 998,
+              "total_tokens": 4597,
+              "cost_usd": 0.00874,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 758,
+              "total_tokens": 4357,
+              "cost_usd": 0.00772,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "photo",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo",
+            ".gate41c-r3b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 267,
+              "total_tokens": 873,
+              "cost_usd": 0.001892,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 229,
+              "total_tokens": 835,
+              "cost_usd": 0.001731,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 876,
+              "total_tokens": 4475,
+              "cost_usd": 0.008222,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 924,
+              "total_tokens": 4523,
+              "cost_usd": 0.008426,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean",
+            ".gate41c-r1b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 170,
+              "total_tokens": 776,
+              "cost_usd": 0.00148,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 958,
+              "total_tokens": 4557,
+              "cost_usd": 0.00857,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 924,
+              "total_tokens": 4523,
+              "cost_usd": 0.008426,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean",
+            ".gate41c-r2b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 170,
+              "total_tokens": 776,
+              "cost_usd": 0.00148,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 906,
+              "total_tokens": 4505,
+              "cost_usd": 0.008349,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 867,
+              "total_tokens": 4466,
+              "cost_usd": 0.008183,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T1_bangkok_food_poisoning",
+            "variant": "clean",
+            "receipt_file": "receipt_pharm",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean",
+            ".gate41c-r3b-T1_bangkok_food_poisoning-receipt_pharm-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "THB",
+              "country": "TH",
+              "service_date": "2026-09-18",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1660.0,
+              "lines": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "amounts": [
+                890.0,
+                650.0,
+                120.0
+              ],
+              "diags": [
+                "A05.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1988-11-02",
+                "BR-2026-7718",
+                "Jaeho PARK",
+                "M19881102"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 170,
+              "total_tokens": 776,
+              "cost_usd": 0.00148,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 182,
+              "total_tokens": 788,
+              "cost_usd": 0.001531,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 948,
+              "total_tokens": 4547,
+              "cost_usd": 0.008528,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 813,
+              "total_tokens": 4412,
+              "cost_usd": 0.007954,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T2_danang_scooter-receipt-medical_certificate-photo",
+            ".gate41c-r1b-T2_danang_scooter-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 160,
+              "total_tokens": 766,
+              "cost_usd": 0.001437,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 164,
+              "total_tokens": 770,
+              "cost_usd": 0.001455,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1300,
+              "total_tokens": 4899,
+              "cost_usd": 0.010024,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1230,
+              "total_tokens": 4829,
+              "cost_usd": 0.009726,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T2_danang_scooter-receipt-medical_certificate-photo",
+            ".gate41c-r2b-T2_danang_scooter-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 160,
+              "total_tokens": 766,
+              "cost_usd": 0.001437,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 164,
+              "total_tokens": 770,
+              "cost_usd": 0.001455,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1494,
+              "total_tokens": 5093,
+              "cost_usd": 0.010848,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1405,
+              "total_tokens": 5004,
+              "cost_usd": 0.01047,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T2_danang_scooter-receipt-medical_certificate-photo",
+            ".gate41c-r3b-T2_danang_scooter-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 160,
+              "total_tokens": 766,
+              "cost_usd": 0.001437,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 164,
+              "total_tokens": 770,
+              "cost_usd": 0.001455,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1218,
+              "total_tokens": 4817,
+              "cost_usd": 0.009675,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1285,
+              "total_tokens": 4884,
+              "cost_usd": 0.00996,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T2_danang_scooter-receipt-medical_certificate-clean",
+            ".gate41c-r1b-T2_danang_scooter-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 157,
+              "total_tokens": 763,
+              "cost_usd": 0.001425,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 234,
+              "total_tokens": 840,
+              "cost_usd": 0.001752,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1241,
+              "total_tokens": 4840,
+              "cost_usd": 0.009773,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1230,
+              "total_tokens": 4829,
+              "cost_usd": 0.009726,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T2_danang_scooter-receipt-medical_certificate-clean",
+            ".gate41c-r2b-T2_danang_scooter-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 157,
+              "total_tokens": 763,
+              "cost_usd": 0.001425,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 234,
+              "total_tokens": 840,
+              "cost_usd": 0.001752,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1201,
+              "total_tokens": 4800,
+              "cost_usd": 0.009603,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1243,
+              "total_tokens": 4842,
+              "cost_usd": 0.009782,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T2_danang_scooter",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T2_danang_scooter-receipt-medical_certificate-clean",
+            ".gate41c-r3b-T2_danang_scooter-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "VND",
+              "country": "VN",
+              "service_date": "2026-09-21",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1186000.0,
+              "lines": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "amounts": [
+                300000.0,
+                450000.0,
+                250000.0,
+                186000.0
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1997-06-19",
+                "LN-2026-0917",
+                "M19970619",
+                "Minho CHOI"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 157,
+              "total_tokens": 763,
+              "cost_usd": 0.001425,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 234,
+              "total_tokens": 840,
+              "cost_usd": 0.001752,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1350,
+              "total_tokens": 4949,
+              "cost_usd": 0.010236,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1208,
+              "total_tokens": 4807,
+              "cost_usd": 0.009633,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T3_setagaya_fever-receipt-medical_certificate-photo",
+            ".gate41c-r1b-T3_setagaya_fever-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 212,
+              "total_tokens": 818,
+              "cost_usd": 0.001659,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 174,
+              "total_tokens": 780,
+              "cost_usd": 0.001497,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 985,
+              "total_tokens": 4584,
+              "cost_usd": 0.008685,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 789,
+              "total_tokens": 2375,
+              "cost_usd": 0.005336,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1031,
+              "total_tokens": 4630,
+              "cost_usd": 0.00888,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 524,
+              "total_tokens": 2110,
+              "cost_usd": 0.00421,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T3_setagaya_fever-receipt-medical_certificate-photo",
+            ".gate41c-r2b-T3_setagaya_fever-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 212,
+              "total_tokens": 818,
+              "cost_usd": 0.001659,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 174,
+              "total_tokens": 780,
+              "cost_usd": 0.001497,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1067,
+              "total_tokens": 4666,
+              "cost_usd": 0.009033,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 730,
+              "total_tokens": 2316,
+              "cost_usd": 0.005085,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1070,
+              "total_tokens": 4669,
+              "cost_usd": 0.009046,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 692,
+              "total_tokens": 2278,
+              "cost_usd": 0.004924,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T3_setagaya_fever-receipt-medical_certificate-photo",
+            ".gate41c-r3b-T3_setagaya_fever-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 212,
+              "total_tokens": 818,
+              "cost_usd": 0.001659,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 174,
+              "total_tokens": 780,
+              "cost_usd": 0.001497,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1013,
+              "total_tokens": 4612,
+              "cost_usd": 0.008804,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 735,
+              "total_tokens": 2321,
+              "cost_usd": 0.005106,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1093,
+              "total_tokens": 4692,
+              "cost_usd": 0.009144,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 675,
+              "total_tokens": 2261,
+              "cost_usd": 0.004851,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T3_setagaya_fever-receipt-medical_certificate-clean",
+            ".gate41c-r1b-T3_setagaya_fever-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 228,
+              "total_tokens": 834,
+              "cost_usd": 0.001727,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 175,
+              "total_tokens": 781,
+              "cost_usd": 0.001501,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1031,
+              "total_tokens": 4630,
+              "cost_usd": 0.00888,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 872,
+              "total_tokens": 2458,
+              "cost_usd": 0.005689,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 995,
+              "total_tokens": 4594,
+              "cost_usd": 0.008727,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 907,
+              "total_tokens": 2493,
+              "cost_usd": 0.005837,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T3_setagaya_fever-receipt-medical_certificate-clean",
+            ".gate41c-r2b-T3_setagaya_fever-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 228,
+              "total_tokens": 834,
+              "cost_usd": 0.001727,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 175,
+              "total_tokens": 781,
+              "cost_usd": 0.001501,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1094,
+              "total_tokens": 4693,
+              "cost_usd": 0.009148,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 546,
+              "total_tokens": 2132,
+              "cost_usd": 0.004303,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1002,
+              "total_tokens": 4601,
+              "cost_usd": 0.008757,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 781,
+              "total_tokens": 2367,
+              "cost_usd": 0.005302,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T3_setagaya_fever",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T3_setagaya_fever-receipt-medical_certificate-clean",
+            ".gate41c-r3b-T3_setagaya_fever-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "JPY",
+              "country": "JP",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 12030.0,
+              "lines": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "amounts": [
+                2900.0,
+                3400.0,
+                2100.0,
+                3300.0,
+                330.0
+              ],
+              "diags": [
+                "J02.9"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "2021-03-08",
+                "M20210308",
+                "SK-2026-1102",
+                "Siwoo KIM"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 228,
+              "total_tokens": 834,
+              "cost_usd": 0.001727,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 175,
+              "total_tokens": 781,
+              "cost_usd": 0.001501,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1081,
+              "total_tokens": 4680,
+              "cost_usd": 0.009093,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 968,
+              "total_tokens": 2554,
+              "cost_usd": 0.006097,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1075,
+              "total_tokens": 4674,
+              "cost_usd": 0.009067,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 712,
+              "total_tokens": 2298,
+              "cost_usd": 0.005009,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r1a-T4_paris_pharmacy-receipt-no-cert-photo",
+            ".gate41c-r1b-T4_paris_pharmacy-receipt-no-cert-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 202,
+              "total_tokens": 808,
+              "cost_usd": 0.001616,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 1030,
+              "total_tokens": 3187,
+              "cost_usd": 0.007074,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 1113,
+              "total_tokens": 3270,
+              "cost_usd": 0.007427,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r2a-T4_paris_pharmacy-receipt-no-cert-photo",
+            ".gate41c-r2b-T4_paris_pharmacy-receipt-no-cert-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 202,
+              "total_tokens": 808,
+              "cost_usd": 0.001616,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 933,
+              "total_tokens": 3090,
+              "cost_usd": 0.006662,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 1164,
+              "total_tokens": 3321,
+              "cost_usd": 0.007643,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r3a-T4_paris_pharmacy-receipt-no-cert-photo",
+            ".gate41c-r3b-T4_paris_pharmacy-receipt-no-cert-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 202,
+              "total_tokens": 808,
+              "cost_usd": 0.001616,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 775,
+              "total_tokens": 2932,
+              "cost_usd": 0.00599,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 802,
+              "total_tokens": 2959,
+              "cost_usd": 0.006105,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r1a-T4_paris_pharmacy-receipt-no-cert-clean",
+            ".gate41c-r1b-T4_paris_pharmacy-receipt-no-cert-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 232,
+              "total_tokens": 838,
+              "cost_usd": 0.001744,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 954,
+              "total_tokens": 3111,
+              "cost_usd": 0.006751,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 951,
+              "total_tokens": 3108,
+              "cost_usd": 0.006738,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r2a-T4_paris_pharmacy-receipt-no-cert-clean",
+            ".gate41c-r2b-T4_paris_pharmacy-receipt-no-cert-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 232,
+              "total_tokens": 838,
+              "cost_usd": 0.001744,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 930,
+              "total_tokens": 3087,
+              "cost_usd": 0.006649,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 973,
+              "total_tokens": 3130,
+              "cost_usd": 0.006832,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T4_paris_pharmacy",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": null
+          },
+          "tags": [
+            ".gate41c-r3a-T4_paris_pharmacy-receipt-no-cert-clean",
+            ".gate41c-r3b-T4_paris_pharmacy-receipt-no-cert-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            },
+            {
+              "docs": [
+                "receipt"
+              ],
+              "currency": "EUR",
+              "country": "FR",
+              "service_date": "2026-09-24",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 16.5,
+              "lines": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "amounts": [
+                4.2,
+                8.9,
+                3.4
+              ],
+              "diags": [],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "PL-2026-0033",
+                "Soobin LEE"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 232,
+              "total_tokens": 838,
+              "cost_usd": 0.001744,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 1071,
+              "total_tokens": 3228,
+              "cost_usd": 0.007248,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 2157,
+              "output_tokens": 991,
+              "total_tokens": 3148,
+              "cost_usd": 0.006908,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T5_honolulu_urgent-receipt_bill-medical_certificate-photo",
+            ".gate41c-r1b-T5_honolulu_urgent-receipt_bill-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 121,
+              "total_tokens": 727,
+              "cost_usd": 0.001272,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 924,
+              "total_tokens": 4523,
+              "cost_usd": 0.008426,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 717,
+              "total_tokens": 2303,
+              "cost_usd": 0.00503,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1013,
+              "total_tokens": 4612,
+              "cost_usd": 0.008804,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 743,
+              "total_tokens": 2329,
+              "cost_usd": 0.00514,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T5_honolulu_urgent-receipt_bill-medical_certificate-photo",
+            ".gate41c-r2b-T5_honolulu_urgent-receipt_bill-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 121,
+              "total_tokens": 727,
+              "cost_usd": 0.001272,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1073,
+              "total_tokens": 4672,
+              "cost_usd": 0.009059,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 350,
+              "total_tokens": 1936,
+              "cost_usd": 0.00347,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1293,
+              "total_tokens": 4892,
+              "cost_usd": 0.009994,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 513,
+              "total_tokens": 2099,
+              "cost_usd": 0.004163,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T5_honolulu_urgent-receipt_bill-medical_certificate-photo",
+            ".gate41c-r3b-T5_honolulu_urgent-receipt_bill-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 121,
+              "total_tokens": 727,
+              "cost_usd": 0.001272,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1039,
+              "total_tokens": 4638,
+              "cost_usd": 0.008915,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 752,
+              "total_tokens": 2338,
+              "cost_usd": 0.005179,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1007,
+              "total_tokens": 4606,
+              "cost_usd": 0.008778,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 692,
+              "total_tokens": 2278,
+              "cost_usd": 0.004924,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T5_honolulu_urgent-receipt_bill-medical_certificate-clean",
+            ".gate41c-r1b-T5_honolulu_urgent-receipt_bill-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 125,
+              "total_tokens": 731,
+              "cost_usd": 0.001289,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1057,
+              "total_tokens": 4656,
+              "cost_usd": 0.008991,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 593,
+              "total_tokens": 2179,
+              "cost_usd": 0.004503,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1188,
+              "total_tokens": 4787,
+              "cost_usd": 0.009548,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 246,
+              "total_tokens": 1832,
+              "cost_usd": 0.003028,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T5_honolulu_urgent-receipt_bill-medical_certificate-clean",
+            ".gate41c-r2b-T5_honolulu_urgent-receipt_bill-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "ACCT 8810-20260926",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 125,
+              "total_tokens": 731,
+              "cost_usd": 0.001289,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 879,
+              "total_tokens": 4478,
+              "cost_usd": 0.008235,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 500,
+              "total_tokens": 2086,
+              "cost_usd": 0.004108,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1137,
+              "total_tokens": 4736,
+              "cost_usd": 0.009331,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 355,
+              "total_tokens": 1941,
+              "cost_usd": 0.003491,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_bill",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T5_honolulu_urgent-receipt_bill-medical_certificate-clean",
+            ".gate41c-r3b-T5_honolulu_urgent-receipt_bill-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "ACCT 8810-20260926",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "amounts": [
+                950.0,
+                620.0,
+                240.0,
+                95.5,
+                -571.65
+              ],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 125,
+              "total_tokens": 731,
+              "cost_usd": 0.001289,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1045,
+              "total_tokens": 4644,
+              "cost_usd": 0.00894,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 901,
+              "total_tokens": 2487,
+              "cost_usd": 0.005812,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1000,
+              "total_tokens": 4599,
+              "cost_usd": 0.008749,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 281,
+              "total_tokens": 1867,
+              "cost_usd": 0.003177,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo",
+            ".gate41c-r1b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 262,
+              "total_tokens": 868,
+              "cost_usd": 0.001871,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 979,
+              "total_tokens": 4578,
+              "cost_usd": 0.00866,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 313,
+              "total_tokens": 1899,
+              "cost_usd": 0.003313,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 764,
+              "total_tokens": 4363,
+              "cost_usd": 0.007746,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 390,
+              "total_tokens": 1976,
+              "cost_usd": 0.00364,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo",
+            ".gate41c-r2b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 262,
+              "total_tokens": 868,
+              "cost_usd": 0.001871,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 763,
+              "total_tokens": 4362,
+              "cost_usd": 0.007742,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 184,
+              "total_tokens": 1770,
+              "cost_usd": 0.002765,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 798,
+              "total_tokens": 4397,
+              "cost_usd": 0.00789,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 399,
+              "total_tokens": 1985,
+              "cost_usd": 0.003678,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "photo",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo",
+            ".gate41c-r3b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 262,
+              "total_tokens": 868,
+              "cost_usd": 0.001871,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 231,
+              "total_tokens": 837,
+              "cost_usd": 0.001739,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 844,
+              "total_tokens": 4443,
+              "cost_usd": 0.008086,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 174,
+              "total_tokens": 1760,
+              "cost_usd": 0.002722,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 833,
+              "total_tokens": 4432,
+              "cost_usd": 0.008039,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 194,
+              "total_tokens": 1780,
+              "cost_usd": 0.002807,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean",
+            ".gate41c-r1b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 711,
+              "total_tokens": 4310,
+              "cost_usd": 0.007521,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 284,
+              "total_tokens": 1870,
+              "cost_usd": 0.00319,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 778,
+              "total_tokens": 4377,
+              "cost_usd": 0.007805,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 265,
+              "total_tokens": 1851,
+              "cost_usd": 0.003109,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean",
+            ".gate41c-r2b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 864,
+              "total_tokens": 4463,
+              "cost_usd": 0.008171,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 304,
+              "total_tokens": 1890,
+              "cost_usd": 0.003275,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 933,
+              "total_tokens": 4532,
+              "cost_usd": 0.008464,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 269,
+              "total_tokens": 1855,
+              "cost_usd": 0.003126,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T5_honolulu_urgent",
+            "variant": "clean",
+            "receipt_file": "receipt_cardpay",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean",
+            ".gate41c-r3b-T5_honolulu_urgent-receipt_cardpay-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": true,
+          "stopped_each": [
+            true,
+            true
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-26",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 1333.85,
+              "lines": [],
+              "amounts": [],
+              "diags": [
+                "S93.4"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1990-08-25",
+                "Dongmin HAN",
+                "HP-2026-5519",
+                "M19900825"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 194,
+              "total_tokens": 800,
+              "cost_usd": 0.001582,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 739,
+              "total_tokens": 4338,
+              "cost_usd": 0.00764,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 151,
+              "total_tokens": 1737,
+              "cost_usd": 0.002624,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 714,
+              "total_tokens": 4313,
+              "cost_usd": 0.007533,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 1586,
+              "output_tokens": 170,
+              "total_tokens": 1756,
+              "cost_usd": 0.002705,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T6_guam_dental-receipt-medical_certificate-photo",
+            ".gate41c-r1b-T6_guam_dental-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 284,
+              "total_tokens": 890,
+              "cost_usd": 0.001965,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1047,
+              "total_tokens": 4646,
+              "cost_usd": 0.008948,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1155,
+              "total_tokens": 4754,
+              "cost_usd": 0.009408,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T6_guam_dental-receipt-medical_certificate-photo",
+            ".gate41c-r2b-T6_guam_dental-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 284,
+              "total_tokens": 890,
+              "cost_usd": 0.001965,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1125,
+              "total_tokens": 4724,
+              "cost_usd": 0.00928,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1028,
+              "total_tokens": 4627,
+              "cost_usd": 0.008868,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "photo",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T6_guam_dental-receipt-medical_certificate-photo",
+            ".gate41c-r3b-T6_guam_dental-receipt-medical_certificate-photo"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 284,
+              "total_tokens": 890,
+              "cost_usd": 0.001965,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 184,
+              "total_tokens": 790,
+              "cost_usd": 0.00154,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1090,
+              "total_tokens": 4689,
+              "cost_usd": 0.009131,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1050,
+              "total_tokens": 4649,
+              "cost_usd": 0.008961,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 1,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r1a-T6_guam_dental-receipt-medical_certificate-clean",
+            ".gate41c-r1b-T6_guam_dental-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 241,
+              "total_tokens": 847,
+              "cost_usd": 0.001782,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 238,
+              "total_tokens": 844,
+              "cost_usd": 0.001769,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1130,
+              "total_tokens": 4729,
+              "cost_usd": 0.009301,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1168,
+              "total_tokens": 4767,
+              "cost_usd": 0.009463,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 2,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r2a-T6_guam_dental-receipt-medical_certificate-clean",
+            ".gate41c-r2b-T6_guam_dental-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 241,
+              "total_tokens": 847,
+              "cost_usd": 0.001782,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 238,
+              "total_tokens": 844,
+              "cost_usd": 0.001769,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1113,
+              "total_tokens": 4712,
+              "cost_usd": 0.009229,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1256,
+              "total_tokens": 4855,
+              "cost_usd": 0.009837,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        },
+        {
+          "round": 3,
+          "case": {
+            "sample": "T6_guam_dental",
+            "variant": "clean",
+            "receipt_file": "receipt",
+            "cert_file": "medical_certificate"
+          },
+          "tags": [
+            ".gate41c-r3a-T6_guam_dental-receipt-medical_certificate-clean",
+            ".gate41c-r3b-T6_guam_dental-receipt-medical_certificate-clean"
+          ],
+          "agree": true,
+          "stopped": false,
+          "stopped_each": [
+            false,
+            false
+          ],
+          "reached": 0,
+          "wrong_fields": [],
+          "values": [
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            },
+            {
+              "docs": [
+                "receipt",
+                "medical_certificate"
+              ],
+              "currency": "USD",
+              "country": "US",
+              "service_date": "2026-09-27",
+              "inpatient": false,
+              "charge_rows": null,
+              "total": 782.0,
+              "lines": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "amounts": [
+                145.0,
+                95.0,
+                480.0,
+                62.0
+              ],
+              "diags": [
+                "K04.7"
+              ],
+              "kr_cells": null,
+              "instit": null,
+              "pii": [
+                "1985-05-30",
+                "M19850530",
+                "Seungho YOON",
+                "TB-2026-2204"
+              ]
+            }
+          ],
+          "calls": [
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 241,
+              "total_tokens": 847,
+              "cost_usd": 0.001782,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 606,
+              "output_tokens": 238,
+              "total_tokens": 844,
+              "cost_usd": 0.001769,
+              "reused": true
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1044,
+              "total_tokens": 4643,
+              "cost_usd": 0.008936,
+              "reused": false
+            },
+            {
+              "model": "muse-spark-1.3",
+              "input_tokens": 3599,
+              "output_tokens": 1162,
+              "total_tokens": 4761,
+              "cost_usd": 0.009437,
+              "reused": false
+            }
+          ],
+          "rotation": []
+        }
+      ]
+    }
+  },
+  "fields": [
+    "total",
+    "lines",
+    "kr_cells",
+    "currency",
+    "country",
+    "service_date",
+    "inpatient",
+    "diags",
+    "charge_rows"
+  ],
+  "spent": 1.129663,
+  "aborted": false,
+  "cache_before": "(clean)",
+  "cache_after": "(clean)",
+  "recorded_at": "2026-10-30T08:27:49.450095+00:00"
+}

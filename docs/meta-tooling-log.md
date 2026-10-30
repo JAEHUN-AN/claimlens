@@ -1580,3 +1580,85 @@ once for the owner dawn runs. Committed as e2ceaa1 (2026-10-30).
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 53 honest numbers
+
+The independent honesty review, minus one false positive: the Measured
+block now sources each number separately (old-pipeline single read vs
+current-pipeline live gate) and states the scored-fields scope; docs/eval.md
+keeps every live gate run with what changed between runs and the
+same-document-family caveat. The cover letter quotes only codes printed
+on the certificate and marks converted codes as unconfirmed candidates
+(recording plan only). Decision-sounding phrases now read as engine
+proposals awaiting a reviewer, on screen and in the storyboard. Eval
+tables regenerate from the current code; latency, agent and fault
+sentences carry their scope. Committed as 21dd36c (2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: headline, eval, letter and tile pins updated; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Recorder compatibility check (tools/video only)
+
+With live re-measurement running in another terminal, src/ and tests/
+were frozen: the video recorder's steps and selectors were checked
+against the new upload flow (nationality/product choice, file picker,
+multi-receipt path, per-field pauses) by reading serve.py and
+demo_template.py. The live scene now answers the product question
+after its preset so the run still reaches its recorded result; both
+dry runs (main, vertical) pass with the script and timing untouched.
+The README gained its Live upload section. Committed as 389a939
+(2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: recorder unit pins for the new step; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — T5 Honolulu diagnosis + first-impression review (report only, no repo changes)
+
+Read-only: why every T5 pair stopped (the bill carries two different
+totals — the billed total and the patient responsibility — so the
+adjustment re-read could not bridge them; the card slip is a separate
+payment record), with a general subtotal-chain fix proposed and no
+case-specific rule; plus a three-minute judge's read of the README and
+demo first screens with five reorder/shorten proposals. No files
+changed; the fix proposals became item 57.
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 57 freeze bundle
+
+Last changes before the code freeze. The adjustment re-read brings an
+optional printed subtotal and checks it leg by leg (items equal the
+subtotal, subtotal plus adjustments equal the total), so bills with a
+subtotal pass while a subtotal misfiled as an adjustment never can —
+one general rule, no case-specific code, on both the pair and the
+multi-receipt paths. Gate-eval re-reads carry their round in the cache
+tag, so every round re-reads fresh. The Measured block leads with the
+live-gate conclusion, the old-pipeline number moves down, the
+scored-fields scope becomes a footnote, and outcome badges get a short
+gloss. The README decision-vs-pack paragraph moves above the block and
+the demo first screen runs tagline, Why, strip, examples, measured,
+eval. Committed as 35f8790 (2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: subtotal chain pass and misfile reject, per-round re-read tags,
+  first-line/footnote pins, demo order; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.

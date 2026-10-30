@@ -210,3 +210,25 @@ total (local amount × the fixed demo rate), computed independently of the pipel
 
 Remaining stops: U2 (Korean inpatient bill) and T5 (Honolulu bill with an insurance adjustment
 and patient responsibility plus a card slip) — both stop for a person; neither leaked a value.
+
+### After 57 (2026-10-30)
+
+| run (UTC) | set | pairs | wrong values that left | pairs stopped | cost per claim | data | note |
+|---|---|---|---|---|---|---|---|
+| 2026-10-30 08:14 | unseen | 36 | 0 | 2 | $0.0257 | `data/gate_live_20261030T081437Z.json` | after 57: subtotal chain for adjustment lines, per-round re-read tags |
+| 2026-10-30 08:27 | trips | 48 | 0 | 6 | $0.0235 | `data/gate_live_20261030T082749Z.json` | after 57: subtotal chain for adjustment lines, per-round re-read tags |
+
+Trips through the live upload path, engine running (`data/trips_check_20261030T083103Z.json`):
+
+| trip | outcome | shown | vs truth |
+|---|---|---|---|
+| T1_bangkok_food_poisoning | 200 PAID | 595,399 KRW | matches truth 595,399 KRW |
+| T2_danang_scooter | 200 PAID | 64,637 KRW | matches truth 64,637 KRW |
+| T3_setagaya_fever | 200 PAID | 113,443 KRW | matches truth 113,443 KRW |
+| T4_paris_pharmacy | 200 needs_manual_check | Human review: 1 receipt(s) read; no certificate.. |  |
+| T5_honolulu_urgent | 200 needs_manual_check | Human review: two reads disagreed — pick the printed value for each field. |  |
+| T6_guam_dental | 200 needs_review | Flagged for a reviewer: dental treatment is never decided automatically. |  |
+
+T5 (Honolulu: insurance adjustment, patient responsibility and a separate card slip) still stops
+for a person in every pair; the subtotal chain did not resolve it. It leaks nothing and stays a
+known limit. U2 stopped in 2 of 6 pairs.

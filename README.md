@@ -24,7 +24,7 @@ a claim pack the person can take to their own insurer (English, Vietnamese on re
 **Measured:**
 - Live double-read gate, 2026-10-30 run on the current pipeline (24 cases ×3 = 72 pairs): 0 wrong amounts left (40 stopped for a person); normal documents: 0 left, 6/30 stopped.
 - Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3).
-- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-30, wider scoring): 0 wrong values left over 84 pairs (9 stopped).
+- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-30, wider scoring): 0 wrong values left over 84 pairs (8 stopped).
 - Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
 - 15 fault cases injected in tests (no live calls), no wrong number
 - Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2 (PARTIAL = partly paid, needs_manual_check = stopped for a person); median run needs_manual_check
@@ -101,7 +101,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How | Measured |
 |---|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 55 logged sessions |
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 59 logged sessions |
 | Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3 (33 cases, hard 23/24), 86% run-to-run agreement |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |
@@ -208,12 +208,13 @@ on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 
 
 ## Live upload
 
-`claimlens serve` takes uploads from a browser: several receipts with their
+`claimlens serve` takes uploads from a browser: one or more receipts with an optional
 certificate, by drag and drop or the phone file picker. Each receipt is read
 and checked on its own, then merged — every amount keeps the photo it came
 from, and a card slip matching a bill total is merged rather than added.
-Bills whose lines do not add up get a narrow re-read for printed tax,
-discount and adjustment lines before anything stops for a person.
+Bills whose lines do not add up get a narrow re-read for the printed
+subtotal and the tax, discount and adjustment lines before anything stops
+for a person.
 
 The person panel asks for nationality, the foreign-resident registration
 date, and the insurance product. Korean nationals treated abroad take the
@@ -272,6 +273,10 @@ same run with no new reading.
   gate run it judged every turned and every upright page correctly
   (`data/gate_live_20261029T070828Z.json`). If the probe misjudges a page, only the checks and
   the double read remain as guards.
+- A US bill that prints both an insurance adjustment and a "patient responsibility", paid with a
+  separate card slip (the Honolulu trip), still stops for a person in every live pair: the two
+  reads disagree and the person picks the printed values. Nothing leaks, but it is not automatic
+  (see the "After 57" rows in `docs/eval.md`).
 
 ## Demo video
 
@@ -281,7 +286,7 @@ from the replay caches plus one live run.
 ## Data sources and rights
 
 - **Documents:** every receipt, certificate and voice sample in `samples/` is synthetic.
-- **Diagnosis codes:** no code table is shipped. `codes.py` holds a handful of code identifiers
+- **Diagnosis codes:** no code table is shipped. `src/claimlens/codes.py` holds a handful of code identifiers
   inside its conversion rules. ICD-10 © World Health Organization. ICD-10-CM is published by
   CDC/NCHS and CMS; its use here does not imply endorsement by CDC/HHS or the U.S. Government.
   KCD (Korean Standard Classification of Diseases) is issued by Statistics Korea.
