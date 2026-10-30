@@ -56,6 +56,8 @@ def test_scope_footer_and_proposed_label_wired(tmp_path, monkeypatch):
     assert "Proposed — for a reviewer" in text
     assert "제안 — 검토자 확인 필요" in text
     assert "'PAID','PARTIAL','DENIED','HUMAN_REVIEW'" in text.replace(" ", "")
+    assert "The engine proposes — a reviewer confirms." in text
+    assert "엔진이 제안합니다 — 검토자가 확정합니다." in text
 
 
 def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):

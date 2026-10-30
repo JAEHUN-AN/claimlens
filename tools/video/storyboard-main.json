@@ -22,7 +22,7 @@
       "id": "why",
       "page": "card:why",
       "title": "why card",
-      "caption": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022, 2.01 million foreign patients in 2025 — we work on the paperwork step.",
+      "caption": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022 (est.), 2.01 million foreign patients in 2025 — we work on the paperwork step.",
       "duration": 7,
       "actions": [
         {
@@ -177,7 +177,7 @@
     },
     {
       "actions": [],
-      "caption": "We score it: it asks when it must, stays quiet when it need not, and never invents a number.",
+      "caption": "We score it — 7 agent dialogues + 1 voice rule, each replayed once: it asks when it must, stays quiet when it need not, and never invents a number.",
       "duration": 7,
       "id": "score",
       "page": "agent-eval",
@@ -520,7 +520,7 @@
           "op": "unzoom"
         }
       ],
-      "caption": "Single read let 47 wrong numbers leave; the double-read gate leaves 0 (live gate).",
+      "caption": "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; the live gate (2026-10-29, current pipeline) leaves 0.",
       "duration": 8,
       "id": "eval",
       "page": "measured",
@@ -537,7 +537,7 @@
           "selector": "section#A_niseko_wrist .pinned"
         }
       ],
-      "caption": "And the other direction: a Korean skier in Japan, paid in full under the travel policy.",
+      "caption": "And the other direction: a Korean skier in Japan — the engine proposes payment in full under the travel policy; a reviewer confirms.",
       "duration": 4,
       "id": "sceneA",
       "page": "demo",

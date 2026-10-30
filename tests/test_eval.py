@@ -1,6 +1,10 @@
 """Eval table tests: ground truth and cached-sample comparison, no live calls."""
 
+from pathlib import Path
+
 from claimlens.eval import compare, eval_sample, format_markdown, ground_truth, load_scenarios
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_eval_sample_has_open_columns():
@@ -119,3 +123,42 @@ def test_eval_output_flag_writes_file(tmp_path, capsys):
     assert "S3_us_tourist_hip_fracture" in body
     out = capsys.readouterr().out
     assert "| sample | variant |" in out
+
+
+def _table_cells(text):
+    """score cells per sample+variant from a Markdown eval table."""
+    rows = {}
+    for line in text.splitlines():
+        if not line.startswith("| ") or line.startswith("| sample |"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 21:  # other tables in the file are narrower
+            continue
+        rows[(cells[0], cells[1])] = cells
+    return rows
+
+
+def test_committed_readme_tables_match_current_code():
+    """53-H7: README Eval tables equal a fresh replay eval."""
+    from claimlens.eval import eval_all, format_readme_tables
+
+    committed = (ROOT / "README.md").read_text(encoding="utf-8")
+    table1, table2 = format_readme_tables(eval_all())
+    for table in (table1, table2):
+        for row in table.strip().splitlines():
+            assert row in committed, row
+
+
+def test_committed_eval_table_matches_current_code():
+    """53-H7: docs/eval.md accuracy cells equal a fresh replay eval."""
+    from claimlens.eval import eval_all, format_markdown
+
+    committed = (ROOT / "docs" / "eval.md").read_text(encoding="utf-8")
+    fresh = format_markdown(eval_all())
+    old, new = _table_cells(committed), _table_cells(fresh)
+    assert len(old) == len(new) == 10
+    picks = (4, 5, 6, 7, 8, 10, 11, 15, 16, 17)  # accuracy + open accuracy
+    for key, fresh_cells in new.items():
+        assert key in old, key
+        for idx in picks:
+            assert old[key][idx] == fresh_cells[idx], (key, idx)

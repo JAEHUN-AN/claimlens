@@ -359,13 +359,14 @@ why_before2:["2.01 million foreign patients were treated in Korea in 2025.","202
 why_src2:["Source: Ministry of Health and Welfare, reported 2026-04-24","출처: 보건복지부, 2026-04-24 보도"],
 why_own:["ClaimLens works on the paperwork step.","ClaimLens는 서류 단계에 집중합니다."],
 why_after:["Bill photo → checked claim, every number traceable","청구서 사진 → 검증된 청구, 모든 숫자는 추적 가능"],
-why_after_n:["Bill photo → checked claim in about {n} s, every number traceable","청구서 사진 → 약 {n}초 만에 검증된 청구, 모든 숫자는 추적 가능"],
+why_after_n:["Bill photo → checked claim in about {n} s{scope}, every number traceable","청구서 사진 → 약 {n}초 만에{scope} 검증된 청구, 모든 숫자는 추적 가능"],
 h_measured:["Measured","측정 결과"],
 h_metatools:["Built with Meta","Built with Meta"],
 why_theme:["Theme: Build for Your World.","테마: Build for Your World."],
 why_est:["estimate","추정치"],
 scope_foot:["Paperwork check — not medical or legal advice. A person makes every decision.","서류 점검 도구입니다. 의료·법률 조언이 아니며, 최종 결정은 사람이 합니다."],
-proposed:["Proposed — for a reviewer","제안 — 검토자 확인 필요"]
+proposed:["Proposed — for a reviewer","제안 — 검토자 확인 필요"],
+propose_w:["The engine proposes — a reviewer confirms.","엔진이 제안합니다 — 검토자가 확정합니다."]
 };
 function t(k){
   const r=UI[k];if(!r)return k;
@@ -511,8 +512,10 @@ function whyHtml(){
 }
 function afterLine(){
   const n=data.flow&&data.flow.after_n;
-  if(n)return t('why_after_n').replace('{n}',n);
-  return t('why_after');
+  if(!n)return t('why_after');
+  const sc=data.flow.after_scope;
+  const scope=sc?(sc[LANG]||sc.en):"";
+  return t('why_after_n').replace('{n}',n).replace('{scope}',scope);
 }
 function measuredHtml(f){
   const items=(f.measured||[]).map(m=>`<li>${esc(m[LANG]||m.en)}</li>`).join('');
@@ -912,6 +915,7 @@ function engineCard(c){
     ?`<p class="noprov">${esc(t('guards_w'))}${esc(c.guardrails.join(', '))}</p>`:'';
   return `<h3>${esc(t('h_engine'))}</h3><p>${badge(c.decision)}</p><p class="amount">${pv(c.amount)}</p>
   <p class="pinned">${esc(t('pinned_w'))}</p>
+  <p class="pinned">${esc(t('propose_w'))}</p>
   <p class="noprov">${esc(c.summary)}</p><h3>${esc(t('h_steps'))}</h3><ul class="tight noprov">${steps}</ul>
   <h3>${esc(t('h_clauses'))}</h3><ul class="tight noprov">${clauses}</ul>${deductible(c.deductible)}${guards}`;
 }

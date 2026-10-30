@@ -16,6 +16,25 @@ from claimlens.reader import resolve_sample_images
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_eval_md_gate_runs_table_matches_data():
+    """53-H3: every committed normal+hard gate run is in docs/eval.md, exact."""
+    text = (ROOT / "docs" / "eval.md").read_text(encoding="utf-8")
+    files = sorted((ROOT / "data").glob("gate_live_*.json"))
+    hard_runs = [p for p in files
+                 if "hard" in json.loads(p.read_text(encoding="utf-8"))["sets"]]
+    assert len(hard_runs) == 4
+    for path in hard_runs:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for name in ("normal", "hard"):
+            entry = data["sets"][name]
+            row = f"{entry['pairs']} / {entry['stops']} / {entry['leaks']}"
+            assert row in text, (path.name, name)
+        assert f"${data['spent']:.2f}" in text
+        assert path.name in text
+    assert "same document families" in text
+    assert "`data/gate_live_20261029T070828Z.json`" in text
+
+
 def test_gate_plan_prints_and_stops(capsys, tmp_path):
     assert main(["gate-eval", "--output", str(tmp_path)]) == 0
     out = capsys.readouterr().out

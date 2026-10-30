@@ -124,8 +124,8 @@ def render_table() -> str:
     lines = [
         "## What happens when something fails",
         "",
-        (f"{len(FAULTS)} fault cases, each pinned by a test — no case ever "
-         "returns a wrong number."),
+        (f"{len(FAULTS)} fault cases, each pinned by a test with stubbed "
+         "providers and requests — no case ever returns a wrong number."),
         "",
         "| fault | expected | test |",
         "|---|---|---|",

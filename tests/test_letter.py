@@ -70,7 +70,9 @@ def test_placeholders_only_draft_fills_from_pack():
     assert "15,000,000" in letter["text"]
     assert "Michael J. CARTER" in letter["text"]
     assert "2026-09-03 to 2026-09-09" in letter["text"]
-    assert "S72.120 (KCD), S72.1 (WHO ICD-10), S72.141A (ICD-10-CM)" in letter["text"]
+    assert "S72.120 (KCD — the code on my certificate)" in letter["text"]
+    assert ("S72.1 (WHO ICD-10) and S72.141A (ICD-10-CM) are rule-based "
+            "candidates, not confirmed") in letter["text"]
     assert "hospital receipt and medical certificate" in letter["text"]
 
 

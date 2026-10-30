@@ -147,9 +147,13 @@ def letter_values(pack: dict[str, Any]) -> dict[str, str]:
         "VISIT_DATES": f"{visit.get('period_from', '')} to {visit.get('period_to', '')}",
         # Code-system names carry digits (ICD-10); the number check
         # strips exactly these names before it looks for numbers.
+        # Only the certificate's own code is stated as the patient's;
+        # converted codes are marked rule-based candidates, not confirmed.
         "DIAGNOSIS_CODES": (
-            f"{codes.get('kcd', '-')} (KCD), {codes.get('who', '-')} (WHO ICD-10), "
-            f"{cm.get('chosen', '-')} (ICD-10-CM)"
+            f"{codes.get('kcd') or '-'} (KCD — the code on my certificate); "
+            f"{codes.get('who') or '-'} (WHO ICD-10) and "
+            f"{cm.get('chosen') or '-'} (ICD-10-CM) are rule-based candidates, "
+            "not confirmed"
         ),
         # The pack is always built from the receipt and the certificate.
         "DOCUMENTS": "hospital receipt and medical certificate",

@@ -321,6 +321,36 @@ def format_markdown(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def format_readme_tables(rows: list[dict[str, Any]]) -> tuple[str, str]:
+    """Trimmed hosted + hosted-vs-open tables for the README Eval section."""
+    head1 = ("| sample | variant | total | lines | amounts | diags | kr_cells "
+             "| checks | pii |")
+    sep1 = "|---|---|---|---|---|---|---|---|---|"
+    table1 = [head1, sep1]
+    head2 = ("| sample | variant | hosted total / lines / checks "
+             "| open total / lines / checks |")
+    sep2 = "|---|---|---|---|"
+    table2 = [head2, sep2]
+    for r in rows:
+        if "error" in r:
+            table1.append(f"| {r['sample']} | {r['variant']} | ERROR |")
+            table2.append(f"| {r['sample']} | {r['variant']} | ERROR | - |")
+            continue
+        table1.append(
+            f"| {r['sample']} | {r['variant']} | {r['total']} | {r['lines']} "
+            f"| {r['amounts']} | {r['diags']} | {r['kr_cells']} | {r['checks']} "
+            f"| {r['pii']} |"
+        )
+        opened = r.get("open") or {}
+        hosted = f"{r['total']} / {r['lines']} / {r['checks']}"
+        onemodel = (f"{opened.get('total', '-')} / {opened.get('lines', '-')} "
+                    f"/ {opened.get('checks', '-')}")
+        table2.append(
+            f"| {r['sample']} | {r['variant']} | {hosted} | {onemodel} |"
+        )
+    return "\n".join(table1) + "\n", "\n".join(table2) + "\n"
+
+
 def open_translation_row() -> dict[str, Any]:
     """Hosted vs open label translation, both from replay caches."""
     from claimlens.claimpack import translate_labels

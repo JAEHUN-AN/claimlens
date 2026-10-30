@@ -61,9 +61,20 @@ def _spark_fact(root: Path) -> dict[str, str] | None:
     if not scored or not agree_n:
         return None
     pct = round(agreed * 100 / agree_n)
+    cases = sum(len(entry["cases"]) for entry in data["sets"].values())
+    hard = data["sets"].get("hard", {}).get("cases", [])
+    basis, basis_ko = "", ""
+    if hard:
+        from claimlens.hard_images import HARD_SAMPLES, TRANSFORMS
+
+        planned = len(HARD_SAMPLES) * len(TRANSFORMS)
+        basis = f" ({cases} cases, hard {len(hard)}/{planned})"
+        basis_ko = f" ({cases}건, hard {len(hard)}/{planned})"
     return {
-        "en": f"{scored} fields read ×{repeat}, {pct}% run-to-run agreement",
-        "ko": f"{scored}개 필드 ×{repeat}회 판독, 실행 간 일치율 {pct}%",
+        "en": (f"{scored} fields read ×{repeat}{basis}, "
+               f"{pct}% run-to-run agreement"),
+        "ko": (f"{scored}개 필드 ×{repeat}회 판독{basis_ko}, "
+               f"실행 간 일치율 {pct}%"),
     }
 
 

@@ -1197,7 +1197,7 @@ short "Demo video" section. No behaviour change.
 
 - Live calls: none in the sandbox.
 
-## 2026-10-28 — Backlog session: item 40f live run without person facts (uncommitted)
+## 2026-10-28 — Backlog session: item 40f live run without person facts
 
 A live run with no person facts dead-ended at "Human review: no decision
 path" (the owner's post-only main video). The flow view now has a "Whose
@@ -1211,8 +1211,7 @@ engine path accepts a preset-declared scenario context (labeled as such,
 `matched_sample` stays honest), so the S2 preset + retake drop ends
 PARTIAL 22,500 KRW. Long result titles no longer use the big amount font;
 blocker questions now show on the page too. Both storyboards pick the S2
-preset before the live drop. NOT committed: the owner runs the browser
-tests and re-records first, then one single commit.
+preset before the live drop. Committed as c2f3329 (2026-10-28).
 
 ### Muse Code (coding agent)
 
@@ -1231,7 +1230,7 @@ tests and re-records first, then one single commit.
 
 - Live calls: none in the sandbox.
 
-## 2026-10-28 — Backlog session: item 41b double-read gate (uncommitted)
+## 2026-10-28 — Backlog session: item 41b double-read gate
 
 Item 41's run ($1.51, 23/24 hard cases before the cap tripped) showed 47
 hard + 1 normal wrong numbers leaving the single-read pipeline: checks
@@ -1243,7 +1242,7 @@ ask_user question per differing field ("Double read: agree" row on the
 page). Replaying the recorded runs as pairs gives 0 leaks in 96 pairs at
 a stop cost of 35/66 hard + 2/30 normal. Second reads replay from new
 `.read2` cache keys that never overwrite existing files; recording them
-(~10 calls, ~$0.13) waits for owner approval. NOT committed.
+(~10 calls, ~$0.13) waits for owner approval. Committed as 205fc91 (2026-10-28).
 
 ### Muse Code (coding agent)
 
@@ -1260,7 +1259,7 @@ a stop cost of 35/66 hard + 2/30 normal. Second reads replay from new
 
 - Live calls: none in the sandbox.
 
-## 2026-10-28 — Backlog session: Round 8 items 44 + 45 (uncommitted)
+## 2026-10-28 — Backlog session: Round 8 items 44 + 45
 
 44 puts the Why block (owner-approved who line, the two sourced numbers
 with their links, the paperwork line, an N-less After sentence, the
@@ -1287,7 +1286,130 @@ HUMAN_REVIEW badge. No API calls, no cache writes, video untouched.
 
 - Live calls: none in the sandbox.
 
-## 2026-10-29 — Backlog session: item 41f rotation probe (uncommitted)
+## 2026-10-29 — Backlog session: item 42 fault injection
+
+New `claimlens faults` registry plus `tests/test_faults.py`: 15 injected
+faults (Spark timeout, 429/500, bad JSON, schema violation, empty
+output, Files fallback, Neo4j down, serve offline, oversized/non-image
+upload, single-read failure…), each pinned by a test, none making a
+live call in the suite. Committed as 333228b (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: new fault tests; full suite green, `ruff check` clean.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 43 load check
+
+New `claimlens load`: 5 concurrent live runs over the S2 retake photos
+with p50/p95/cost and per-run badges, plan-only by default with
+`--execute/--max-cost`. The owner ran it once:
+`data/load_20261028T205112Z.json` ($0.18 total, under the $1 cap):
+p50 22.97 s, p95 30.32 s, mean $0.0355 — PARTIAL 3, needs_manual_check 2.
+Committed as 333228b (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: load plan math + temp isolation tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 46 measured block
+
+New `claimlens headline`: the README Measured block, the After sentence
+N, the storyboard eval caption, the demo `measured` payload and the
+video measured shot are all generated from `data/*.json` — no
+hand-typed numbers. Committed as 333228b (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: headline pin/idempotence tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 47 Meta tiles
+
+New `claimlens` model table ("Built with Meta"): one row per Meta
+tool/step with its `How` and a `Measured` fact recomputed from data
+(logged sessions, spark agreement, Files tokens, masks, voice
+confirmations, open-weights matches). Rendered into README, demo and
+video cards by regen. Committed as 333228b (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: tile/model-table tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 41c live gate eval
+
+New `claimlens gate-eval`: the double-read gate over fresh live reads
+(plan-only default, `--execute`, `--max-cost`, temp cache isolation).
+First run `data/gate_live_20261028T212938Z.json` ($3.45, under the $4
+cap): hard 2 leaks (38/72 stopped), normal 2 leaks (1/30 stopped),
+totals only — the leaking cases were unknown. Committed as 333228b
+(2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: gate plan/estimate/abort/isolation tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 41d per-pair gate details
+
+Gate runs now save per-pair details (reads, verify, rotation, wrong
+fields), so the next run names its leaks. Second run
+`data/gate_live_20261029T004823Z.json` ($3.57): hard 2 leaks (39/72
+stopped), normal 1 leak (5/30 stopped) — C clean reading total 0 with
+correct lines, and S3 rot90 putting 15,000,000 in KR cell 4 instead
+of 3 on both reads. Same commit also fixes the vertical recorder and
+the Muse Code tile fact. Committed as 0c9096f (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: pair-detail + tile tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 41e line-sum check
+
+Every receipt gets a line-sum check (total vs items, ±0.01) with
+verify-and-re-read on failure; the KR path was left for later.
+Third run `data/gate_live_20261029T042335Z.json` ($3.48): normal 0
+leaks (0/30 stopped), hard 4 leaks (39/72 stopped) — all four the
+S3 rot90 cell swap, both reads agreeing. Committed as e5c855f plus
+run data d25a4d3 (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: line-sum/verify tests; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Backlog session: item 41f rotation probe
 
 New `src/claimlens/rotation.py`: one small `probe_rotation(image)` call
 per page on a 768 px copy, strict `{"rotation": 0|90|180|270}` schema,
@@ -1308,6 +1430,78 @@ serve, gate-eval and hard-eval; plan estimates include the probes.
 - Live calls: none in the sandbox (replay only, BOGUS keys).
 - Owner checks: approve one `gate-eval --execute` (~$3.6+) to measure:
   hard leaks should drop, clean stops must not rise.
+- Committed as 749597b (2026-10-29); the measuring run is
+  `data/gate_live_20261029T070828Z.json` (107708b: hard 0 leaks, 35/72
+  stopped; normal 0/30).
+
+## 2026-10-29 — Backlog session: item 38 cover letter
+
+New `src/claimlens/letter.py`: Spark writes the cover letter as
+prose-only with `{{PLACEHOLDERS}}` (any digit outside one rejects the
+draft, one retry, then a code-only template); code fills values from
+the Claim Pack and rejects numbers not in the pack. English only,
+shown under the S3 Claim Pack as a draft for the patient to review
+and send. New cache keys only; reading schema and instructions
+untouched. S3 drafts (photo + clean) recorded by the owner via
+`claimlens record-letter`. Committed as 2172927 (2026-10-29).
+
+### Muse Code (coding agent)
+
+- Tests: new `tests/test_letter.py` (13 tests); full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 49 unseen layouts
+
+New `tools/unseen/render.py` draws receipt + certificate pairs
+(clean + phone-photo) for 6 held-out layouts (U1–U6) from
+`samples/unseen/truth.json`; synthetic names, watermark, system
+fonts only. New `gate-eval --set unseen` (rotation on, ×3,
+plan-default). No product-code tuning before measuring. First run
+`data/gate_live_20261029T154402Z.json`: 36 pairs, 0 leaks, 12
+stopped ($0.91). Committed as d624a2d (2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: new `tests/test_unseen.py` (11 tests); full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 49b real trips
+
+The unseen renderer grows 6 traveller cases (T1–T6) under
+`samples/unseen/trips/` with local + fixed-FX KRW totals and
+expected serve outcomes (no hand-computed payouts). New
+`gate-eval --set trips` and `claimlens trips-check` (plan-default).
+First runs: `data/gate_live_20261029T155458Z.json` (48 pairs,
+0 leaks, 18 stopped, $1.08) and
+`data/trips_check_20261029T155607Z.json` (5 PASS + T3 earlier stop
+at needs_manual_check, $0.08). Committed as d624a2d (2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: new `tests/test_trips.py` (20 tests); full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-29 — Round 9 full review (report only, no code changes)
+
+`out/review-round9.md` (written against the then-uncommitted 49/49b tree):
+five parallel read-only passes (accuracy,
+rubric/honesty, security/UX, tests, Round 9 tooling) over `src/`,
+`tests/`, `tools/`, `docs/`, README and demo, every finding verified
+against the cited lines — 13 high, 14 medium, ~40 low, a top-10 fix
+list, dropped false positives and open unknowns. `out/round9-report.md`
+stacks the 49/49b/review evidence with the dawn-run commands.
 
 ### Model APIs
 

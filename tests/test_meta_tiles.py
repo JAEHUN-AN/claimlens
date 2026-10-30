@@ -43,9 +43,13 @@ def test_spark_fact_matches_recomputed_summaries():
             agreed += agr["agree"]
             agree_n += agr["n"]
     pct = round(agreed * 100 / agree_n)
+    cases = sum(len(entry["cases"]) for entry in data["sets"].values())
+    hard = len(data["sets"]["hard"]["cases"])
     assert _tiles()["spark"]["fact"] == {
-        "en": f"{scored} fields read ×3, {pct}% run-to-run agreement",
-        "ko": f"{scored}개 필드 ×3회 판독, 실행 간 일치율 {pct}%",}
+        "en": (f"{scored} fields read ×3 ({cases} cases, hard {hard}/24), "
+               f"{pct}% run-to-run agreement"),
+        "ko": (f"{scored}개 필드 ×3회 판독 ({cases}건, hard {hard}/24), "
+               f"실행 간 일치율 {pct}%"),}
 
 
 def test_files_fact_matches_probe():
@@ -110,6 +114,7 @@ def test_model_table_has_files_row_and_facts():
                for row in rows)
     assert sum("267 fields read" in row for row in rows) == 1
     assert sum("11/15 fields match hosted" in row for row in rows) == 1
+    assert sum("(33 cases, hard 23/24)" in row for row in rows) == 1
 
 
 def test_readme_table_matches_rendered():
@@ -118,6 +123,13 @@ def test_readme_table_matches_rendered():
     end = text.index("| Mask seals and signatures |")
     end = text.index("\n", end) + 1
     assert text[start:end] == meta_tiles.render_model_table(ROOT)
+
+
+def test_readme_attribution_and_samples_row():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "Muse Code wrote the code from the backlog." in text
+    assert "Co-Authored-By: Claude" in text
+    assert "prepared before the hackathon" in text
 
 
 def test_demo_carries_meta_tools(tmp_path):

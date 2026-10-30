@@ -57,6 +57,18 @@ def test_eval_caption_comes_from_headline():
     assert eval_seg["page"] == "measured"
 
 
+def test_honest_wording_pins():
+    """53-H6/H9/H14: propose/confirm framing, replay scope, (est.)."""
+    segs = {s["id"]: s["caption"] for s in _main()["segments"]}
+    assert "the engine proposes payment in full" in segs["sceneA"]
+    assert "a reviewer confirms" in segs["sceneA"]
+    assert "paid in full under the travel policy" not in segs["sceneA"]
+    assert "each replayed once" in segs["score"]
+    assert "(est.)" in segs["why"]
+    for caption in segs.values():
+        assert len(caption) <= 190
+
+
 def test_why_card_content():
     text = (ROOT / "tools" / "video" / "cards" / "cards.html").read_text(
         encoding="utf-8")
@@ -66,6 +78,8 @@ def test_why_card_content():
                    "Paperwork check — not medical or legal advice."):
         assert needle in text
     assert "₩251.2 billion unclaimed in Korea in 2022 (est.)" in text
+    vhook = text.split('id="vhook"')[1].split("</section>")[0]
+    assert "National Assembly office, 2023-09-06" in vhook
 
 
 def test_meta_card_matches_tiles():
@@ -83,7 +97,8 @@ def test_measured_shot_has_gate_line(tmp_path):
     paths = video_shots.build_shots(ROOT, tmp_path)
     text = paths["measured"].read_text(encoding="utf-8")
     assert 'class="gate-line"' in text
-    assert "47 wrong numbers" in text
+    assert "47 wrong amounts" in text
+    assert "Amounts scored" in text
 
 
 def test_dry_run_validation_passes(tmp_path):

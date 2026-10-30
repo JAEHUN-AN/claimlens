@@ -11,15 +11,16 @@ see first-hand. Korea, 2022: an estimated ₩251.2 billion of private medical in
 went unclaimed ([estimate from NHIS and insurer statistics](https://www.fnnews.com/news/202309060625012843)).
 2.01 million foreign patients were treated in Korea in 2025
 ([Ministry of Health and Welfare](https://v.daum.net/v/20260424060102461)).
-ClaimLens works on the paperwork step. Bill photo → checked claim in about 22.97 s, every number traceable.
+ClaimLens works on the paperwork step. Bill photo → checked claim in about 22.97 s (S2 retake photos; the median run ended needs_manual_check), every number traceable.
 Theme: Build for Your World.
 
 <!-- measured:start -->
 **Measured:**
-- Hard documents ×3 runs: 47 wrong numbers left single read, 0 with the double-read gate (35/72 pairs stopped, live gate); clean documents: 0 left, 0/30 stopped
-- Agent scorecard: 8/8 (asks when it must, never invents a number)
-- 15 fault cases injected, no wrong number
-- Per claim: p50 22.97 s, p95 30.32 s, $0.0355 (5 concurrent live runs)
+- Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3). Live double-read gate, 2026-10-29 run on the current pipeline (24 cases ×3 = 72 pairs): 0 left (35 stopped for a person); normal documents: 0 left, 0/30 stopped. Amounts scored: total, line amounts, Korean bill cells.
+- Unseen layouts + real trips, first run (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person).
+- Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
+- 15 fault cases injected in tests (no live calls), no wrong number
+- Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2; median run needs_manual_check
 <!-- measured:end -->
 
 **Live demo (no key, no server):** https://jaehun-an.github.io/claimlens/
@@ -89,6 +90,7 @@ copy `.env.example` to `.env`. `CLAIMLENS_PROVIDER=replay` forces cache-only mod
 | Clarifying agent loop, voice intake, spoken-fact confirmation | |
 | `claimlens eval`, offline replay demo, Spark Open step | |
 | Cross-document consistency, local live server | |
+| Held-out unseen + trips documents + renderer (Round 9) | Sample documents (synthetic bills, certificates, voice clips), prepared before the hackathon |
 
 Using a pre-existing open-source dependency was confirmed as acceptable in the hackathon Discord
 (#questions, 2026-10-26).
@@ -97,9 +99,9 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How | Measured |
 |---|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 41 logged sessions |
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 52 logged sessions |
 | Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
-| Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3, 86% run-to-run agreement |
+| Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3 (33 cases, hard 23/24), 86% run-to-run agreement |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |
 | Translate Claim Pack row labels | `muse-spark-1.3` (hosted) | Decides label wording; amounts copied by code | — |
 | Translate Claim Pack (Vietnamese) | `muse-spark-1.3` (hosted) | Decides labels + sentences; amounts, codes, dates copied by code | — |
@@ -110,6 +112,8 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 | Translate row labels (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same labels for comparison; forced `submit_labels` tool call | — |
 | Read receipts + certificates (comparison) | `meta-models/muse-spark-open-1026` (Baseten) | Decides the same reading for comparison; forced `submit_reading` tool call | 11/15 fields match hosted |
 | Mask seals and signatures | `sam-3.1` (hosted) | Decides seal/signature boxes; painted on a copy | 2 masked copies |
+
+Muse Code wrote the code from the backlog. Claude Code (Anthropic) reviewed and verified each change, ran the live measurements, and made small fixes; those commits carry a `Co-Authored-By: Claude` trailer.
 
 Every number shown to a user comes from a document reading, a deterministic check,
 or the engine — never from model arithmetic. The tooling log linked above is the
@@ -140,12 +144,12 @@ tokens and cost in [docs/eval.md](docs/eval.md)):
 
 | sample | variant | total | lines | amounts | diags | kr_cells | checks | pii |
 |---|---|---|---|---|---|---|---|---|
-| A_niseko_wrist | photo | ok | 6/6 | ok | 1/1 | n/a | n/a | 4/4 |
-| A_niseko_wrist | clean | ok | 6/6 | ok | 1/1 | n/a | n/a | 4/4 |
-| B_chiangmai_dogbite | photo | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
-| B_chiangmai_dogbite | clean | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
-| C_newyork_panic | photo | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
-| C_newyork_panic | clean | ok | 7/7 | ok | 2/2 | n/a | n/a | 4/4 |
+| A_niseko_wrist | photo | ok | 6/6 | ok | 1/1 | n/a | pass | 4/4 |
+| A_niseko_wrist | clean | ok | 6/6 | ok | 1/1 | n/a | pass | 4/4 |
+| B_chiangmai_dogbite | photo | ok | 7/7 | ok | 2/2 | n/a | pass | 4/4 |
+| B_chiangmai_dogbite | clean | ok | 7/7 | ok | 2/2 | n/a | pass | 4/4 |
+| C_newyork_panic | photo | ok | 7/7 | ok | 2/2 | n/a | pass | 4/4 |
+| C_newyork_panic | clean | ok | 7/7 | ok | 2/2 | n/a | pass | 4/4 |
 | S2_seoul_worker_bronchitis | photo | ok | 5/5 | ok | 1/1 | 10/10 | pass | 2/2 |
 | S2_seoul_worker_bronchitis | clean | ok | 5/5 | ok | 1/1 | 10/10 | pass | 2/2 |
 | S3_us_tourist_hip_fracture | photo | ok | 12/12 | ok | 1/1 | 10/10 | pass | 3/4 |
@@ -157,12 +161,12 @@ tokens, latency, and cost in [docs/eval.md](docs/eval.md)):
 
 | sample | variant | hosted total / lines / checks | open total / lines / checks |
 |---|---|---|---|
-| A_niseko_wrist | photo | ok / 6/6 / n/a | ok / 6/6 / n/a |
-| A_niseko_wrist | clean | ok / 6/6 / n/a | ok / 6/6 / n/a |
-| B_chiangmai_dogbite | photo | ok / 7/7 / n/a | ok / 7/7 / n/a |
-| B_chiangmai_dogbite | clean | ok / 7/7 / n/a | ok / 7/7 / n/a |
-| C_newyork_panic | photo | ok / 7/7 / n/a | FAIL / 7/7 / n/a |
-| C_newyork_panic | clean | ok / 7/7 / n/a | ok / 7/7 / n/a |
+| A_niseko_wrist | photo | ok / 6/6 / pass | ok / 6/6 / pass |
+| A_niseko_wrist | clean | ok / 6/6 / pass | ok / 6/6 / pass |
+| B_chiangmai_dogbite | photo | ok / 7/7 / pass | ok / 7/7 / pass |
+| B_chiangmai_dogbite | clean | ok / 7/7 / pass | ok / 7/7 / pass |
+| C_newyork_panic | photo | ok / 7/7 / pass | FAIL / 7/7 / FAIL |
+| C_newyork_panic | clean | ok / 7/7 / pass | ok / 7/7 / pass |
 | S2_seoul_worker_bronchitis | photo | ok / 5/5 / pass | ok / 5/5 / FAIL |
 | S2_seoul_worker_bronchitis | clean | ok / 5/5 / pass | ok / 5/5 / FAIL |
 | S3_us_tourist_hip_fracture | photo | ok / 12/12 / pass | ok / 12/12 / FAIL |
@@ -196,13 +200,13 @@ otherwise, never invents a number): see the [agent scorecard](docs/agent-eval.md
 regenerated by `claimlens agent-eval`. Two honest notes: each case is one
 recorded dialogue replayed, not repeated runs; and `confirm-voice-date` is the
 voice-intake rule asking for confirmation, not the agent loop (0 steps).
-Hard-document eval (23/24 harsh variants ×3, cap tripped at $1.51): single read let 47 wrong numbers leave;
+Hard-document eval (23/24 harsh variants ×3, cap tripped at $1.51): single read let 47 wrong amounts leave;
 on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 2/30 normal pairs
-(simulated, [tables](docs/eval.md)). The live gate run is in the Measured block above.
+(simulated, [tables](docs/eval.md)). A 'field' in those tables is one scored bundle (a whole line table, the whole PII set), not one cell. The live gate run is in the Measured block above.
 
 ## What happens when something fails
 
-15 fault cases, each pinned by a test — no case ever returns a wrong number.
+15 fault cases, each pinned by a test with stubbed providers and requests — no case ever returns a wrong number.
 
 | fault | expected | test |
 |---|---|---|
