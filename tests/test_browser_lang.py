@@ -292,7 +292,13 @@ def test_live_preset_run_reaches_partial_in_browser(browser, monkeypatch):
         page.locator(S2_PRESET).click()
         assert page.locator("#person-visa").input_value() == "E-7"
         page.evaluate(DROP_RETAKES)
-        page.locator("#flow-view .flow-result").wait_for(timeout=60000)
+        # H2: unmatched photos pause for the user's product choice first.
+        page.locator("#flow-questions li").first.wait_for(timeout=60000)
+        assert page.locator("#flow-result .badge").inner_text() == "need_product"
+        assert stub.reads == 2
+        page.locator("#person-product").select_option(_s2_product())
+        page.locator("#flow-questions button").click()
+        page.locator("#flow-result .amount").wait_for(timeout=60000)
         assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
         assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
         assert stub.reads == 2
@@ -301,6 +307,11 @@ def test_live_preset_run_reaches_partial_in_browser(browser, monkeypatch):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def _s2_product() -> str:
+    scenarios, _ = engine.load_scenarios()
+    return scenarios["S2_seoul_worker_bronchitis"]["policy"]["product"]
 
 
 @pytest.mark.skipif(not _can_listen(), reason="sandbox blocks listen()")
@@ -324,6 +335,45 @@ def test_live_questions_continue_in_browser(browser, monkeypatch):
         assert page.locator("#flow-result .amount").count() == 0
         assert stub.reads == 2
         page.locator(S2_PRESET).click()
+        page.locator("#person-product").select_option(_s2_product())
+        page.locator("#flow-questions button").click()
+        page.locator("#flow-result .amount").wait_for(timeout=60000)
+        assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"
+        assert page.locator("#flow-result .amount").inner_text() == "22,500 KRW"
+        assert stub.reads == 2
+        assert errors == []
+        page.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.skipif(not _can_listen(), reason="sandbox blocks listen()")
+def test_live_file_picker_upload_in_browser(browser, monkeypatch):
+    """H9: the file picker uploads photos; drag-and-drop still works."""
+    stub = _LiveStub()
+    monkeypatch.setattr(serve, "live_provider", lambda: stub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: {"decision": "PARTIAL", "amount": 22500})
+    server = serve.start_background(0)
+    try:
+        page = browser.new_page(viewport={"width": 1280, "height": 720})
+        errors: list[str] = []
+        page.on("pageerror", lambda exc: errors.append(str(exc)))
+        page.goto(f"http://127.0.0.1:{server.server_port}/docs/demo.html")
+        page.locator("#person-presets").wait_for(timeout=15000)
+        picker = page.locator("#flow-pick")
+        assert picker.get_attribute("type") == "file"
+        assert picker.get_attribute("accept") == "image/*"
+        page.locator(S2_PRESET).click()
+        live = Path(__file__).resolve().parent.parent / "samples" / "live"
+        picker.set_input_files([live / "S2_receipt_retake.jpg",
+                                live / "S2_medical_certificate_retake.jpg"])
+        page.locator("#flow-questions li").first.wait_for(timeout=60000)
+        assert page.locator("#flow-result .badge").inner_text() == "need_product"
+        assert stub.reads == 2
+        page.locator("#person-product").select_option(_s2_product())
         page.locator("#flow-questions button").click()
         page.locator("#flow-result .amount").wait_for(timeout=60000)
         assert page.locator("#flow-result .badge").inner_text() == "PARTIAL"

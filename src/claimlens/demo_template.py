@@ -319,7 +319,8 @@ cap_cert_photo:["Certificate (photo)","진단서 (사진)"],
 cap_receipt_masked:["Receipt (masked copy)","영수증 (마스킹본)"],
 cap_cert_masked:["Certificate (masked copy)","진단서 (마스킹본)"],
 live_tag:["LIVE","LIVE"],
-live_drop:["Drop receipt + certificate photos here — runs live on your machine.","영수증과 진단서 사진을 여기에 놓으세요 — 이 컴퓨터에서 실시간으로 실행됩니다."],
+live_drop:["Drop photos here, or choose files — up to 5 receipts + 1 certificate. Runs live on your machine.","사진을 여기에 놓거나 파일을 고르세요 — 영수증 최대 5장 + 진단서 1장. 이 컴퓨터에서 실시간으로 실행됩니다."],
+flow_pick:["Choose photos","사진 선택"],
 live_running:["Running live…","실시간 실행 중…"],
 live_failed:["Live run failed: ","실시간 실행 실패: "],
 live_tokens:["tokens (live)","토큰 (실시간)"],
@@ -335,7 +336,7 @@ h_verify:["Verification","검증"],
 v_walk:["Scripted walkthrough","스크립트 시연"],
 v_handoff:["Handoff","인계"],
 topnote_live:["All documents are synthetic. Live on this machine — committed caches untouched.","모든 문서는 합성입니다. 이 컴퓨터에서 실시간 실행 중 — 커밋된 캐시는 그대로입니다."],
-flow_note_live:["Live mode: drop receipt + certificate photos, or pick a sample to replay.","실시간 모드: 영수증+진단서 사진을 놓거나 예시를 골라 리플레이."],
+flow_note_live:["Live mode: drop photos, choose files, or pick a sample to replay.","실시간 모드: 사진을 놓거나, 파일을 고르거나, 예시를 골라 리플레이."],
 live_reused:["recording reused — no model call","기록 재사용 — 모델 호출 없음"],
 mm_claims:["Spark claims check","Spark 클레임 검사"],
 mm_dropped:["dropped — not supported by its quotes","기각 — 인용으로 뒷받침되지 않음"],
@@ -348,6 +349,11 @@ person_employer:["Works for a Korean employer","한국 고용주에게 고용됨
 person_work:["Injured at work","업무 중 부상"],
 person_entry:["Entry date","입국일"],
 person_reg:["Foreign-resident registration date (YYYY-MM-DD or none)","외국인등록일(YYYY-MM-DD 또는 none)"],
+person_national:["Korean national","한국 국적"],
+person_product:["Insurance product","보험 상품"],
+person_note_ph:["Or write a note instead of picking","고르는 대신 메모 쓰기"],
+merge_h:["Receipts merged","합친 영수증"],
+merge_total:["Merged total","합친 합계"],
 person_yn_y:["Yes","예"],
 person_yn_n:["No","아니요"],
 person_continue:["Continue","계속하기"],
@@ -549,10 +555,12 @@ function flowView(f){
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
     +`<p id="flow-tip"><small class="dim">${esc(t('tip_numbers'))}</small></p>`
     +`<div class="flow-pick">${picks}</div>`
-    +`<div id="flow-top"><div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}</div>`
+    +`<div id="flow-top"><div id="flow-drop">${esc(LIVE?t('live_drop'):t('drop'))}`
+    +(LIVE?`<p><label>${esc(t('flow_pick'))} <input id="flow-pick" type="file" accept="image/*" multiple onchange="livePick(this)"/></label></p>`:'')+`</div>`
     +(LIVE?personPanel():'')+`</div>`
     +`<p id="flow-msg" role="status"></p>`
     +`<div id="flow-questions"></div>`
+    +`<div id="flow-merge"></div>`
     +`<div class="flow-main"><div id="flow-steps"></div>`
     +`<div><button id="flow-play" disabled>${esc(t('play'))}</button><div id="flow-result"></div></div></div>`
     +evalBlock(f.eval)+metaToolsHtml(f)+scopeFooter()+`</div>`;
@@ -591,6 +599,8 @@ function personPanel(){
     +`${esc(p.label[LANG]||p.label.en)}</button>`).join('');
   const yn=`<option value="">—</option><option value="yes">${esc(t('person_yn_y'))}`
     +`</option><option value="no">${esc(t('person_yn_n'))}</option>`;
+  const products=(data.flow.products||[]).map(n=>
+    `<option value="${esc(n)}">${esc(n)}</option>`).join('');
   return `<div id="person-panel"><p><strong>${esc(t('person_h'))}</strong></p>`
     +`<div id="person-presets">${ps}</div>`
     +`<label>${esc(t('person_visa'))}`
@@ -602,7 +612,11 @@ function personPanel(){
     +`<label>${esc(t('person_entry'))}`
     +`<input id="person-entry" type="date" onchange="personEdited()"/></label>`
     +`<label>${esc(t('person_reg'))}`
-    +`<input id="person-reg" type="text" placeholder="YYYY-MM-DD or none" onchange="personEdited()"/></label></div>`;
+    +`<input id="person-reg" type="text" placeholder="YYYY-MM-DD or none" onchange="personEdited()"/></label>`
+    +`<label>${esc(t('person_national'))}`
+    +`<select id="person-national" onchange="personEdited()">${yn}</select></label>`
+    +`<label>${esc(t('person_product'))}`
+    +`<select id="person-product" onchange="personEdited()"><option value="">—</option>${products}</select></label></div>`;
 }
 function pickPreset(id){
   const p=(data.flow.person_presets||[]).find(q=>q.id===id);
@@ -612,6 +626,8 @@ function pickPreset(id){
   document.getElementById('person-work').value=p.person.work_related?'yes':'no';
   document.getElementById('person-entry').value=p.person.entry_date||'';
   document.getElementById('person-reg').value=p.person.alien_registration_date||'';
+  document.getElementById('person-national').value=p.person.korean_national?'yes':'no';
+  document.getElementById('person-product').value=p.person.product||'';
   personScenario=id;personExtras=p.person;
 }
 function personEdited(){personScenario='';personExtras=null;}
@@ -626,6 +642,8 @@ function readPerson(){
     work_related:personSel('person-work'),
     entry_date:document.getElementById('person-entry').value,
     alien_registration_date:document.getElementById('person-reg').value,
+    korean_national:personSel('person-national'),
+    product:document.getElementById('person-product').value,
   });
 }
 function liveProbe(){
@@ -641,11 +659,20 @@ function liveProbe(){
 }
 function liveDrop(e){
   if(!LIVE){document.getElementById('flow-msg').textContent=t('live_msg');return;}
-  const files=[...((e.dataTransfer&&e.dataTransfer.files)||[])].slice(0,2);
+  liveUpload([...((e.dataTransfer&&e.dataTransfer.files)||[])]);
+}
+function livePick(input){
+  if(!LIVE||!input.files||!input.files.length)return;
+  liveUpload([...input.files]);
+  input.value='';
+}
+function liveUpload(files){
+  files=files.slice(0,6);
   if(!files.length)return;
   document.getElementById('flow-steps').innerHTML='';
   document.getElementById('flow-result').innerHTML='';
   document.getElementById('flow-questions').innerHTML='';
+  document.getElementById('flow-merge').innerHTML='';
   personRunId=null;
   document.getElementById('flow-msg').textContent=t('live_running');
   const person=readPerson(),scenario=personScenario;
@@ -663,11 +690,22 @@ function liveDrop(e){
     renderLive(j);
   }).catch(err=>{document.getElementById('flow-msg').textContent=t('live_failed')+err;});
 }
+function readResolutions(){
+  const out={};
+  document.querySelectorAll('#flow-questions input[type="radio"]:checked').forEach(r=>{
+    out[r.name.replace(/^q-/,'')]=r.value;
+  });
+  document.querySelectorAll('#flow-questions [data-note-for]').forEach(n=>{
+    const id=n.getAttribute('data-note-for');
+    if(n.value.trim()&&out[id]===undefined)out[id]={note:n.value.trim()};
+  });
+  return out;
+}
 function liveContinue(){
   if(!LIVE||!personRunId)return;
   document.getElementById('flow-msg').textContent=t('live_running');
   fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({run_id:personRunId,person:readPerson(),scenario:personScenario})})
+    body:JSON.stringify({run_id:personRunId,person:readPerson(),scenario:personScenario,resolutions:readResolutions()})})
     .then(r=>r.json().then(j=>({ok:r.ok,j})))
     .then(({ok,j})=>{
       const msg=document.getElementById('flow-msg');
@@ -694,8 +732,27 @@ function renderLive(j){
   const qs=j.questions||[];
   document.getElementById('flow-questions').innerHTML=!qs.length?''
     :`<p><strong>${esc(t(j.run_id?'person_q_head':'person_q_blocker'))}</strong></p><ul>`
-    +qs.map(q=>`<li>${esc(q.question)} <small class="dim">(${esc(q.why_needed)})</small></li>`).join('')
+    +qs.map((q,i)=>liveQuestion(q,i)).join('')
     +`</ul>`+(j.run_id?`<p><button onclick="liveContinue()">${esc(t('person_continue'))}</button></p>`:'');
+  document.getElementById('flow-merge').innerHTML=j.merge?mergeHtml(j.merge):'';
+}
+function liveQuestion(q,i){
+  const id=q.id||('q'+i);
+  let html=`<li>${esc(q.question)} <small class="dim">(${esc(q.why_needed)})</small>`;
+  (q.options||[]).forEach(o=>{
+    html+=`<br/><label><input type="radio" name="q-${esc(id)}" value="${esc(o.id)}"/>`
+      +`${esc(o.label)} <small class="dim">(${esc(o.source||'')})</small></label>`;
+  });
+  if(id.indexOf('blocker:')===0)
+    html+=`<br/><input type="text" data-note-for="${esc(id)}" placeholder="${esc(t('person_note_ph'))}"/>`;
+  return html+`</li>`;
+}
+function mergeHtml(m){
+  const rows=(m.photos||[]).map(p=>`<tr><td>${esc(String(p.photo))}</td><td>${esc(p.file||'')}</td>`
+    +`<td>${esc(p.total==null?'—':String(p.total))}</td><td>${esc(p.status||'')}</td><td>${esc(p.note||'')}</td></tr>`).join('');
+  return `<h3>${esc(t('merge_h'))}</h3><table class="bill">`
+    +`<tr><th>#</th><th>file</th><th>total</th><th>status</th><th>note</th></tr>${rows}</table>`
+    +`<p><strong>${esc(t('merge_total'))}: ${esc(String(m.merged_total))} ${esc(m.currency||'')}</strong></p>`;
 }
 function liveMeta(s){
   if(s.tokens)return String(s.tokens).replace(/(\\d)(?=(\\d{3})+$)/g,'$1,')+" "+t('live_tokens');

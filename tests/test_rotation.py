@@ -192,6 +192,13 @@ def _s2_person():
     return next(s for s in scenarios if s["id"] == "S2_seoul_worker_bronchitis")["person"]
 
 
+def _s2_product():
+    scenarios = json.loads((SAMPLES / "scenarios_inbound.json").read_text(
+        encoding="utf-8"))["scenarios"]
+    return next(s for s in scenarios
+                if s["id"] == "S2_seoul_worker_bronchitis")["policy"]["product"]
+
+
 class _ServeStub:
     """Probe-aware serve double: scripted rotations, asserts upright reads."""
 
@@ -265,7 +272,9 @@ def test_serve_turned_upload_reads_upright(tmp_path, monkeypatch):
     stub = _ServeStub([270, 270], _sizes(_s2_images()))
     monkeypatch.setattr(serve, "live_provider", lambda: stub)
     monkeypatch.setattr(serve, "neo4j_up", lambda: False)
-    raw = json.dumps({"images": _payload(turned), "person": _s2_person(),
+    person = _s2_person()
+    person["product"] = _s2_product()  # H2: unmatched runs price a chosen product
+    raw = json.dumps({"images": _payload(turned), "person": person,
                       "scenario": "S2_seoul_worker_bronchitis"}).encode("utf-8")
     headers = {"host": "127.0.0.1:8000", "content_type": "application/json",
                "origin": ""}

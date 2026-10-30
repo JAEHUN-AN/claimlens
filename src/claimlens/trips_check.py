@@ -6,11 +6,14 @@ certificate — with the traveller's panel facts. Nothing here reads
 accuracy; gate-eval --set trips does that. This checks the path: the
 upload verdict, the stop badge, and the questions asked.
 
-Three trips never reach the model (T1/T5: three uploads; T4: one), so
-their expectations are exact. The two-image trips (T2, T3, T6) should
-stop with needs_review on correct reads; a live model may stop earlier
-(blocked, needs_manual_check), which still passes with a note — any
-payout-shaped badge fails.
+One-image (T4) and three-image (T1, T5) trips take the multi path (50):
+per-photo reads merged with provenance, or the certificate question
+when no certificate is uploaded. With the engine down the traveller
+trips pause at engine_unreachable on correct reads; a live model may
+stop earlier (blocked, needs_manual_check), which still passes with a
+note — any payout-shaped badge fails, and so does a decision-shaped
+badge while the engine is up (decisions on synthetic trips need a
+reviewer, never a silent pass).
 """
 
 import base64
@@ -39,27 +42,36 @@ def scenario_uploads(case: dict[str, Any], case_dir: Path) -> list[Path]:
 
 def plan_case(case: dict[str, Any]) -> dict[str, Any]:
     """Offline facts for one case: upload verdict, eligibility, estimate."""
-    from claimlens.eligibility import check_eligibility
-    from claimlens.serve import missing_facts
+    from claimlens.eval import country_of_currency
+    from claimlens.serve import missing_facts, resolve_eligibility
 
     images = [d for d in case["documents"] if d["role"] != "certificate"]
     certs = [d for d in case["documents"] if d["role"] == "certificate"]
     upload_n = len(images) + len(certs)
     person = case["person"]
     missing = missing_facts(person)
-    dates = {d["data"].get("service_date") for d in case["documents"]}
-    eligibility = sorted({check_eligibility(person, d)["outcome"] for d in dates})
-    live = upload_n == 2
-    if live:
-        lo = 2 * BASE_EST + 2 * PROBE_EST + CONSISTENCY_EST
-        hi = lo + 2 * REREAD_EST
+    country = country_of_currency(case["currency"])
+    eligibility = [resolve_eligibility(person, {"country": country})["outcome"]]
+    # the 2-image path reads both pages in one call per side; the multi
+    # path reads each photo separately.
+    reads = 2 if upload_n == 2 else 2 * upload_n
+    probes = upload_n
+    rereads = 2 * len(images)
+    probe_noun = "probe" if probes == 1 else "probes"
+    if certs and images and len(images) <= 5 and len(certs) <= 1:
+        lo = reads * BASE_EST + probes * PROBE_EST + CONSISTENCY_EST
+        hi = lo + rereads * REREAD_EST
+        calls = (f"{reads} reads + {probes} {probe_noun} + 1 consistency + "
+                 f"up to {rereads} verify re-reads")
     else:
-        lo = hi = 0.0
+        lo = reads * BASE_EST + probes * PROBE_EST
+        hi = lo
+        calls = (f"{reads} reads + {probes} {probe_noun} "
+                 "(stops before verify: no certificate to merge with)")
     return {
         "id": case["id"], "uploads": upload_n, "missing_facts": missing,
-        "eligibility": eligibility, "live": live,
-        "calls": ("2 reads + 2 probes + 1 consistency + up to 2 verify re-reads"
-                  if live else "0 (upload rejected before any model call)"),
+        "eligibility": eligibility, "live": True,
+        "calls": calls,
         "estimate": (round(lo, 4), round(hi, 4)),
         "expected": case["expected"]["serve_today"],
     }
@@ -128,8 +140,8 @@ def judge(record: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
         return {"verdict": "FAIL",
                 "note": f"status {record['status']}, want {expected['status']}"}
     if expected["status"] != 200:
-        want = "exactly 2"
-        if want in record["error"]:
+        want = expected.get("reason", "")
+        if want and want in record["error"]:
             return {"verdict": "PASS", "note": record["error"]}
         return {"verdict": "FAIL", "note": f"error {record['error']!r}, want {want!r}"}
     if record["badge"] == expected["badge"]:

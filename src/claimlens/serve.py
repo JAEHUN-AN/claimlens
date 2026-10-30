@@ -9,6 +9,7 @@ browser only posts images and reads results.
 
 import base64
 import binascii
+import copy
 import hashlib
 import json
 import os
@@ -108,7 +109,7 @@ def order_docs(reading: dict[str, Any]) -> dict[str, Any]:
 
 
 PERSON_FIELDS = ("visa", "korean_employer", "work_related", "entry_date",
-                 "alien_registration_date")
+                 "alien_registration_date", "korean_national")
 
 FACT_QUESTIONS = {
     "visa": (
@@ -131,6 +132,10 @@ FACT_QUESTIONS = {
         ("When did the patient register as a foreign resident (YYYY-MM-DD)? "
          "Answer none when never registered."),
         "Workplace and 6-month coverage start from registration (rows 1-4).",
+    ),
+    "korean_national": (
+        "Is the patient a Korean national treated abroad?",
+        "Korean nationals treated abroad take the traveller engine path.",
     ),
 }
 
@@ -239,13 +244,143 @@ def gate_diffs(first: dict[str, Any], second: dict[str, Any]) -> list[tuple[str,
     return diffs
 
 
-def gate_questions(diffs: list[tuple[str, str, str]]) -> list[dict[str, str]]:
-    """One ask_user question per differing field, both values side by side."""
-    return [
-        {"question": f"{label}: first read {left}, second read {right} — which is printed?",
-         "why_needed": "Two independent reads disagreed; a person must pick the printed value."}
-        for label, left, right in diffs
-    ]
+def _diff_source(label: str) -> str:
+    """Where the value lives in the source reading (H7: shown per option)."""
+    photo, inner = _split_photo(label)
+    prefix = f"photo {photo} " if photo is not None else ""
+    if inner == "total":
+        return prefix + "receipt total_amount"
+    if inner == "line count":
+        return prefix + "receipt line items"
+    if inner.startswith("line ") and inner.endswith(" amount"):
+        return prefix + f"receipt {inner}"
+    if inner == "KR bill":
+        return prefix + "receipt KR bill"
+    if inner.startswith("KR cell "):
+        return prefix + f"receipt {inner}"
+    if inner in ("currency", "country", "service date"):
+        return prefix + f"receipt {inner.replace(' ', '_')}"
+    if inner == "inpatient stay":
+        return prefix + "receipt inpatient"
+    if inner == "diagnosis code count":
+        return prefix + "certificate diagnoses"
+    if inner.startswith("diagnosis code "):
+        return prefix + f"certificate diagnosis {inner.rsplit(' ', 1)[1]} code"
+    if inner == "charge row count":
+        return prefix + "receipt charge rows"
+    if inner.startswith("charge row "):
+        return prefix + f"receipt {inner}"
+    return ""
+
+
+def gate_questions(diffs: list[tuple[str, str, str]]) -> list[dict[str, Any]]:
+    """One ask_user question per differing field, both values side by side.
+
+    H7: each resolvable question carries its id plus first/second options
+    with the source location, so the screen can offer a real choice.
+    Unresolvable rows (documents, failed reads) carry empty options.
+    """
+    out = []
+    for label, left, right in diffs:
+        source = _diff_source(label)
+        options = (
+            [{"id": "first", "label": f"first read: {left}", "source": source},
+             {"id": "second", "label": f"second read: {right}", "source": source}]
+            if source else []
+        )
+        out.append({
+            "id": label,
+            "question": f"{label}: first read {left}, second read {right} — which is printed?",
+            "why_needed": "Two independent reads disagreed; a person must pick the printed value.",
+            "options": options,
+        })
+    return out
+
+
+def gate_choice_ids(diffs: list[tuple[str, str, str]]) -> list[str]:
+    """Labels a person can resolve (everything with a source location)."""
+    return [label for label, _, _ in diffs if _diff_source(label)]
+
+
+def _gate_value(docs: list[dict[str, Any]], label: str) -> Any:
+    """Read one gate-comparable field out of ordered docs (H7)."""
+    import re
+
+    receipt = docs[0] if docs else {}
+    cert = docs[1] if len(docs) > 1 else {}
+    if label == "total":
+        return receipt.get("total_amount")
+    if label == "line count":
+        return copy.deepcopy(receipt.get("line_items"))
+    match = re.fullmatch(r"line (\d+) amount", label)
+    if match:
+        items = receipt.get("line_items") or []
+        return items[int(match.group(1)) - 1].get("amount")
+    if label == "KR bill":
+        return copy.deepcopy(receipt.get("kr_bill"))
+    match = re.fullmatch(r"KR cell (\d+)", label)
+    if match:
+        return (receipt.get("kr_bill") or {}).get(f"cell_{match.group(1)}")
+    if label in ("currency", "country"):
+        return receipt.get(label)
+    if label == "service date":
+        return receipt.get("service_date")
+    if label == "inpatient stay":
+        return receipt.get("inpatient")
+    if label == "diagnosis code count":
+        return copy.deepcopy(cert.get("diagnoses"))
+    match = re.fullmatch(r"diagnosis code (\d+)", label)
+    if match:
+        diags = cert.get("diagnoses") or []
+        return diags[int(match.group(1)) - 1].get("code")
+    if label == "charge row count":
+        return copy.deepcopy((receipt.get("kr_bill") or {}).get("charge_rows"))
+    match = re.fullmatch(r"charge row (\d+) col (\d+)", label)
+    if match:
+        rows = (receipt.get("kr_bill") or {}).get("charge_rows") or []
+        return rows[int(match.group(1)) - 1].get(f"col_{match.group(2)}")
+    raise ValueError(f"Unresolvable choice {label!r}.")
+
+
+def _gate_assign(docs: list[dict[str, Any]], label: str, value: Any) -> None:
+    """Write one person-picked value into ordered docs (H7)."""
+    import re
+
+    receipt = docs[0] if docs else {}
+    cert = docs[1] if len(docs) > 1 else {}
+    if label == "total":
+        receipt["total_amount"] = value
+    elif label == "line count":
+        receipt["line_items"] = value
+    elif (match := re.fullmatch(r"line (\d+) amount", label)):
+        receipt["line_items"][int(match.group(1)) - 1]["amount"] = value
+    elif label == "KR bill":
+        receipt["kr_bill"] = value
+    elif (match := re.fullmatch(r"KR cell (\d+)", label)):
+        receipt["kr_bill"][f"cell_{match.group(1)}"] = value
+    elif label in ("currency", "country"):
+        receipt[label] = value
+    elif label == "service date":
+        receipt["service_date"] = value
+    elif label == "inpatient stay":
+        receipt["inpatient"] = value
+    elif label == "diagnosis code count":
+        cert["diagnoses"] = value
+    elif (match := re.fullmatch(r"diagnosis code (\d+)", label)):
+        cert["diagnoses"][int(match.group(1)) - 1]["code"] = value
+    elif label == "charge row count":
+        receipt["kr_bill"]["charge_rows"] = value
+    elif (match := re.fullmatch(r"charge row (\d+) col (\d+)", label)):
+        receipt["kr_bill"]["charge_rows"][int(match.group(1)) - 1][
+            f"col_{match.group(2)}"] = value
+    else:
+        raise ValueError(f"Unresolvable choice {label!r}.")
+
+
+def _list_choice(label: str) -> bool:
+    """Whole-list adoptions apply before scalar picks (H7)."""
+    return label in ("line count", "KR bill", "diagnosis code count",
+                     "charge row count")
 
 
 def verify_questions(failures: list[tuple[int, list[str]]]) -> list[dict[str, str]]:
@@ -354,12 +489,33 @@ def run_live(
 ) -> dict[str, Any]:
     """Full pipeline on uploaded images. Raises ValueError on bad input.
 
+    Two uploads take the guarded 2-image path; 1, 3, 4, 5 or 6 uploads
+    take the multi path (per-photo reads merged with provenance).
+
     When person facts are missing the run pauses after the checks with
     ask_user questions instead of dead-ending; answering continues the
     same run (see run_continue) with no new reading call.
     """
     with _RUN_SEMAPHORE:
-        return _run_live_guarded(images, person, scenario)
+        if len(images) == 2:
+            return _run_live_guarded(images, person, scenario)
+        return _run_live_multi(images, person, scenario)
+
+
+def _decode_images(images: list[dict[str, str]]) -> list[bytes]:
+    """Base64 → bytes plus kind and size checks (shared by both paths)."""
+    blobs: list[bytes] = []
+    for item in images:
+        try:
+            blob = base64.b64decode(item.get("data", ""), validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError(f"{item.get('name', '?')}: not valid base64.") from None
+        if _image_kind(blob) is None:
+            raise ValueError(f"{item.get('name', '?')}: images only (JPEG or PNG).")
+        blobs.append(blob)
+    if sum(len(b) for b in blobs) > MAX_UPLOAD_BYTES:
+        raise ValueError("Uploads exceed the 10 MB limit.")
+    return blobs
 
 
 def _run_live_guarded(
@@ -375,20 +531,10 @@ def _run_live_guarded(
 
     if len(images) != 2:
         raise ValueError("Upload exactly 2 images: the receipt and the certificate.")
-    blobs: list[bytes] = []
-    for item in images:
-        try:
-            blob = base64.b64decode(item.get("data", ""), validate=True)
-        except (binascii.Error, ValueError):
-            raise ValueError(f"{item.get('name', '?')}: not valid base64.") from None
-        if _image_kind(blob) is None:
-            raise ValueError(f"{item.get('name', '?')}: images only (JPEG or PNG).")
-        blobs.append(blob)
-    if sum(len(b) for b in blobs) > MAX_UPLOAD_BYTES:
-        raise ValueError("Uploads exceed the 10 MB limit.")
+    blobs = _decode_images(images)
 
     person = check_person(person)
-    scenarios, inbound = load_scenarios()
+    scenarios, _ = load_scenarios()
     declared = check_scenario(scenario, scenarios)
 
     steps: list[dict[str, Any]] = []
@@ -550,6 +696,27 @@ def _run_live_guarded(
             plural = "s" if len(diffs) != 1 else ""
             _step(steps, "double_read", "Double read", f"{len(diffs)} field{plural} differ",
                   "deterministic", time.monotonic() - started)
+            if read_questions is None and len(gate_choice_ids(diffs)) == len(diffs):
+                # H7: every difference is a pickable field — pause with a
+                # run_id so the person answers and continues the same run.
+                run = {
+                    "reading": readings[0],
+                    "steps": steps,
+                    "tokens_total": tokens_total,
+                    "cost_usd": _run_spend(providers),
+                    "retries_429": _run_retries(providers),
+                    "matched": matched,
+                    "scenario": declared,
+                    "person": person,
+                    "gate": {"diffs": diffs, "first": readings[0],
+                             "second": readings[1]},
+                }
+                return _pause_run(
+                    run, None, badge="needs_manual_check",
+                    title=("Human review: two reads disagreed — "
+                           "pick the printed value for each field."),
+                    questions=gate_questions(diffs),
+                )
             return {
                 "steps": steps,
                 "result": {"badge": "needs_manual_check",
@@ -576,68 +743,652 @@ def _run_live_guarded(
             "scenario": declared,
             "person": person,
         }
-        context = matched or declared
-        if context and context not in inbound:
-            return _finish_run(provider, run)
         if missing_facts(person):
             return _pause_run(run)
         return _finish_run(provider, run)
 
 
-def _pause_run(run: dict[str, Any], run_id: str | None = None) -> dict[str, Any]:
-    """Park a run after the checks; the answer continues it (run_continue)."""
-    missing = missing_facts(run["person"])
+def _payable(doc: dict[str, Any]) -> bool:
+    """A receipt, or an 'other' page that carries a total (card slip)."""
+    if doc.get("doc_type") == "receipt":
+        return True
+    return doc.get("doc_type") == "other" and doc.get("total_amount") is not None
+
+
+def _merge_payables(payables: list[tuple[int, dict[str, Any]]],
+                    cert: dict[str, Any] | None, names: list[str],
+                    cert_photo: int | None = None
+                    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    """50: verify-shaped receipts in, one merged reading plus provenance.
+
+    Raises ValueError with the human-facing reason when the set cannot
+    merge (mixed currency/country, Korean multi, unmatched slip).
+    """
+    from claimlens.checks import receipt_checks
+
+    receipts = [(photo, doc) for photo, doc in payables]
+    currencies = {doc.get("currency") for _, doc in receipts}
+    if len(currencies) > 1:
+        raise ValueError("mixed currencies: upload receipts in one currency at a time.")
+    countries = {doc.get("country") for _, doc in receipts}
+    if len(countries) > 1:
+        raise ValueError("mixed countries: upload one country at a time.")
+    if len(receipts) > 1 and any(doc.get("kr_bill") for _, doc in receipts):
+        raise ValueError("several Korean bills are separate visits; "
+                         "upload each visit separately.")
+    kept: list[tuple[int, dict[str, Any]]] = []
+    photos: list[dict[str, Any]] = []
+    for photo, doc in receipts:
+        total = doc.get("total_amount")
+        match = next(((p, d) for p, d in kept
+                      if d.get("total_amount") is not None and total is not None
+                      and abs(d["total_amount"] - total) < 0.01), None)
+        lines = doc.get("line_items") or []
+        if match is not None and (not lines or not (match[1].get("line_items") or [])):
+            photos.append({"photo": photo, "file": names[photo - 1],
+                           "total": total, "currency": doc.get("currency"),
+                           "status": "deduped",
+                           "note": (f"photo {match[0]} shows the same amount; "
+                                    "counted once")})
+            continue
+        if match is not None:
+            raise ValueError(
+                f"photo {photo} ({total}) matches photo {match[0]} but both "
+                "look like bills; upload them separately.")
+        if not lines:
+            raise ValueError(
+                f"photo {photo} looks like a payment slip but matches no "
+                "bill total; upload the matching bill with it.")
+        kept.append((photo, doc))
+        photos.append({"photo": photo, "file": names[photo - 1],
+                       "total": total, "currency": doc.get("currency"),
+                       "status": "kept", "note": ""})
+    merged_total = round(sum(doc["total_amount"] for _, doc in kept), 2)
+    first = kept[0][1]
+    merged = {
+        "doc_type": "receipt",
+        "country": first.get("country"),
+        "currency": first.get("currency"),
+        "total_amount": merged_total,
+        "service_date": first.get("service_date"),
+        "inpatient": any(bool(doc.get("inpatient")) for _, doc in kept),
+        "line_items": [item for _, doc in kept
+                       for item in (doc.get("line_items") or [])],
+        "pii": first.get("pii", []),
+        "provider_name": first.get("provider_name", ""),
+        "institution": first.get("institution", {}),
+        "kr_bill": None,
+    }
+    failing = [c.name for c in receipt_checks(merged) if not c.passed]
+    if failing:
+        raise ValueError(f"merged receipt fails checks ({', '.join(failing)}).")
+    if cert is not None and cert_photo is not None:
+        photos.append({"photo": cert_photo, "file": names[cert_photo - 1],
+                       "total": None, "currency": None,
+                       "status": "certificate", "note": ""})
+    merge = {"photos": sorted(photos, key=lambda p: p["photo"]),
+             "merged_total": merged_total, "currency": first.get("currency")}
+    return {"documents": [merged, cert or {}]}, merge
+
+
+def _adopt_multi_resolved(run: dict[str, Any]) -> None:
+    """Re-merge after gate picks (H7+50); ValueError re-pauses on conflict."""
+    multi = run["multi"]
+    resolved = run["gate_resolved"]
+    payables: list[tuple[int, dict[str, Any]]] = []
+    for photo in multi["payable_photos"]:
+        if photo in resolved:
+            payables.append((photo, resolved[photo][0]))
+        else:
+            payables.append((photo, multi["verified"][photo][0]))
+    cert = None
+    if multi["cert_photo"] is not None:
+        photo = multi["cert_photo"]
+        if photo in resolved:
+            cert = resolved[photo][1]
+        else:
+            cert = multi["verified"][photo][0]
+    reading, merge = _merge_payables(payables, cert, multi["names"],
+                                     multi["cert_photo"])
+    run["reading"] = reading
+    run["merge"] = merge
+
+
+def _run_live_multi(
+    images: list[dict[str, str]],
+    person: dict[str, Any] | None = None,
+    scenario: str | None = None,
+) -> dict[str, Any]:
+    """50: 1–5 receipts plus 0–1 certificate, read per photo then merged.
+
+    The 2-image path keeps its own function and recordings untouched;
+    this path only runs for 1, 3, 4, 5 or 6 uploads.
+    """
+    from claimlens.engine import load_scenarios
+    from claimlens.prompts import READING_INSTRUCTIONS
+    from claimlens.reader import reading_schema
+    from claimlens.rotation import FAILED_NOTE, upright_pages
+    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
+
+    if len(images) not in (1, 3, 4, 5, 6):
+        raise ValueError("Upload 1 to 6 images: up to 5 receipts and 1 certificate.")
+    blobs = _decode_images(images)
+    names = [item.get("name", f"photo{i}") for i, item in enumerate(images, start=1)]
+
+    person = check_person(person)
+    scenarios, _ = load_scenarios()
+    declared = check_scenario(scenario, scenarios)
+
+    steps: list[dict[str, Any]] = []
+    tokens_total = 0
+    providers = [live_provider(), live_provider()]
+    with tempfile.TemporaryDirectory(prefix="claimlens-multi-") as tmp:
+        started = time.monotonic()
+        paths = []
+        for pos, blob in enumerate(blobs):
+            suffix = ".jpg" if _image_kind(blob) == "jpg" else ".png"
+            path = Path(tmp) / f"upload_{pos}{suffix}"
+            path.write_bytes(blob)
+            paths.append(path)
+        paths, rot_notes = upright_pages(paths, providers[0], Path(tmp))
+        if FAILED_NOTE in rot_notes:
+            # C4, same as the 2-image path: a page we cannot orient stops
+            # before any read.
+            tokens = sum(_step_usage(p, mark)[0]
+                         for p, mark in zip(providers, (0, 0)))
+            reused_only = all(_step_usage(p, mark)[2]
+                              for p, mark in zip(providers, (0, 0)))
+            tokens_total += 0 if reused_only else tokens
+            _step(steps, "reading", "Reading",
+                  f"{FAILED_NOTE}; stopped before reading",
+                  REUSED_LABEL if reused_only else f"{tokens} tokens (live)",
+                  time.monotonic() - started, 0 if reused_only else tokens)
+            return {
+                "steps": steps,
+                "result": {"badge": "needs_manual_check",
+                           "title": "Human review: the rotation check failed.",
+                           "note": ""},
+                "tokens_total": tokens_total,
+                "cost_usd": _run_spend(providers),
+                "retries_429": _run_retries(providers),
+                "matched_sample": None,
+                "scenario": declared,
+                "questions": [{
+                    "question": "The rotation check failed; please re-upload "
+                                "the pages upright.",
+                    "why_needed": "A turned page can swap charge columns "
+                                  "identically in both reads, so nothing was read.",
+                }],
+            }
+
+        started = time.monotonic()
+        marks = [len(p.calls) for p in providers]
+        reads: list[list[dict[str, Any] | None]] = [[], []]
+        for pos, provider in enumerate(providers):
+            for path in paths:
+                try:
+                    reads[pos].append(provider.read_documents(
+                        [path], READING_INSTRUCTIONS, reading_schema(),
+                        cache_tag="" if pos == 0 else READ2_TAG))
+                except RuntimeError:
+                    reads[pos].append(None)
+        failed_photos = [i + 1 for i in range(len(paths))
+                         if reads[0][i] is None or reads[1][i] is None]
+        if failed_photos:
+            names_failed = ", ".join(f"photo {i}" for i in failed_photos)
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                f"Photos read with {len(failed_photos)} unreadable ({names_failed}).",
+                "reads_failed",
+                [{"question": (f"{names_failed} could not be read; re-upload "
+                               "sharper photos of the same pages."),
+                  "why_needed": "Nothing was decided from an unread photo."}])
+        tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
+        reused_only = all(_step_usage(p, mark)[2] for p, mark in zip(providers, marks))
+        meta = REUSED_LABEL if reused_only else f"{tokens} tokens (live)"
+        tokens_total += 0 if reused_only else tokens
+        detail = f"{len(paths)} photos read twice by Muse Spark"
+        if rot_notes:
+            detail += "; " + "; ".join(rot_notes)
+        _step(steps, "reading", "Reading", detail,
+              meta, time.monotonic() - started, 0 if reused_only else tokens)
+
+        started = time.monotonic()
+        payables: dict[int, list[dict[str, Any]]] = {}
+        certs: dict[int, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for idx in range(len(paths)):
+            docs1 = reads[0][idx].get("documents", []) if reads[0][idx] else []
+            docs2 = reads[1][idx].get("documents", []) if reads[1][idx] else []
+            if not docs1 or not docs2:
+                return _terminal_multi(
+                    steps, providers, tokens_total, started, declared,
+                    f"Photo {idx + 1} read no documents.",
+                    "photo_unreadable",
+                    [{"question": (f"Photo {idx + 1} could not be read; re-upload "
+                                   "a sharper photo of the same page."),
+                      "why_needed": "Nothing was decided from an unread photo."}])
+            pay1 = [d for d in docs1 if _payable(d)]
+            pay2 = [d for d in docs2 if _payable(d)]
+            cert1 = [d for d in docs1 if d.get("doc_type") == "medical_certificate"]
+            cert2 = [d for d in docs2 if d.get("doc_type") == "medical_certificate"]
+            if len(pay1) != len(pay2) or len(cert1) != len(cert2):
+                return _terminal_multi(
+                    steps, providers, tokens_total, started, declared,
+                    f"Photo {idx + 1} split into documents differently.",
+                    "photo_split",
+                    [{"question": (f"Photo {idx + 1} read as different documents "
+                                   "in the two reads; re-upload it on its own."),
+                      "why_needed": "The two reads must agree on what each photo shows."}])
+            if pay1:
+                payables[idx + 1] = [pay1, pay2]
+            if cert1:
+                certs[idx + 1] = (cert1[0], cert2[0])
+        photo_ids = sorted(payables)
+        if not photo_ids:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                "No receipt found in the uploads.",
+                "no_receipt",
+                [{"question": "No receipt was found; upload at least one receipt photo.",
+                  "why_needed": "A claim needs at least one bill to price."}])
+        if len(photo_ids) > 5:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                f"{len(photo_ids)} receipts found.",
+                "too_many_receipts",
+                [{"question": ("More than 5 receipts were found; split them "
+                               "into separate claims."),
+                  "why_needed": "One run merges at most 5 receipts."}])
+        if len(certs) > 1:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                f"{len(certs)} certificates found.",
+                "too_many_certs",
+                [{"question": ("More than 1 certificate was found; upload "
+                               "at most one certificate per claim."),
+                  "why_needed": "One run follows a single certificate."}])
+        cert_photo = next(iter(certs)) if certs else None
+        if cert_photo is None:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                f"{len(photo_ids)} receipt(s) read; no certificate.",
+                "certificate_missing",
+                [{"question": ("No doctor's certificate was found. Re-upload "
+                               "the receipts together with the certificate for "
+                               "this visit."),
+                  "why_needed": ("A claim is never decided without the "
+                                 "doctor's certificate.")}])
+        # Unmergeable sets stop before verify burns re-reads. A field
+        # only stops the run when NO single value can win every photo's
+        # gate: each photo offers its two reads' values, and the run
+        # continues when one value is possible everywhere.
+        sides = {photo: (pair[0][0], pair[1][0])
+                 for photo, pair in payables.items()}
+        for field, noun in (("currency", "currencies"), ("country", "countries")):
+            options = [{a.get(field), b.get(field)} for a, b in sides.values()]
+            if not set.intersection(*options):
+                return _terminal_multi(
+                    steps, providers, tokens_total, started, declared,
+                    f"Mixed {noun} across photos.",
+                    f"mixed_{field}",
+                    [{"question": (f"mixed {noun}: upload receipts in one "
+                                    f"{field} at a time. Re-upload accordingly."),
+                      "why_needed": ("Receipts in different currencies or "
+                                     "countries never merge into one payout.")}])
+        kr_locked = sum(1 for a, b in sides.values()
+                        if a.get("kr_bill") and b.get("kr_bill"))
+        if kr_locked > 1:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                "Several Korean bills found.",
+                "korean_multi",
+                [{"question": ("Several Korean bills were found; upload each "
+                               "visit separately."),
+                  "why_needed": ("Korean bills belong to separate visits and "
+                                 "are never merged into one payout.")}])
+
+        started = time.monotonic()
+        verified: dict[int, list[dict[str, Any]]] = {}
+        checked = 0
+        slips = 0
+        for photo in photo_ids:
+            photo_sides = []
+            lineless = False
+            for pos in (0, 1):
+                raw = payables[photo][pos][0]
+                if not (raw.get("line_items") or []):
+                    # A payment slip has no lines to check; the merge only
+                    # keeps it when its total matches a verified bill total,
+                    # and the gate still requires both reads to agree on it.
+                    lineless = True
+                    photo_sides.append(raw)
+                    continue
+                tag = "" if pos == 0 else REREAD_READ2_TAG
+                outcome = verify_receipt(raw, paths[photo - 1],
+                                         providers[pos], cache_tag=tag)
+                checked += 1
+                if outcome["status"] != "verified":
+                    failing = ", ".join(outcome.get("failing", []))
+                    return _terminal_multi(
+                        steps, providers, tokens_total, started, declared,
+                        f"Photo {photo} failed its receipt checks.",
+                        "verify_failed",
+                        [{"question": (f"Read {pos + 1} of 2 failed its receipt "
+                                       f"checks (photo {photo}: {failing}); re-upload "
+                                       "a sharper photo of that receipt."),
+                          "why_needed": ("A receipt whose numbers do not add up "
+                                         "never reaches a decision.")}])
+                photo_sides.append(outcome["receipt"])
+            verified[photo] = photo_sides
+            slips += lineless
+        detail = f"{checked}/{checked} pass"
+        if slips:
+            plural = "s" if slips != 1 else ""
+            detail += (f"; {slips} payment slip{plural} "
+                       "matched to a bill at merge")
+        _step(steps, "checks", "Checks", detail,
+              "deterministic", time.monotonic() - started)
+
+        started = time.monotonic()
+        pairs = []
+        prefixed: list[tuple[int, str, str, str]] = []
+        for photo in photo_ids:
+            first = {"documents": [verified[photo][0]]}
+            second = {"documents": [verified[photo][1]]}
+            pairs.append({"first": first, "second": second, "photo": photo,
+                          "cert": False})
+            for label, left, right in gate_diffs(first, second):
+                prefixed.append((photo, label, left, right))
+        cert_pair = {"first": {"documents": [{}, certs[cert_photo][0]]},
+                     "second": {"documents": [{}, certs[cert_photo][1]]},
+                     "photo": cert_photo, "cert": True}
+        pairs.append(cert_pair)
+        for label, left, right in gate_diffs(cert_pair["first"], cert_pair["second"]):
+            prefixed.append((cert_photo, label, left, right))
+        if prefixed:
+            plural = "s" if len(prefixed) != 1 else ""
+            _step(steps, "double_read", "Double read",
+                  f"{len(prefixed)} field{plural} differ",
+                  "deterministic", time.monotonic() - started)
+            diffs = [(f"photo {photo} {label}", left, right)
+                     for photo, label, left, right in prefixed]
+            run = {
+                "reading": None,
+                "steps": steps,
+                "tokens_total": tokens_total,
+                "cost_usd": _run_spend(providers),
+                "retries_429": _run_retries(providers),
+                "matched": None,
+                "scenario": declared,
+                "person": person,
+                "multi": {"payable_photos": photo_ids, "cert_photo": cert_photo,
+                          "verified": {p: [dict(v[0]), dict(v[1])]
+                                       for p, v in verified.items()},
+                          "names": names},
+                "gate": {"diffs": diffs, "pairs": pairs},
+            }
+            run["multi"]["verified"][cert_photo] = [
+                dict(certs[cert_photo][0]), dict(certs[cert_photo][1])]
+            return _pause_run(
+                run, None, badge="needs_manual_check",
+                title=("Human review: two reads disagreed — "
+                       "pick the printed value for each field."),
+                questions=gate_questions(diffs),
+            )
+        _step(steps, "double_read", "Double read", "agree",
+              "deterministic", time.monotonic() - started)
+
+        started = time.monotonic()
+        try:
+            reading, merge = _merge_payables(
+                [(photo, verified[photo][0]) for photo in photo_ids],
+                certs[cert_photo][0], names, cert_photo)
+        except ValueError as exc:
+            return _terminal_multi(
+                steps, providers, tokens_total, started, declared,
+                f"{len(photo_ids)} receipt(s) read; not merged.",
+                "merge_refused",
+                [{"question": f"{exc} Re-upload accordingly.",
+                  "why_needed": "Receipts that cannot merge never reach a decision."}])
+        kept = [p for p in merge["photos"] if p["status"] == "kept"]
+        dropped = [p for p in merge["photos"] if p["status"] == "deduped"]
+        detail = "; ".join(f"photo {p['photo']}: {_fmt_value(p['total'])}"
+                           for p in kept)
+        detail += f"; merged {_fmt_value(merge['merged_total'])} {merge['currency']}"
+        for p in dropped:
+            detail += f"; photo {p['photo']} deduped ({p['note']})"
+        _step(steps, "merge", "Merge", detail, "deterministic",
+              time.monotonic() - started)
+
+        provider = providers[0]
+        run = {
+            "reading": reading,
+            "steps": steps,
+            "tokens_total": tokens_total,
+            "cost_usd": _run_spend(providers),
+            "retries_429": _run_retries(providers),
+            "matched": None,
+            "scenario": declared,
+            "person": person,
+            "multi": {"payable_photos": photo_ids, "cert_photo": cert_photo,
+                      "verified": {p: [dict(v[0]), dict(v[1])]
+                                   for p, v in verified.items()},
+                      "names": names},
+            "merge": merge,
+        }
+        if missing_facts(person):
+            return _pause_run(run)
+        return _finish_run(provider, run)
+
+
+_MULTI_LABELS = {
+    "reads_failed": "Reading", "photo_unreadable": "Reading",
+    "photo_split": "Reading", "no_receipt": "Upload",
+    "too_many_receipts": "Upload", "too_many_certs": "Upload",
+    "certificate_missing": "Upload", "mixed_currency": "Upload",
+    "mixed_country": "Upload", "korean_multi": "Upload",
+    "verify_failed": "Checks", "merge_refused": "Merge",
+}
+
+
+def _terminal_multi(steps: list[dict[str, Any]], providers: list[Any],
+                    tokens_total: int, started: float, declared: str | None,
+                    detail: str, key: str,
+                    questions: list[dict[str, str]]) -> dict[str, Any]:
+    """A multi stop: one terminal step plus the human-facing questions."""
+    _step(steps, key, _MULTI_LABELS[key], detail,
+          "stopped before decision", time.monotonic() - started)
+    return {
+        "steps": steps,
+        "result": {"badge": "needs_manual_check",
+                   "title": f"Human review: {detail[0].lower() + detail[1:]}.",
+                   "note": ""},
+        "tokens_total": tokens_total,
+        "cost_usd": _run_spend(providers),
+        "retries_429": _run_retries(providers),
+        "matched_sample": None,
+        "scenario": declared,
+        "questions": questions,
+    }
+
+
+def _pause_run(run: dict[str, Any], run_id: str | None = None, *,
+               badge: str = "need_facts", title: str | None = None,
+               questions: list[dict[str, Any]] | None = None,
+               ) -> dict[str, Any]:
+    """Park a run; the answer continues it under the same run_id.
+
+    The default pause asks the missing person facts; gate, blocker,
+    product and engine pauses pass their own badge/title/questions.
+    """
+    if questions is None:
+        missing = missing_facts(run["person"])
+        plural = "s" if len(missing) != 1 else ""
+        title = title or f"Answer {len(missing)} question{plural} to continue."
+        questions = fact_questions(missing)
     if run_id is None:
         run_id = secrets.token_urlsafe(16)
     _RUNS[run_id] = run
     while len(_RUNS) > _MAX_RUNS:
         _RUNS.pop(next(iter(_RUNS)))
-    plural = "s" if len(missing) != 1 else ""
-    return {
+    response: dict[str, Any] = {
         "steps": run["steps"],
-        "result": {
-            "badge": "need_facts",
-            "title": f"Answer {len(missing)} question{plural} to continue.",
-            "note": "",
-        },
+        "result": {"badge": badge, "title": title or "", "note": ""},
         "tokens_total": run["tokens_total"],
         "cost_usd": run.get("cost_usd", 0.0),
         "retries_429": run.get("retries_429", 0),
         "matched_sample": run["matched"],
         "scenario": run["scenario"],
-        "questions": fact_questions(missing),
+        "questions": questions,
         "run_id": run_id,
     }
+    if run.get("resolved"):
+        response["answers"] = run["resolved"]
+    if run.get("merge"):
+        response["merge"] = run["merge"]
+    return response
 
 
-def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
+def _check_resolutions(resolutions: Any) -> dict[str, Any]:
+    if resolutions is None:
+        return {}
+    if not isinstance(resolutions, dict):
+        raise ValueError("resolutions must be an object.")  # noqa: TRY004 - route maps ValueError to 400
+    return resolutions
+
+
+def _resolve_gate(run: dict[str, Any], resolutions: dict[str, Any]) -> None:
+    """Apply the person's picks onto a verified read (H7, in place).
+
+    Raises ValueError naming what is missing or malformed; the caller
+    re-pauses when the picked values fail the receipt checks.
+    """
+    from claimlens.checks import receipt_checks
+
+    gate = run.get("gate") or {}
+    diffs = gate.get("diffs", [])
+    ids = [label for label, _, _ in diffs]
+    unknown = [key for key in resolutions if key not in ids]
+    if unknown:
+        raise ValueError(f"Unknown choices: {', '.join(sorted(unknown))}.")
+    missing = [label for label in ids if label not in resolutions]
+    if missing:
+        raise ValueError(f"Unresolved choices: {', '.join(missing)}.")
+    pairs = gate.get("pairs")
+    if pairs is None:
+        pairs = [{"first": gate["first"], "second": gate["second"], "photo": None,
+                  "cert": False}]
+    by_photo = {p["photo"]: p for p in pairs}
+    resolved_docs: dict[int | None, list[dict[str, Any]]] = {}
+    picks: list[str] = []
+    ordered = sorted(ids, key=lambda label: (not _list_choice(_inner(label)), label))
+    for label in ordered:
+        pick = resolutions[label]
+        if pick not in ("first", "second"):
+            raise ValueError(f"Choice {label!r} must be 'first' or 'second'.")
+        photo, inner = _split_photo(label)
+        pair = by_photo[photo]
+        if photo not in resolved_docs:
+            resolved_docs[photo] = copy.deepcopy(pair["first"].get("documents", []))
+        docs = resolved_docs[photo]
+        side = pair["first" if pick == "first" else "second"].get("documents", [])
+        _gate_assign(docs, inner, _gate_value(side, inner))
+        picks.append(f"{label} ← {pick} read {_fmt_value(_gate_value(side, inner))}")
+    run["resolved"] = {**run.get("resolved", {}),
+                       "gate": {label: resolutions[label] for label in ids}}
+    run["gate_resolved"] = resolved_docs
+    run["_resolve_picks"] = picks
+    failing: list[str] = []
+    for photo, docs in resolved_docs.items():
+        if by_photo[photo].get("cert"):
+            continue  # certificates carry no receipt checks
+        failing += [c.name for c in receipt_checks(docs[0] if docs else {})
+                    if not c.passed]
+    run["_resolve_failing"] = sorted(set(failing))
+
+
+def _split_photo(label: str) -> tuple[int | None, str]:
+    import re
+
+    match = re.fullmatch(r"photo (\d+) (.*)", label)
+    if match:
+        return int(match.group(1)), match.group(2)
+    return None, label
+
+
+def _inner(label: str) -> str:
+    return _split_photo(label)[1]
+
+
+def resolve_eligibility(person: dict[str, Any],
+                      receipt: dict[str, Any]) -> dict[str, str]:
+    """H1: serve-level eligibility — the traveller path or the NHI rows.
+
+    A Korean national treated outside Korea takes the traveller engine
+    path; everyone else is decided by the eligibility rows. Declared
+    scenarios never grant eligibility or a policy (H2).
+    """
+    from claimlens.eligibility import check_eligibility, service_date_of
+
+    abroad = (receipt.get("country") or "") not in ("", "KR")
+    if person.get("korean_national") is True and abroad:
+        return {"outcome": "traveller_abroad", "rule": "engine_path",
+                "basis": "Korean traveller abroad — engine path."}
+    return check_eligibility(person, service_date_of(receipt))
+
+
+def _dental_flag(receipt: dict[str, Any], cert: dict[str, Any]) -> str:
+    """T6: dental treatment is flagged for a reviewer, never auto-decided."""
+    import re
+
+    for diag in cert.get("diagnoses", []) or []:
+        code = re.sub(r"[^A-Za-z0-9]", "", diag.get("code") or "").upper()
+        if re.fullmatch(r"K(0\d|1[0-4])\d*", code):
+            return f"diagnosis {diag.get('code')}"
+    for item in receipt.get("line_items", []) or []:
+        text = f"{item.get('description', '')} {item.get('category', '')}".lower()
+        if "dental" in text:
+            return f"billed line {item.get('description') or 'dental'}"
+    return ""
+
+
+def _bank_finish_spend(run: dict[str, Any], provider: Any, mark_calls: int,
+                       mark_retries: int) -> None:
+    """Fold this finish's fresh cost/retries into the run before a pause.
+
+    Tokens are already in run["tokens_total"] via the local counter; only
+    cost and retries need banking here.
+    """
+    run["cost_usd"] = run.get("cost_usd", 0.0) + _fresh_spend(
+        provider.calls[mark_calls:])
+    run["retries_429"] = run.get("retries_429", 0) + (
+        getattr(provider, "retries_429", 0) - mark_retries)
+
+
+def _finish_run(provider: Any, run: dict[str, Any],
+                run_id: str | None = None) -> dict[str, Any]:
     """Eligibility, consistency, and decision on a run with full facts."""
     from claimlens.consistency import deterministic_findings, spark_findings
-    from claimlens.eligibility import check_eligibility, service_date_of
     from claimlens.engine import (
         build_inputs,
         copay_rate_from_bill,
         live_adjudicate,
-        load_scenarios,
     )
 
     reading = run["reading"]
+    # A continued run re-finishes: these steps are recomputed, not doubled.
+    run["steps"] = [s for s in run["steps"]
+                    if s["key"] not in ("eligibility", "consistency", "decision")]
     steps = run["steps"]
     tokens_total = run["tokens_total"]
     matched = run["matched"]
     declared = run["scenario"]
     person = run["person"]
     receipt, cert = reading["documents"]
-    _, inbound = load_scenarios()
-    context = matched or declared
     mark_calls = len(provider.calls)
     mark_retries = getattr(provider, "retries_429", 0)
     started = time.monotonic()
-    if context and context not in inbound:
-        eligibility = {"outcome": "traveller_abroad", "rule": "engine_path",
-                       "basis": "Korean traveller abroad — engine path."}
-    else:
-        eligibility = check_eligibility(person, service_date_of(receipt))
+    eligibility = resolve_eligibility(person, receipt)
     _step(steps, "eligibility", "Eligibility",
           f"{eligibility['outcome']} ({eligibility['rule']})",
           "deterministic", time.monotonic() - started)
@@ -645,23 +1396,56 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
     started = time.monotonic()
     mark = len(provider.calls)
     ruled = deterministic_findings(receipt, cert)
-    sparked, dropped = spark_findings(receipt, cert, provider)
+    overridden = set(run.get("resolved_blockers", {}))
+    ruled = [f for f in ruled
+             if not (f["severity"] == "blocker" and f["kind"] in overridden)]
+    if run.get("sparked") is not None and not run.get("readings_changed"):
+        sparked, dropped = run["sparked"], 0
+    else:
+        sparked, dropped = spark_findings(receipt, cert, provider)
+        run["sparked"] = sparked
+    run.pop("readings_changed", None)
     meta, tokens = _live_meta(provider, mark)
     tokens_total += tokens
     blockers = [f for f in ruled + sparked if f["severity"] == "blocker"]
+    confirmed = f"; person confirmed {len(overridden)}" if overridden else ""
     _step(steps, "consistency", "Consistency",
           f"{len(blockers)} blockers, {len(ruled + sparked) - len(blockers)} notes"
-          + (f"; {dropped} dropped quotes" if dropped else ""),
+          + (f"; {dropped} dropped quotes" if dropped else "") + confirmed,
           meta, time.monotonic() - started, tokens)
 
     started = time.monotonic()
     note = ""
     stop_questions: list[dict[str, str]] = []
     if blockers:
+        rule_blockers = [f for f in blockers if f.get("layer") == "rule"]
+        if len(rule_blockers) == len(blockers):
+            # H8: every blocker is answerable — pause for picks/notes.
+            run["blockers"] = rule_blockers
+            run["tokens_total"] = tokens_total
+            _bank_finish_spend(run, provider, mark_calls, mark_retries)
+            return _pause_run(
+                run, run_id, badge="blocked",
+                title="Resolve the blocking questions first.",
+                questions=_blocker_questions(rule_blockers),
+            )
         decision = {"badge": "blocked", "title": "Resolve the blocking questions first."}
         detail = f"{len(blockers)} blocking questions asked"
         meta = "stopped before decision"
-    elif eligibility["outcome"] in ("nhi_member", "traveller_abroad") and context:
+    elif _dental_flag(receipt, cert):
+        # T6: dental treatment is flagged for a reviewer, never decided.
+        detail = f"dental flag: {_dental_flag(receipt, cert)}"
+        decision = {"badge": "needs_review",
+                    "title": ("Flagged for a reviewer: dental treatment "
+                              "is never decided automatically.")}
+        meta = "stopped before decision"
+        stop_questions = [{
+            "question": ("This claim involves dental treatment "
+                         f"({detail}); what should the reviewer check?"),
+            "why_needed": ("No payout rule exists for dental care; "
+                           "a reviewer decides, the engine never does."),
+        }]
+    elif eligibility["outcome"] in ("nhi_member", "traveller_abroad"):
         # C3: same bar as the agent path (tool_adjudicate): a Korean claim
         # without a copay rate is stopped, never adjudicated.
         if receipt.get("country") == "KR" and copay_rate_from_bill(
@@ -675,20 +1459,54 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
                 "why_needed": "The copay rate (cell 1 / (cell 1 + cell 2)) "
                               "is required to adjudicate a Korean claim.",
             }]
-        elif neo4j_up():
-            inputs = build_inputs(context, "photo", reading)
+        else:
+            # H2: a byte-matched sample runs on its own policy; every other
+            # run needs the product the user chose — never a declared
+            # scenario's policy.
+            from claimlens.engine import build_inputs_for_product, product_catalog
+
+            catalog = product_catalog()
+            chosen = "" if matched else person.get("product", "")
+            if not matched and chosen not in catalog:
+                run["tokens_total"] = tokens_total
+                _bank_finish_spend(run, provider, mark_calls, mark_retries)
+                known = ", ".join(sorted(catalog)) or "none"
+                return _pause_run(
+                    run, run_id, badge="need_product",
+                    title="Choose an insurance product to continue.",
+                    questions=[{
+                        "id": "product",
+                        "question": "Which insurance product covers this claim?",
+                        "why_needed": ("The engine prices against the chosen "
+                                       f"product's demo terms. Known: {known}."),
+                    }],
+                )
+            if not neo4j_up():
+                run["tokens_total"] = tokens_total
+                _bank_finish_spend(run, provider, mark_calls, mark_retries)
+                return _pause_run(
+                    run, run_id, badge="engine_unreachable",
+                    title="Neo4j is down; no decision made.",
+                    questions=[{
+                        "question": ("The engine is unreachable. Start Neo4j "
+                                     "and resend to retry — no new reading is needed."),
+                        "why_needed": ("The verified reading is kept; "
+                                       "retrying reuses it."),
+                    }],
+                )
+            if matched:
+                inputs = build_inputs(matched, "photo", reading)
+                note = "live engine call, not cached"
+            else:
+                claim_id = f"live-{run_id[:8]}" if run_id else "live-upload"
+                inputs = build_inputs_for_product(chosen, claim_id, reading)
+                note = f"{chosen} chosen by user (demo terms); live engine call, not cached"
+                if declared and declared != matched:
+                    note += f"; declared {declared} shown for reference only"
             output = live_adjudicate(inputs)
             decision = {"badge": output["decision"], "title": f"{output['amount']:,} KRW"}
             detail = f"{output['decision']} {output['amount']:,} KRW"
-            if matched:
-                note = "live engine call, not cached"
-            else:
-                note = f"{context} context (preset-declared); live engine call, not cached"
             meta = note
-        else:
-            decision = {"badge": "engine_unreachable", "title": "Neo4j is down; no decision made."}
-            detail = "engine skipped: Neo4j unreachable"
-            meta = "deterministic"
     elif eligibility["outcome"] == "not_member_or_unknown" and matched:
         from claimlens.claimpack import build_pack_from_reading
         from claimlens.letter import build_letter
@@ -716,7 +1534,7 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
     finish_spend = _fresh_spend(provider.calls[mark_calls:])
     finish_retries = getattr(provider, "retries_429", 0) - mark_retries
 
-    return {
+    response: dict[str, Any] = {
         "steps": steps,
         "result": decision,
         "tokens_total": tokens_total,
@@ -729,20 +1547,28 @@ def _finish_run(provider: Any, run: dict[str, Any]) -> dict[str, Any]:
             for f in blockers
         ] + stop_questions,
     }
+    if run.get("merge") is not None:
+        response["merge"] = run["merge"]
+    return response
 
 
 def run_continue(
     run_id: str,
     person: dict[str, Any] | None = None,
     scenario: str | None = None,
+    resolutions: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Answer a paused run's questions; finishes with no new reading call."""
+    """Answer a paused run's questions; finishes with no new reading call.
+
+    resolutions answers gate picks (H7) or blocker picks/notes (H8) by
+    question id; person/scenario merge as before under the same run_id.
+    """
     from claimlens.engine import load_scenarios
 
     if not isinstance(run_id, str) or run_id not in _RUNS:
         raise ValueError("Unknown or expired run; drop the photos again.")
     run = _RUNS[run_id]
-    scenarios, inbound = load_scenarios()
+    scenarios, _ = load_scenarios()
     declared = check_scenario(scenario, scenarios)
     if declared:
         run["scenario"] = declared
@@ -753,11 +1579,128 @@ def run_continue(
         else:
             merged[key] = value
     run["person"] = merged
-    context = run["matched"] or run["scenario"]
-    if not (context and context not in inbound) and missing_facts(merged):
+    answers = _check_resolutions(resolutions)
+    if run.get("gate"):
+        if not answers:
+            gate = run["gate"]
+            return _pause_run(
+                run, run_id, badge="needs_manual_check",
+                title=("Human review: two reads disagreed — "
+                       "pick the printed value for each field."),
+                questions=gate_questions(gate["diffs"]),
+            )
+        return _continue_gate(run, run_id, answers)
+    if run.get("blockers"):
+        if not answers:
+            return _pause_run(
+                run, run_id, badge="blocked",
+                title="Resolve the blocking questions first.",
+                questions=_blocker_questions(run["blockers"]),
+            )
+        return _continue_blockers(run, run_id, answers)
+    if answers:
+        raise ValueError("This run has no pending choices to answer.")
+    if missing_facts(merged):
         return _pause_run(run, run_id)
     del _RUNS[run_id]
-    return _finish_run(live_provider(), run)
+    return _finish_run(live_provider(), run, run_id)
+
+
+def _continue_gate(run: dict[str, Any], run_id: str,
+                   answers: dict[str, Any]) -> dict[str, Any]:
+    """Apply gate picks; re-pause when they fail checks, else move on."""
+    _resolve_gate(run, answers)
+    if run["_resolve_failing"]:
+        names = ", ".join(run["_resolve_failing"])
+        return _pause_run(
+            run, run_id, badge="needs_manual_check",
+            title=(f"Those picks fail the receipt checks ({names}); "
+                   "pick again."),
+            questions=gate_questions(run["gate"]["diffs"]),
+        )
+    picks = run["_resolve_picks"]
+    if run.get("multi"):
+        try:
+            _adopt_multi_resolved(run)
+        except ValueError as exc:
+            # The picks pass per-photo checks but cannot merge; the gate
+            # stays so the person can pick again under the same run_id.
+            return _pause_run(
+                run, run_id, badge="needs_manual_check",
+                title=f"Those picks cannot merge ({exc}); pick again.",
+                questions=gate_questions(run["gate"]["diffs"]),
+            )
+    else:
+        run["reading"] = {"documents": run["gate_resolved"][None]}
+    run["readings_changed"] = True
+    for key in ("gate", "gate_resolved", "_resolve_picks", "_resolve_failing"):
+        run.pop(key, None)
+    _step(run["steps"], "resolve", "Resolve",
+          "person chose: " + "; ".join(picks), "person-confirmed", 0.0)
+    if missing_facts(run["person"]):
+        return _pause_run(run, run_id)
+    del _RUNS[run_id]
+    return _finish_run(live_provider(), run, run_id)
+
+
+def _continue_blockers(run: dict[str, Any], run_id: str,
+                       answers: dict[str, Any]) -> dict[str, Any]:
+    """Apply blocker picks (validated against the quotes) and notes (H8)."""
+    pending = run.get("blockers") or []
+    kinds = {f["kind"] for f in pending}
+    resolved = dict(run.get("resolved_blockers", {}))
+    notes = dict(run.get("blocker_notes", {}))
+    for key, value in answers.items():
+        if not key.startswith("blocker:") or key[8:] not in kinds:
+            raise ValueError(f"Unknown blocker choice {key!r}.")
+        kind = key[8:]
+        if isinstance(value, dict):
+            note = value.get("note", "")
+            if not isinstance(note, str) or not note.strip():
+                raise ValueError(f"Answer {key!r} needs a note.")
+            notes[kind] = note.strip()
+            continue
+        if value not in ("receipt", "cert"):
+            raise ValueError(f"Choice {key!r} must be 'receipt' or 'cert'.")
+        finding = next(f for f in pending if f["kind"] == kind)
+        resolved[kind] = {"pick": value,
+                          "value": finding[f"quote_{value}"]}
+    run["resolved_blockers"] = resolved
+    run["blocker_notes"] = notes
+    run["resolved"] = {**run.get("resolved", {}),
+                       "blockers": resolved, "notes": notes}
+    remaining = [f for f in pending if f["kind"] not in resolved]
+    run["blockers"] = remaining
+    if remaining:
+        return _pause_run(
+            run, run_id, badge="blocked",
+            title="Resolve the blocking questions first.",
+            questions=_blocker_questions(remaining),
+        )
+    if missing_facts(run["person"]):
+        return _pause_run(run, run_id)
+    del _RUNS[run_id]
+    return _finish_run(live_provider(), run, run_id)
+
+
+def _blocker_questions(blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """H8: each rule blocker as a pick (receipt/cert quotes) plus a note box."""
+    out = []
+    for finding in blockers:
+        kind = finding["kind"]
+        out.append({
+            "id": f"blocker:{kind}",
+            "question": finding.get("question", ""),
+            "why_needed": finding.get("why_needed", ""),
+            "options": [
+                {"id": "receipt", "label": f"receipt: {finding['quote_receipt']}",
+                 "source": f"receipt ({kind})"},
+                {"id": "cert", "label": f"certificate: {finding['quote_cert']}",
+                 "source": f"certificate ({kind})"},
+            ],
+            "note": True,
+        })
+    return out
 
 
 def _host_ok(host: str, port: int) -> bool:
@@ -829,7 +1772,8 @@ def route_post(
     try:
         body = json.loads(raw.decode("utf-8"))
         if body.get("run_id"):
-            result = run_continue(body["run_id"], body.get("person"), body.get("scenario"))
+            result = run_continue(body["run_id"], body.get("person"),
+                                    body.get("scenario"), body.get("resolutions"))
         else:
             result = run_live(body.get("images", []), body.get("person"), body.get("scenario"))
     except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

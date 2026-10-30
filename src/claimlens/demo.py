@@ -126,6 +126,12 @@ def _person_presets():
     return presets
 
 
+def _product_names():
+    from claimlens.engine import product_catalog
+
+    return sorted(product_catalog())
+
+
 
 def _rel(from_dir: Path, target: Path) -> str:
     start = _normpath(os.path.abspath(from_dir))
@@ -978,6 +984,7 @@ def export_demo(dst: Path | str = "docs/demo.html", root: Path | None = None) ->
         ],
         "eval": _eval_section(),
         "person_presets": _person_presets(),
+        "products": _product_names(),
         "measured": headline.lines(repo),
         "after_n": headline.after_n(repo),
         "after_scope": headline.after_scope(repo),

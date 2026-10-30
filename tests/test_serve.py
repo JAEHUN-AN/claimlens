@@ -82,6 +82,42 @@ def _run(stubbed, payload: dict, headers: dict[str, str] | None = None) -> tuple
     return stubbed.route_post("/api/run", raw, len(raw), headers or _headers(), PORT)
 
 
+def _travel_product() -> str:
+    from claimlens.engine import product_catalog
+
+    names = [n for n in product_catalog() if "해외여행" in n]
+    assert len(names) == 1
+    return names[0]
+
+
+def _traveller_person(product: str | None = None) -> dict:
+    person = {"visa": "none (Korean national)", "korean_employer": False,
+              "work_related": False, "entry_date": "n/a",
+              "alien_registration_date": "none", "korean_national": True}
+    if product is not None:
+        person["product"] = product
+    return person
+
+
+class _AbroadStub(StubProvider):
+    """Unmatched bytes read as a Japanese clinic receipt + certificate."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        from claimlens.rotation import RotationProbe
+
+        if result_model is RotationProbe:
+            self._log(10)
+            return {"rotation": 0}
+        self._log(100)
+        return copy.deepcopy(replay_reading("A_niseko_wrist", "photo"))
+
+
+def _continue(stubbed, payload: dict) -> tuple[int, dict]:
+    raw = json.dumps(payload).encode("utf-8")
+    return stubbed.route_post("/api/run", raw, len(raw), _headers(), PORT)
+
+
 def test_health(stubbed):
     status, body, media = stubbed.route_get("/api/health")
     assert (status, media) == (200, "application/json")
@@ -228,7 +264,7 @@ def test_run_live_end_to_end_with_stub(stubbed):
     status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
     assert [s["key"] for s in result["steps"]] == [
-        "reading", "checks", "double_read", "eligibility", "consistency", "decision",
+        "reading", "checks", "double_read", "eligibility", "consistency",
     ]
     assert all(s["seconds"] >= 0 for s in result["steps"])
     assert result["steps"][0]["tokens"] == 200
@@ -236,8 +272,9 @@ def test_run_live_end_to_end_with_stub(stubbed):
     assert result["matched_sample"] == "S2_seoul_worker_bronchitis"
     assert result["result"]["badge"] == "engine_unreachable"
     assert result["tokens_total"] == 250
-    assert result["questions"] == []
-    assert "run_id" not in result
+    assert len(result["questions"]) == 1
+    assert "resend to retry" in result["questions"][0]["question"]
+    assert result["run_id"]
 
 
 def test_reused_recordings_say_so_with_zero_new_tokens(monkeypatch):
@@ -305,7 +342,7 @@ def test_no_person_facts_pauses_with_questions(stubbed):
     assert status == 200
     assert result["result"]["badge"] == "need_facts"
     assert [s["key"] for s in result["steps"]] == ["reading", "checks", "double_read"]
-    assert len(result["questions"]) == 5
+    assert len(result["questions"]) == 6
     assert all(set(q) == {"question", "why_needed"} for q in result["questions"])
     assert all(q["question"] and q["why_needed"] for q in result["questions"])
     assert result["run_id"]
@@ -316,8 +353,9 @@ def test_partial_person_asks_only_what_is_missing(stubbed):
     status, result = _run(stubbed, {"images": _sample_images(), "person": person})
     assert status == 200
     assert result["result"]["badge"] == "need_facts"
-    assert len(result["questions"]) == 2
+    assert len(result["questions"]) == 3
     assert "enter Korea" in result["questions"][0]["question"]
+    assert "Korean national" in result["questions"][2]["question"]
 
 
 def test_person_facts_ask_registration_date(stubbed):
@@ -334,7 +372,8 @@ def test_person_facts_ask_registration_date(stubbed):
         "person": {"alien_registration_date": "2026-03-20"},
     })
     assert status == 200
-    assert "run_id" not in continued
+    assert continued["result"]["badge"] == "engine_unreachable"
+    assert continued["run_id"] == result["run_id"]
 
 
 def test_registration_none_counts_as_answered(stubbed):
@@ -377,14 +416,16 @@ def test_continue_finishes_with_no_new_reading(stubbed, monkeypatch):
     )
     assert status == 200
     assert [s["key"] for s in result["steps"]] == [
-        "reading", "checks", "double_read", "eligibility", "consistency", "decision",
+        "reading", "checks", "double_read", "eligibility", "consistency",
     ]
     assert result["result"]["badge"] == "engine_unreachable"
-    assert "run_id" not in result
+    assert result["run_id"] == paused["run_id"]
     assert len([c for c in stub.calls if c.total_tokens == 100]) == 2
-    status, result = _run(stubbed, {"run_id": paused["run_id"], "person": _s2_person()})
-    assert status == 400
-    assert "drop the photos again" in result["error"]
+    status, result = _run(stubbed, {"run_id": paused["run_id"]})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["run_id"] == paused["run_id"]
+    assert len([c for c in stub.calls if c.total_tokens == 100]) == 2
 
 
 class _ProbeAwareStub(StubProvider):
@@ -401,23 +442,124 @@ class _ProbeAwareStub(StubProvider):
                                       cache_tag)
 
 
-def test_preset_scenario_reaches_engine_without_byte_match(stubbed, monkeypatch):
+def test_traveller_path_adjudicates_with_chosen_product(stubbed, monkeypatch):
+    """H1: a Korean national treated abroad reaches the engine path."""
+    from claimlens import engine
+
+    monkeypatch.setattr(stubbed, "live_provider", _AbroadStub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    seen = {}
+    def fake_adjudicate(inputs):
+        seen.update(inputs)
+        return {"decision": "PARTIAL", "amount": 100000}
+    monkeypatch.setattr(engine, "live_adjudicate", fake_adjudicate)
+    product = _travel_product()
+    status, result = _run(stubbed, {"images": _retake_images(),
+                                    "person": _traveller_person(product)})
+    assert status == 200
+    assert result["result"]["badge"] == "PARTIAL"
+    assert seen["product"] == product
+    assert seen["treated_abroad"] is True
+    assert "chosen by user" in result["result"]["note"]
+    assert result["scenario"] is None
+
+
+def test_declared_scenario_never_supplies_policy(stubbed, monkeypatch):
+    """H2: a declared scenario is reference-only; the user picks a product."""
     from claimlens import engine
 
     monkeypatch.setattr(stubbed, "live_provider", _ProbeAwareStub)
     monkeypatch.setattr(serve, "neo4j_up", lambda: True)
-    monkeypatch.setattr(engine, "live_adjudicate", lambda inputs: {"decision": "PARTIAL", "amount": 22500})
+    calls = []
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: calls.append(inputs) or {"decision": "X", "amount": 0})
     status, result = _run(stubbed, {
-        "images": _retake_images(),
-        "person": _s2_person(),
-        "scenario": "S2_seoul_worker_bronchitis",
-    })
+        "images": _retake_images(), "person": _s2_person(),
+        "scenario": "S2_seoul_worker_bronchitis"})
     assert status == 200
-    assert result["matched_sample"] is None
-    assert result["scenario"] == "S2_seoul_worker_bronchitis"
+    assert result["result"]["badge"] == "need_product"
+    assert calls == []
+    assert result["run_id"]
+    product = _s2_product()
+    status, result = _continue(stubbed, {"run_id": result["run_id"],
+                                         "person": {"product": product}})
+    assert status == 200
+    assert result["result"]["badge"] == "X"
+    assert calls[0]["product"] == product
+    assert "shown for reference only" in result["result"]["note"]
+    assert "run_id" not in result
+
+
+def _s2_product() -> str:
+    from claimlens.engine import product_catalog
+
+    names = [n for n in product_catalog() if "해외여행" not in n]
+    assert len(names) == 1
+    return names[0]
+
+
+def test_unknown_product_asks_with_catalog(stubbed, monkeypatch):
+    """H1: an unknown product asks instead of pricing blind."""
+    monkeypatch.setattr(stubbed, "live_provider", _AbroadStub)
+    status, result = _run(stubbed, {"images": _retake_images(),
+                                    "person": _traveller_person("No Such Product")})
+    assert status == 200
+    assert result["result"]["badge"] == "need_product"
+    assert "Which insurance product" in result["questions"][0]["question"]
+    assert "해외여행" in result["questions"][0]["why_needed"]
+    assert result["run_id"]
+
+
+def test_engine_down_pauses_with_retry_and_no_new_reads(stubbed, monkeypatch):
+    """H1: engine down keeps the verified reading and retries on resend."""
+    from claimlens import engine
+
+    stub = _AbroadStub()
+    monkeypatch.setattr(stubbed, "live_provider", lambda: stub)
+    product = _travel_product()
+    status, result = _run(stubbed, {"images": _retake_images(),
+                                    "person": _traveller_person(product)})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert "resend to retry" in result["questions"][0]["question"]
+    run_id = result["run_id"]
+    reads = len(stub.calls)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: {"decision": "PARTIAL", "amount": 100000})
+    status, result = _continue(stubbed, {"run_id": run_id})
+    assert status == 200
     assert result["result"]["badge"] == "PARTIAL"
-    assert result["result"]["title"] == "22,500 KRW"
-    assert "preset-declared" in result["result"]["note"]
+    assert len(stub.calls) == reads  # no new reading call on retry
+    assert [s["key"] for s in result["steps"]].count("decision") == 1
+
+
+def test_dental_flags_for_reviewer_and_never_decides(stubbed, monkeypatch):
+    """T6: dental treatment never reaches the engine, even with a product."""
+    from claimlens import engine
+
+    class _DentalStub(_AbroadStub):
+        def read_documents(self, images, instructions, schema, result_model=None,
+                           cache_tag=""):
+            from claimlens.rotation import RotationProbe
+
+            if result_model is RotationProbe:
+                self._log(10)
+                return {"rotation": 0}
+            self._log(100)
+            reading = copy.deepcopy(replay_reading("A_niseko_wrist", "photo"))
+            reading["documents"][1]["diagnoses"] = [{"code": "K04.7"}]
+            return reading
+
+    monkeypatch.setattr(stubbed, "live_provider", _DentalStub)
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate", lambda inputs: (_ for _ in ()).throw(
+        AssertionError("engine must not decide dental")))
+    status, result = _run(stubbed, {"images": _retake_images(),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_review"
+    assert "dental" in result["result"]["title"].lower()
 
 
 def test_continue_rejects_bad_run_id_person_and_scenario(stubbed):
@@ -468,7 +610,8 @@ class _UnorderableStub(StubProvider):
         return reading
 
 
-def test_gate_disagreement_stops_with_side_by_side_questions(stubbed, monkeypatch):
+def test_gate_disagreement_pauses_with_side_by_side_choices(stubbed, monkeypatch):
+    """H7: each differing field pauses with both values and its source."""
     monkeypatch.setattr(serve, "live_provider", lambda: _SplitStub())
     status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
     assert status == 200
@@ -477,9 +620,352 @@ def test_gate_disagreement_stops_with_side_by_side_questions(stubbed, monkeypatc
     assert result["result"]["badge"] == "needs_manual_check"
     assert len(result["questions"]) == 2
     question = result["questions"][0]
-    assert set(question) == {"question", "why_needed"}
+    assert set(question) == {"question", "why_needed", "id", "options"}
     assert "18,000" in question["question"] and "19,000" in question["question"]
+    assert question["id"] == "line 1 amount"
+    assert [o["id"] for o in question["options"]] == ["first", "second"]
+    assert all(o["source"] == "receipt line 1 amount" for o in question["options"])
+    assert "19,000" in question["options"][1]["label"]
+    assert result["run_id"]
+
+
+def test_gate_resolution_continues_same_run(stubbed, monkeypatch):
+    """H7: picked values are re-checked and the run continues."""
+    monkeypatch.setattr(serve, "live_provider", lambda: _SplitStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"line 1 amount": "first", "line 2 amount": "first"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["run_id"] == run_id
+    resolve = next(s for s in result["steps"] if s["key"] == "resolve")
+    assert resolve["meta"] == "person-confirmed"
+    assert "line 1 amount" in resolve["detail"]
+    assert result["answers"]["gate"] == {"line 1 amount": "first",
+                                         "line 2 amount": "first"}
+
+
+def test_gate_resolution_rechecks_and_repauses(stubbed, monkeypatch):
+    """H7: picks that fail the sum check pause again under the same id."""
+    monkeypatch.setattr(serve, "live_provider", lambda: _SplitStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"line 1 amount": "second", "line 2 amount": "first"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert result["run_id"] == run_id
+    assert "lines_sum" in result["result"]["title"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"line 1 amount": "second", "line 2 amount": "second"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["run_id"] == run_id
+
+
+class _MismatchStub(StubProvider):
+    """S2 receipt stapled to an S3 certificate: rule blockers only."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        self._log(100)
+        receipt = copy.deepcopy(
+            replay_reading("S2_seoul_worker_bronchitis", "photo")["documents"][0])
+        cert = copy.deepcopy(
+            replay_reading("S3_us_tourist_hip_fracture", "photo")["documents"][1])
+        return {"documents": [receipt, cert]}
+
+
+def test_blockers_pause_with_picks_and_note_boxes(stubbed, monkeypatch):
+    """H8: rule blockers pause with receipt/cert picks plus a note box."""
+    monkeypatch.setattr(stubbed, "live_provider", _MismatchStub)
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    assert status == 200
+    assert result["result"]["badge"] == "blocked"
+    assert result["run_id"]
+    kinds = {q["id"] for q in result["questions"]}
+    assert kinds == {"blocker:patient_name", "blocker:visit_date", "blocker:visit_type"}
+    for question in result["questions"]:
+        assert [o["id"] for o in question["options"]] == ["receipt", "cert"]
+        assert question["note"] is True
+        assert "receipt (" in question["options"][0]["source"]
+
+
+def test_blocker_resolution_continues_same_run(stubbed, monkeypatch):
+    """H8: confirmed blockers unblock; provenance stays on the run."""
+    monkeypatch.setattr(stubbed, "live_provider", _MismatchStub)
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {
+            "blocker:patient_name": "receipt",
+            "blocker:visit_date": "cert",
+            "blocker:visit_type": "receipt",
+        },
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["run_id"] == run_id
+    consistency = next(s for s in result["steps"] if s["key"] == "consistency")
+    assert "person confirmed 3" in consistency["detail"]
+    assert result["answers"]["blockers"]["patient_name"]["pick"] == "receipt"
+
+
+def test_blocker_note_only_stays_blocked(stubbed, monkeypatch):
+    """H8: a free-text note is recorded but resolves nothing by itself."""
+    monkeypatch.setattr(stubbed, "live_provider", _MismatchStub)
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"blocker:patient_name": {"note": "ID checked at desk"}},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "blocked"
+    assert result["run_id"] == run_id
+    assert "blocker:patient_name" in {q["id"] for q in result["questions"]}
+    assert result["answers"]["notes"] == {"patient_name": "ID checked at desk"}
+
+
+def _thb_receipt(total, lines, name="Jaeho PARK", dob="1990-01-01"):
+    return {"doc_type": "receipt", "country": "TH", "currency": "THB",
+            "total_amount": float(total), "service_date": "2026-09-18",
+            "inpatient": False,
+            "line_items": [{"description": label, "category": "other",
+                            "amount": float(amount)}
+                           for label, amount in lines],
+            "pii": [{"kind": "name", "value": name},
+                    {"kind": "dob", "value": dob}]}
+
+
+def _thb_cert(code="A05.9", name="Jaeho PARK", dob="1990-01-01"):
+    return {"doc_type": "medical_certificate",
+            "diagnoses": [{"code": code}],
+            "pii": [{"kind": "name", "value": name},
+                    {"kind": "dob", "value": dob}],
+            "diagnosed": "2026-09-18"}
+
+
+class _PhotoStub(StubProvider):
+    """One doc set per photo index; both reads identical unless overridden."""
+
+    def __init__(self, photos, second=None):
+        super().__init__()
+        self.photos = photos
+        self.second = second or {}
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        from claimlens.rotation import RotationProbe
+
+        if result_model is RotationProbe:
+            self._log(10)
+            return {"rotation": 0}
+        self._log(100)
+        idx = int(images[0].stem.split("_")[1])
+        script = self.second if cache_tag else self.photos
+        docs = script.get(idx, self.photos[idx])
+        return {"documents": copy.deepcopy(docs)}
+
+
+def _multi_images(n):
+    root = Path(__file__).resolve().parent.parent / "samples" / "live"
+    blob = (root / "S2_receipt_retake.jpg").read_bytes()
+    return [{"name": f"photo{i}.jpg",
+             "data": base64.b64encode(blob).decode("ascii")} for i in range(n)]
+
+
+def test_three_uploads_merge_receipts(stubbed, monkeypatch):
+    """50: two receipts + certificate merge with per-photo provenance."""
+    er = _thb_receipt(12550, [("Emergency fee", 2500.0), ("IV fluids", 1800.0),
+                              ("Lab tests", 3200.0), ("Medication (ER)", 1450.0),
+                              ("Observation (4 hrs)", 3600.0)])
+    pharm = _thb_receipt(1660, [("Antibiotics", 890.0), ("Probiotics", 650.0),
+                                ("ORS sachets", 120.0)])
+    photos = {0: [er], 1: [pharm], 2: [_thb_cert()]}
+    monkeypatch.setattr(stubbed, "live_provider", lambda: _PhotoStub(photos))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    merge = next(s for s in result["steps"] if s["key"] == "merge")
+    assert "12,550" in merge["detail"] and "1,660" in merge["detail"]
+    assert result["merge"]["merged_total"] == 14210.0
+    assert result["merge"]["currency"] == "THB"
+    assert [p["photo"] for p in result["merge"]["photos"]] == [1, 2, 3]
+
+
+def test_card_slip_deduped_once(stubbed, monkeypatch):
+    """50: a bill and its card slip with equal amounts count once."""
+    bill = _thb_receipt(1333.85, [("Urgent care visit", 950.0),
+                                  ("X-ray ankle", 620.0), ("Lab tests", 240.0),
+                                  ("Medication", 95.5),
+                                  ("Insurance adjustment", -571.65)])
+    bill["country"], bill["currency"] = "US", "USD"
+    slip = {"doc_type": "receipt", "country": "US", "currency": "USD",
+            "total_amount": 1333.85, "service_date": "2026-09-26",
+            "inpatient": False, "line_items": [],
+            "pii": bill["pii"]}
+    cert = _thb_cert("S93.4")
+    photos = {0: [bill], 1: [slip], 2: [cert]}
+    monkeypatch.setattr(stubbed, "live_provider", lambda: _PhotoStub(photos))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["merge"]["merged_total"] == 1333.85
+    dropped = [p for p in result["merge"]["photos"] if p["status"] == "deduped"]
+    assert len(dropped) == 1 and dropped[0]["photo"] == 2
+    assert "same amount" in dropped[0]["note"]
+
+
+def test_missing_certificate_asks(stubbed, monkeypatch):
+    """50/T4: one receipt and no certificate asks for it (never 400)."""
+    photos = {0: [_thb_receipt(16.5, [("Medicine", 16.5)])]}
+    monkeypatch.setattr(stubbed, "live_provider", lambda: _PhotoStub(photos))
+    status, result = _run(stubbed, {"images": _multi_images(1),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert "certificate" in result["questions"][0]["question"].lower()
+
+
+def test_korean_multi_stop(stubbed, monkeypatch):
+    """50: several Korean bills are separate visits; upload them apart."""
+    bill = {"doc_type": "receipt", "country": "KR", "currency": "KRW",
+            "total_amount": 45000.0, "service_date": "2026-08-10",
+            "inpatient": False, "line_items": [], "kr_bill": {"cell_1": 1}}
+    cert = {"doc_type": "medical_certificate", "diagnoses": [{"code": "J20.9"}]}
+    photos = {0: [bill], 1: [dict(bill)], 2: [cert]}
+    monkeypatch.setattr(stubbed, "live_provider", lambda: _PhotoStub(photos))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert "separately" in result["questions"][0]["question"]
+
+
+def test_mixed_currency_stop(stubbed, monkeypatch):
+    """50: receipts in different currencies are not merged blind."""
+    thb = _thb_receipt(100, [("Care", 100.0)])
+    vnd = _thb_receipt(200, [("Care", 200.0)])
+    vnd["country"], vnd["currency"] = "VN", "VND"
+    photos = {0: [thb], 1: [vnd], 2: [_thb_cert()]}
+    monkeypatch.setattr(stubbed, "live_provider", lambda: _PhotoStub(photos))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert "mixed currenc" in result["questions"][0]["question"].lower()
+
+
+def test_multi_gate_resolution_uses_photo_ids(stubbed, monkeypatch):
+    """H7+50: per-photo diffs pause with photo ids and continue."""
+    er = _thb_receipt(12550, [("Emergency fee", 2500.0), ("Rest", 10050.0)])
+    er2 = _thb_receipt(12551, [("Emergency fee", 2500.0), ("Rest", 10051.0)])
+    pharm = _thb_receipt(1660, [("Meds", 1660.0)])
+    photos = {0: [er], 1: [pharm], 2: [_thb_cert()]}
+    second = {0: [er2]}
+    monkeypatch.setattr(stubbed, "live_provider",
+                        lambda: _PhotoStub(photos, second))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    ids = [q["id"] for q in result["questions"]]
+    assert ids == ["photo 1 total", "photo 1 line 2 amount"]
+    assert result["questions"][0]["options"][0]["source"] == (
+        "photo 1 receipt total_amount")
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"photo 1 total": "first",
+                        "photo 1 line 2 amount": "first"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["merge"]["merged_total"] == 14210.0
+    assert result["run_id"] == run_id
+
+
+def test_multi_gate_merge_conflict_repauses(stubbed, monkeypatch):
+    """H7+50: picks that pass per-photo checks but cannot merge re-pause."""
+    thb = _thb_receipt(100, [("Care", 100.0)])
+    usd = _thb_receipt(100, [("Care", 100.0)])
+    usd["country"], usd["currency"] = "US", "USD"
+    photos = {0: [thb], 1: [_thb_receipt(50, [("Meds", 50.0)])],
+              2: [_thb_cert()]}
+    monkeypatch.setattr(stubbed, "live_provider",
+                        lambda: _PhotoStub(photos, {0: [usd]}))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert [q["id"] for q in result["questions"]] == ["photo 1 currency",
+                                                     "photo 1 country"]
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"photo 1 currency": "second",
+                        "photo 1 country": "second"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "needs_manual_check"
+    assert "cannot merge" in result["result"]["title"]
+    assert result["run_id"] == run_id
+    assert [q["id"] for q in result["questions"]] == ["photo 1 currency",
+                                                     "photo 1 country"]
+    status, result = _continue(stubbed, {
+        "run_id": run_id,
+        "resolutions": {"photo 1 currency": "first",
+                        "photo 1 country": "first"},
+    })
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    assert result["merge"]["merged_total"] == 150.0
+    assert result["run_id"] == run_id
+
+
+def test_spark_blocker_stays_terminal(stubbed, monkeypatch):
+    """H8: model blockers cannot be picked away; the run ends blocked."""
+
+    class _SparkStub(StubProvider):
+        def write(self, instructions, schema, result_model=None):
+            self._log(50)
+            return {"findings": [{"kind": "odd_code", "severity": "blocker",
+                                  "reason": "The code looks unusual.",
+                                  "quote_receipt": "45000", "quote_cert": "J20.9"}]}
+
+    monkeypatch.setattr(stubbed, "live_provider", _SparkStub)
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    assert status == 200
+    assert result["result"]["badge"] == "blocked"
     assert "run_id" not in result
+
+
+def test_gate_resolution_rejects_unknown_and_missing(stubbed, monkeypatch):
+    monkeypatch.setattr(serve, "live_provider", lambda: _SplitStub())
+    status, result = _run(stubbed, {"images": _sample_images(), "person": _s2_person()})
+    run_id = result["run_id"]
+    status, result = _continue(stubbed, {"run_id": run_id,
+                                         "resolutions": {"line 9 amount": "first"}})
+    assert status == 400
+    assert "Unknown choices" in result["error"]
+    status, result = _continue(stubbed, {"run_id": run_id,
+                                         "resolutions": {"line 1 amount": "first"}})
+    assert status == 400
+    assert "Unresolved choices" in result["error"]
+    status, result = _continue(stubbed, {"run_id": run_id,
+                                         "resolutions": {"line 1 amount": "maybe",
+                                                         "line 2 amount": "first"}})
+    assert status == 400
+    assert "must be 'first' or 'second'" in result["error"]
 
 
 def test_total_disagreement_stops_at_checks(stubbed, monkeypatch):
@@ -522,7 +1008,8 @@ def test_gate_diffs_pure():
     assert diffs[0][1:] == ("45,000", "unreadable")
     questions = serve.gate_questions(diffs)
     assert len(questions) == 3
-    assert all(set(q) == {"question", "why_needed"} for q in questions)
+    assert all(set(q) == {"question", "why_needed", "id", "options"}
+               for q in questions)
 
 
 def test_gate_diffs_c1_identity_fields():
@@ -547,15 +1034,22 @@ def test_gate_diffs_c1_identity_fields():
     assert serve.gate_diffs(_reading_of(base), _reading_of(dict(base))) == []
 
 
-def test_run_rejects_non_images_and_wrong_counts(stubbed):
+def test_run_rejects_non_images_and_wrong_counts(stubbed, monkeypatch):
     bad = base64.b64encode(b"not an image at all....").decode("ascii")
     images = _sample_images()
     status, result = _run(stubbed, {"images": [{"name": "x.txt", "data": bad}, images[1]]})
     assert status == 400
     assert "images only" in result["error"]
-    status, result = _run(stubbed, {"images": images[:1]})
+    status, result = _run(stubbed, {"images": []})
     assert status == 400
-    assert "exactly 2" in result["error"]
+    assert "1 to 6" in result["error"]
+    # 50: one upload is a multi run (receipt + certificate on one photo),
+    # not a rejection: it reads and pauses for the missing person facts.
+    monkeypatch.setattr(stubbed, "live_provider", _AbroadStub)
+    status, result = _run(stubbed, {"images": images[:1]})
+    assert status == 200
+    assert result["result"]["badge"] == "need_facts"
+    assert result["run_id"]
 
 
 def test_run_rejects_oversized_uploads(stubbed):

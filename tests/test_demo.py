@@ -194,6 +194,37 @@ def test_demo_exports_three_offline_scenes(tmp_path, monkeypatch):
     )
 
 
+def test_live_ui_has_picker_panels_and_resolutions(tmp_path, monkeypatch):
+    """H9/H1/H2/H7/H8 live UI exists in the exported page (static)."""
+    from claimlens.engine import product_catalog
+
+    monkeypatch.delenv("META_API_KEY", raising=False)
+    monkeypatch.delenv("NEO4J_URI", raising=False)
+    monkeypatch.setenv("CLAIMLENS_PROVIDER", "replay")
+    dst = export_demo(tmp_path / "demo.html")
+    text = dst.read_text(encoding="utf-8")
+    # H9: file picker plus drag-and-drop, up to 6 uploads.
+    assert 'id="flow-pick" type="file" accept="image/*" multiple' in text
+    assert "new DragEvent('drop'" in text or 'addEventListener(\'drop\'' in text
+    assert "slice(0,6)" in text
+    # H1/H2: traveller flag plus user-chosen product select.
+    assert 'id="person-national"' in text
+    assert 'id="person-product"' in text
+    payload = json.loads(
+        re.search(r'<script id="demo-data"[^>]*>(.*?)</script>', text,
+                  re.DOTALL).group(1))
+    assert payload["flow"]["products"] == sorted(product_catalog())
+    assert len(payload["flow"]["products"]) >= 1
+    # H7/H8: gate/blocker options render and continue with resolutions.
+    assert "readResolutions()" in text
+    assert 'input[type="radio"]' in text
+    assert "data-note-for" in text
+    assert "resolutions:readResolutions()" in text.replace(" ", "")
+    # 50: merged receipts render with per-photo provenance.
+    assert 'id="flow-merge"' in text
+    assert "mergeHtml(j.merge)" in text
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_demo_renders_in_node_harness(tmp_path, monkeypatch):
     monkeypatch.delenv("META_API_KEY", raising=False)

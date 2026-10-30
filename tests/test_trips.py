@@ -41,9 +41,9 @@ def test_truth_is_self_consistent():
     cases = _truth()["cases"]
     assert [c["id"] for c in cases] == IDS
     for case in cases:
-        # today's engine has no traveller path for context-less runs:
-        # every trip lands on the foreigner row3 outcome (see the review)
-        assert case["eligibility_path"] == "not_member_or_unknown (row3_six_month)"
+        # H1: Korean nationals treated abroad take the traveller engine
+        # path (serve-level; the NHI rows alone still say row3).
+        assert case["eligibility_path"] == "traveller_abroad (engine_path)"
         assert case["currency"]
         assert case["patient"]["name"] and case["patient"]["dob"]
         assert case["expected"]["ideal"]
@@ -96,22 +96,32 @@ def test_truth_is_self_consistent():
     assert any(i.get("code", "").startswith("D") for i in t6["items"])  # CDT codes
 
 
-def test_travellers_reach_no_decision_path():
+def test_travellers_take_traveller_path():
+    from claimlens.eval import country_of_currency
+    from claimlens.serve import resolve_eligibility
+
+    want = {
+        "T1_bangkok_food_poisoning": "engine_unreachable",
+        "T2_danang_scooter": "engine_unreachable",
+        "T3_setagaya_fever": "engine_unreachable",
+        "T4_paris_pharmacy": "needs_manual_check",
+        "T5_honolulu_urgent": "engine_unreachable",
+        "T6_guam_dental": "needs_review",
+    }
     for case in _truth()["cases"]:
         assert missing_facts(case["person"]) == []  # panel answers are complete
         dates = {d["data"].get("service_date") for d in case["documents"]}
         for service_date in dates:
+            # the NHI rows alone still land on row3 for every trip ...
             outcome = check_eligibility(case["person"], service_date)
             assert outcome["outcome"] == "not_member_or_unknown"
-            assert (f"{outcome['outcome']} ({outcome['rule']})"
-                    == case["eligibility_path"])
+        # ... but serve-level eligibility takes the traveller engine path
+        country = country_of_currency(case["currency"])
+        resolved = resolve_eligibility(case["person"], {"country": country})
+        assert (f"{resolved['outcome']} ({resolved['rule']})"
+                == case["eligibility_path"])
         serve = case["expected"]["serve_today"]
-        docs = len(case["documents"])
-        if docs != 2:
-            assert serve == {"status": 400,
-                             "reason": "run_live takes exactly 2 images"}
-        else:
-            assert serve == {"status": 200, "badge": "needs_review"}
+        assert serve == {"status": 200, "badge": want[case["id"]]}
 
 
 def test_render_is_deterministic(tmp_path):
@@ -320,18 +330,28 @@ def test_trips_check_plan_totals():
     summary = trips_check.plan()
     assert len(summary["cases"]) == 6
     rows = {r["id"]: r for r in summary["cases"]}
-    for cid in ("T1_bangkok_food_poisoning", "T4_paris_pharmacy",
-                "T5_honolulu_urgent"):
-        assert rows[cid]["live"] is False
-        assert rows[cid]["estimate"] == (0.0, 0.0)
+    # every trip reaches the model now; T4 stops after its reads (no cert)
+    two = 2 * BASE_EST + 2 * PROBE_EST + trips_check.CONSISTENCY_EST
+    three = 6 * BASE_EST + 3 * PROBE_EST + trips_check.CONSISTENCY_EST
+    t4 = 2 * BASE_EST + PROBE_EST
+    assert rows["T4_paris_pharmacy"]["estimate"] == (round(t4, 4), round(t4, 4))
     for cid in ("T2_danang_scooter", "T3_setagaya_fever", "T6_guam_dental"):
         assert rows[cid]["live"] is True
         assert rows[cid]["missing_facts"] == []
-        assert rows[cid]["eligibility"] == ["not_member_or_unknown"]
+        assert rows[cid]["eligibility"] == ["traveller_abroad"]
+        assert rows[cid]["estimate"] == (round(two, 4),
+                                         round(two + 2 * REREAD_EST, 4))
+    for cid in ("T1_bangkok_food_poisoning", "T5_honolulu_urgent"):
+        assert rows[cid]["live"] is True
+        assert rows[cid]["missing_facts"] == []
+        assert rows[cid]["estimate"][0] == round(three, 4)
     lo, hi = summary["estimate"]
-    one = 2 * BASE_EST + 2 * PROBE_EST + trips_check.CONSISTENCY_EST
-    assert lo == round(3 * one, 4)
-    assert hi == round(3 * (one + 2 * REREAD_EST), 4)
+    two_lo, two_hi = round(two, 4), round(two + 2 * REREAD_EST, 4)
+    three_lo = round(three, 4)
+    three_hi = round(three + 4 * REREAD_EST, 4)  # T1/T5: 2 bills x2 sides
+    t4_lo = round(t4, 4)
+    assert lo == round(3 * two_lo + 2 * three_lo + t4_lo, 4)
+    assert hi == round(3 * two_hi + 2 * three_hi + t4_lo, 4)
     try:
         trips_check.plan(["T9_nope"])
     except ValueError as exc:
@@ -353,13 +373,16 @@ def test_trips_check_plan_text(capsys):
     assert "T9_nope" in capsys.readouterr().err
 
 
-def test_trips_check_rejections_need_no_model():
-    # T1 (3 uploads) and T4 (1 upload) fail before any model call.
-    assert trips_check.run_case("T1_bangkok_food_poisoning")["status"] == 400
-    record = trips_check.run_case("T4_paris_pharmacy")
-    assert record["status"] == 400
-    assert "exactly 2" in record["error"]
-    assert record["cost_usd"] == 0.0
+def test_trips_check_unrecorded_photos_stop_at_probe():
+    # Trips photos have no recordings: replay probes miss, so every trip
+    # stops at the rotation probe (C4) with no live call and no spend.
+    for cid in ("T1_bangkok_food_poisoning", "T4_paris_pharmacy",
+                "T5_honolulu_urgent"):
+        record = trips_check.run_case(cid)
+        assert record["status"] == 200
+        assert record["badge"] == "needs_manual_check"
+        assert "rotation" in record["title"].lower()
+        assert record["cost_usd"] == 0.0
 
 
 def test_trips_check_two_image_trip_stops_cleanly(monkeypatch):
@@ -369,26 +392,26 @@ def test_trips_check_two_image_trip_stops_cleanly(monkeypatch):
     readings = [_reading_for(cases["T2_danang_scooter"], "receipt",
                              "medical_certificate") for _ in range(2)]
     monkeypatch.setattr(serve, "live_provider", lambda: _TripStub(readings))
+    monkeypatch.setattr(serve, "neo4j_up", lambda: False)
     record = trips_check.run_case("T2_danang_scooter")
     assert record["status"] == 200
-    assert record["badge"] == "needs_review"
-    assert record["questions"] == []
+    assert record["badge"] == "engine_unreachable"
+    assert len(record["questions"]) == 1
 
 
 def test_trips_check_judge():
-    expected = {"status": 200, "badge": "needs_review"}
-    assert trips_check.judge({"status": 200, "badge": "needs_review"}, expected)[
-        "verdict"] == "PASS"
+    expected = {"status": 200, "badge": "engine_unreachable"}
+    assert trips_check.judge({"status": 200, "badge": "engine_unreachable"},
+                             expected)["verdict"] == "PASS"
     earlier = trips_check.judge({"status": 200, "badge": "blocked"}, expected)
     assert earlier["verdict"] == "PASS (earlier stop)"
-    failed = trips_check.judge({"status": 200, "badge": "engine_unreachable"},
-                               expected)
-    assert failed["verdict"] == "FAIL"
+    decided = trips_check.judge({"status": 200, "badge": "PAID"}, expected)
+    assert decided["verdict"] == "FAIL"
     wrong_status = trips_check.judge({"status": 400, "error": "x"}, expected)
     assert wrong_status["verdict"] == "FAIL"
-    refused = {"status": 400, "reason": "run_live takes exactly 2 images"}
-    ok = trips_check.judge({"status": 400, "error": "Upload exactly 2 images: "
-                            "the receipt and the certificate."}, refused)
+    refused = {"status": 400, "reason": "Upload 1 to 6"}
+    ok = trips_check.judge({"status": 400, "error": "Upload 1 to 6 images: "
+                            "up to 5 receipts and 1 certificate."}, refused)
     assert ok["verdict"] == "PASS"
     bad = trips_check.judge({"status": 400, "error": "boom"}, refused)
     assert bad["verdict"] == "FAIL"
@@ -398,9 +421,13 @@ def test_trips_check_execute_writes_report(tmp_path, monkeypatch):
     from claimlens import serve
 
     cases = gate_eval.load_trip_cases(TRIPS)
-    readings = [_reading_for(cases["T2_danang_scooter"], "receipt",
-                             "medical_certificate") for _ in range(2)]
+    t4_only = _reading_for(cases["T4_paris_pharmacy"], "receipt", None)
+    t4_only["documents"] = t4_only["documents"][:1]  # pharmacy ticket, no cert
+    readings = [copy.deepcopy(t4_only) for _ in range(2)]
+    readings += [_reading_for(cases["T2_danang_scooter"], "receipt",
+                              "medical_certificate") for _ in range(2)]
     monkeypatch.setattr(serve, "live_provider", lambda: _TripStub(readings))
+    monkeypatch.setattr(serve, "neo4j_up", lambda: False)
     monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(tmp_path / "cache"))
     out = tmp_path / "out"
     results = trips_check.execute(["T4_paris_pharmacy", "T2_danang_scooter"],

@@ -105,12 +105,12 @@
           "template": "cert_simple"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Accept 2 receipts + 1 certificate; read both totals; ask nothing.",
         "serve_today": {
-          "reason": "run_live takes exactly 2 images",
-          "status": 400
+          "status": 200,
+          "badge": "engine_unreachable"
         }
       },
       "id": "T1_bangkok_food_poisoning",
@@ -136,7 +136,9 @@
         "korean_employer": false,
         "name": "Jaeho PARK",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Food poisoning in Bangkok: hospital ER bill plus a separate pharmacy receipt.",
       "totals": {
@@ -215,12 +217,12 @@
           "template": "cert_simple"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Read the dotted amounts as plain numbers; no decision path today.",
         "serve_today": {
-          "badge": "needs_review",
-          "status": 200
+          "status": 200,
+          "badge": "engine_unreachable"
         }
       },
       "id": "T2_danang_scooter",
@@ -242,7 +244,9 @@
         "korean_employer": false,
         "name": "Minho CHOI",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Scooter fall in Da Nang; clinic receipt uses dotted thousand separators.",
       "totals": {
@@ -331,12 +335,12 @@
           "template": "cert_simple"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Read the tax block; fully self-paid; no decision path today.",
         "serve_today": {
-          "badge": "needs_review",
-          "status": 200
+          "status": 200,
+          "badge": "engine_unreachable"
         }
       },
       "id": "T3_setagaya_fever",
@@ -358,7 +362,9 @@
         "korean_employer": false,
         "name": "Siwoo KIM",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Child's fever in Tokyo; clinic receipt with a consumption-tax line.",
       "totals": {
@@ -401,12 +407,12 @@
           "template": "t4_pharm"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Ask for the doctor's certificate instead of refusing the upload.",
         "serve_today": {
-          "reason": "run_live takes exactly 2 images",
-          "status": 400
+          "status": 200,
+          "badge": "needs_manual_check"
         }
       },
       "id": "T4_paris_pharmacy",
@@ -428,7 +434,9 @@
         "korean_employer": false,
         "name": "Soobin LEE",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Paris pharmacy only; no doctor's certificate exists.",
       "totals": {
@@ -525,12 +533,12 @@
           "template": "cert_simple"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Accept bill + payment proof + cert; reconcile paid vs owed.",
         "serve_today": {
-          "reason": "run_live takes exactly 2 images",
-          "status": 400
+          "status": 200,
+          "badge": "engine_unreachable"
         }
       },
       "id": "T5_honolulu_urgent",
@@ -556,7 +564,9 @@
         "korean_employer": false,
         "name": "Dongmin HAN",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Honolulu urgent care: itemized bill with insurance adjustment plus a card payment receipt.",
       "totals": {
@@ -634,12 +644,12 @@
           "template": "cert_simple"
         }
       ],
-      "eligibility_path": "not_member_or_unknown (row3_six_month)",
+      "eligibility_path": "traveller_abroad (engine_path)",
       "expected": {
         "ideal": "Flag dental for the reviewer; never decide (no payout rule exists).",
         "serve_today": {
-          "badge": "needs_review",
-          "status": 200
+          "status": 200,
+          "badge": "needs_review"
         }
       },
       "id": "T6_guam_dental",
@@ -661,7 +671,9 @@
         "korean_employer": false,
         "name": "Seungho YOON",
         "visa": "none (Korean national)",
-        "work_related": false
+        "work_related": false,
+        "korean_national": true,
+        "product": "기본형 해외여행 실손의료보험"
       },
       "story": "Dental emergency in Guam; travel policies often limit or exclude dental.",
       "totals": {

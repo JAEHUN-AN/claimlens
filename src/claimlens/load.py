@@ -126,7 +126,11 @@ def load_person() -> dict[str, Any]:
     from claimlens.engine import load_scenarios
 
     scenarios, _ = load_scenarios()
-    return dict(scenarios[SCENARIO]["person"])
+    person = dict(scenarios[SCENARIO]["person"])
+    # H2: the simulated user chooses the scenario's product explicitly,
+    # so load runs price a chosen product instead of pausing for one.
+    person["product"] = scenarios[SCENARIO]["policy"]["product"]
+    return person
 
 
 def build_bodies(samples_live: Path, runs: int) -> list[dict[str, Any]]:

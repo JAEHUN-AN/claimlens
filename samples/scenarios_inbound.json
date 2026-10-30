@@ -8,7 +8,7 @@
       "person": {
         "nationality": "VN", "visa": "E-7", "korean_employer": true,
         "entry_date": "2026-03-02", "alien_registration_date": "2026-03-20",
-        "premium_arrears": false, "work_related": false
+        "premium_arrears": false, "work_related": false, "korean_national": false
       },
       "policy": {"product": "기본형 실손의료보험(급여 실손의료비)", "enrolled_on": "2026-07-01", "paid_so_far_krw": 0},
       "expected": {
@@ -58,7 +58,7 @@
       "id": "S3_us_tourist_hip_fracture",
       "kind": "claim_pack",
       "title": "US tourist in Seoul - intertrochanteric femur fracture, admitted",
-      "person": {"nationality": "US", "visa": "B-2 / visa waiver", "korean_employer": false, "entry_date": "2026-08-28", "work_related": false},
+      "person": {"nationality": "US", "visa": "B-2 / visa waiver", "korean_employer": false, "entry_date": "2026-08-28", "work_related": false, "korean_national": false},
       "policy": null,
       "expected": {
         "nhi_status": "not_eligible_short_visit",

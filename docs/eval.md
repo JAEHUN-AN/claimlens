@@ -159,3 +159,24 @@ Read honestly: no wrong amount left on unfamiliar layouts, but every bill with a
 discount/adjustment line stopped for a person, three of six trips were refused at upload (more
 or fewer than two images), and no trip reached a decision or a next step.
 
+## Trips serve path after the traveller + multi change (expected, not measured yet)
+
+The section above stays the frozen first run. After H1/H2 (Korean-traveller engine
+path, user-chosen product) and 50 (multi-receipt merge with provenance), the same six
+trips are expected to behave as `samples/unseen/trips/truth.json` `serve_today` says —
+on correct reads, with the engine down. Rows generated from that file:
+
+| trip | uploads | expected |
+|---|---|---|
+| T1_bangkok_food_poisoning | 3 | 200 engine_unreachable (2 receipts merged, then the engine gate) |
+| T2_danang_scooter | 2 | 200 engine_unreachable |
+| T3_setagaya_fever | 2 | 200 engine_unreachable |
+| T4_paris_pharmacy | 1 | 200 needs_manual_check (no certificate: asked for, never decided) |
+| T5_honolulu_urgent | 3 | 200 engine_unreachable (card slip deduped, then the engine gate) |
+| T6_guam_dental | 2 | 200 needs_review (dental: flagged, never decided) |
+
+`engine_unreachable` pauses keep the verified reading under a `run_id`; answering
+retries with no new reading. Live re-measurement is an owner dawn run:
+`claimlens trips-check --execute` (plan estimate $0.32-$0.39;
+a live model may stop earlier, which still passes with a note).
+

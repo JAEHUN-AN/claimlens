@@ -104,21 +104,41 @@ def replay_reading(sample_id: str, variant: str) -> dict[str, Any]:
     return provider.read_documents(images, READING_INSTRUCTIONS, reading_schema())
 
 
-def build_inputs(sample_id: str, variant: str, reading: dict[str, Any]) -> dict[str, Any]:
-    """Structured engine arguments (SPEC 3.3) for one reading."""
+def product_catalog() -> dict[str, dict[str, Any]]:
+    """H2: insurable products by name, with the demo terms for each.
+
+    Built from the scenario policies (first occurrence wins). The engine
+    prices a live claim against the product the USER chose, never against
+    a declared scenario's policy; the demo terms are shown on screen.
+    """
     scenarios, _ = load_scenarios()
-    policy = scenarios[sample_id].get("policy") or {}
+    catalog: dict[str, dict[str, Any]] = {}
+    for sample_id in sorted(scenarios):
+        policy = scenarios[sample_id].get("policy") or {}
+        name = policy.get("product", "")
+        if name and name not in catalog:
+            catalog[name] = {
+                "enrolled_on": policy.get("enrolled_on", ""),
+                "sum_insured_krw": policy.get("sum_insured_krw"),
+                "paid_so_far_krw": policy.get("paid_so_far_krw", 0),
+            }
+    return catalog
+
+
+def _inputs_for_policy(claim_id: str, product: str, policy: dict[str, Any],
+                       reading: dict[str, Any]) -> dict[str, Any]:
+    """Structured engine arguments (SPEC 3.3) for one reading."""
     docs = reading["documents"]
     receipt, cert = docs[0], docs[1]
     bill = receipt.get("kr_bill")
     total = receipt.get("total_amount")
     if total is None:
-        raise ValueError(f"{sample_id}: receipt has no total; cannot adjudicate.")
+        raise ValueError(f"{claim_id}: receipt has no total; cannot adjudicate.")
     codes = tuple(d["code"] for d in cert.get("diagnoses", []) if d.get("code"))
     rate = copay_rate_from_bill(bill)
     return {
-        "claim_id": f"{sample_id}-{variant}",
-        "product": policy.get("product", ""),
+        "claim_id": claim_id,
+        "product": product,
         "enrolled_on": policy.get("enrolled_on", ""),
         "narrative": build_narrative(receipt.get("line_items", [])),
         "diagnosis_codes": list(codes),
@@ -129,6 +149,24 @@ def build_inputs(sample_id: str, variant: str, reading: dict[str, Any]) -> dict[
         "institution": bill.get("institution_type") if bill else None,
         "copay_rate": rate,
     }
+
+
+def build_inputs(sample_id: str, variant: str, reading: dict[str, Any]) -> dict[str, Any]:
+    """Structured engine arguments (SPEC 3.3) for one scenario reading."""
+    scenarios, _ = load_scenarios()
+    policy = scenarios[sample_id].get("policy") or {}
+    return _inputs_for_policy(f"{sample_id}-{variant}", policy.get("product", ""),
+                              policy, reading)
+
+
+def build_inputs_for_product(product: str, claim_id: str,
+                             reading: dict[str, Any]) -> dict[str, Any]:
+    """H2: engine arguments against the user's chosen product (demo terms)."""
+    catalog = product_catalog()
+    if product not in catalog:
+        raise ValueError(f"Unknown product {product!r}; choose one of "
+                         f"{sorted(catalog)}.")
+    return _inputs_for_policy(claim_id, product, catalog[product], reading)
 
 
 @contextmanager
