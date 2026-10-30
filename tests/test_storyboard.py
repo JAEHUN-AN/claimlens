@@ -101,6 +101,33 @@ def test_measured_shot_has_gate_line(tmp_path):
     assert "Fields scored" in text
 
 
+def test_live_scenes_answer_product_pause_then_wait_amount():
+    """H2: retakes are unmatched, so the live run pauses for a product.
+
+    The recorder picks the S2 product, continues, and only then waits
+    for the decided amount — otherwise the video would show a stall.
+    """
+    from claimlens.engine import load_scenarios, product_catalog
+
+    scenarios, _ = load_scenarios()
+    s2_product = scenarios["S2_seoul_worker_bronchitis"]["policy"]["product"]
+    assert s2_product in product_catalog()
+    for board, seg_id in ((_main(), "live"), (_vertical(), "vlive")):
+        seg = next(s for s in board["segments"] if s["id"] == seg_id)
+        acts = seg["actions"]
+        drop_at = next(i for i, a in enumerate(acts)
+                       if a["op"] == "dropfiles")
+        tail = [(a["op"], a.get("selector"))
+                for a in acts[drop_at + 1:drop_at + 5]]
+        assert tail == [("wait_for", "#flow-view .flow-result"),
+                        ("select", "#person-product"),
+                        ("click", "#flow-questions button"),
+                        ("wait_for", "#flow-result .amount")], seg_id
+        sel = next(a for a in acts if a["op"] == "select")
+        assert sel["selector"] == "#person-product"
+        assert sel["value"] == s2_product, seg_id
+
+
 def test_dry_run_validation_passes(tmp_path):
     for name, cap in (("storyboard-main.json", 190),
                       ("storyboard-vertical.json", 44)):

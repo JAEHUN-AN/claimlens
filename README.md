@@ -99,7 +99,7 @@ Using a pre-existing open-source dependency was confirmed as acceptable in the h
 
 | Step | Model | How | Measured |
 |---|---|---|---|
-| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 52 logged sessions |
+| Wrote the code from the backlog | Muse Code (`muse-spark-1.3`) | Owner reviewed, ran live/engine calls where the Windows sandbox could not ([tooling log](docs/meta-tooling-log.md)) | 55 logged sessions |
 | Send documents by file id | Files API (`purpose="user_data"`) | Upload once per image, reference as `input_image`; base64 fallback | one read by file id as input_image, 4,023 tokens |
 | Read receipts + certificates | `muse-spark-1.3` (hosted) | Decides the transcription: text, amounts, categories, dates, codes; strict schema, two images | 267 fields read ×3 (33 cases, hard 23/24), 86% run-to-run agreement |
 | Rephrase rationale drafts | `muse-spark-1.3` (hosted) | Decides wording only; amounts and clause IDs copied by code, checked | — |
@@ -203,6 +203,24 @@ voice-intake rule asking for confirmation, not the agent loop (0 steps).
 Hard-document eval (23/24 harsh variants ×3, cap tripped at $1.51): single read let 47 wrong amounts leave;
 on those recorded pairs a double-read gate would leave 0, stopping 35/66 hard + 2/30 normal pairs
 (simulated, [tables](docs/eval.md)). A 'field' in those tables is one scored bundle (a whole line table, the whole PII set), not one cell. The live gate run is in the Measured block above.
+
+## Live upload
+
+`claimlens serve` takes uploads from a browser: several receipts with their
+certificate, by drag and drop or the phone file picker. Each receipt is read
+and checked on its own, then merged — every amount keeps the photo it came
+from, and a card slip matching a bill total is merged rather than added.
+Bills whose lines do not add up get a narrow re-read for printed tax,
+discount and adjustment lines before anything stops for a person.
+
+The person panel asks for nationality, the foreign-resident registration
+date, and the insurance product. Korean nationals treated abroad take the
+traveller engine path against the chosen
+product's demo terms; when facts, a product, or the engine are missing, the
+run pauses with the reason and the next step instead of a bare badge.
+Any pause keeps its verified reading: when reads disagree the person picks
+the printed value per field, answers blocking questions, and continues the
+same run with no new reading.
 
 ## What happens when something fails
 

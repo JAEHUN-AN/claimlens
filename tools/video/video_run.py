@@ -252,6 +252,13 @@ def run_action(page, act: dict, clock: Clock, urls: dict[str, str], caption: str
         page.evaluate("()=>window.__unzoom()")
         clock.sleep(0.7)
         return None, None
+    if op == "select":
+        loc = locate(page, act)
+        loc.wait_for(state="visible", timeout=10000)
+        loc.evaluate("el=>el.scrollIntoView({behavior:'smooth',block:'center',inline:'center'})")
+        time.sleep(0.8)
+        loc.select_option(act["value"])
+        return None, None
     loc = locate(page, act)
     loc.wait_for(state="visible", timeout=10000)
     if op == "scroll_to":

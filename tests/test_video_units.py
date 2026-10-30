@@ -150,6 +150,17 @@ def test_validate_press_needs_key(tmp_path):
     assert any("press needs a key" in e for e in V.validate(tmp_path, bad, {"demo": ""}, 190))
 
 
+def test_validate_select_needs_value(tmp_path):
+    good = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo",
+                          "actions": [{"op": "select", "selector": "#person-product",
+                                       "value": "P"}]}]}
+    assert V.validate(tmp_path, good, {"demo": "person-product"}, 190) == []
+    bad = {"segments": [{"id": "s", "caption": "x", "duration": 5, "page": "demo",
+                         "actions": [{"op": "select", "selector": "#person-product"}]}]}
+    assert any("select needs a value"
+               in e for e in V.validate(tmp_path, bad, {"demo": "person-product"}, 190))
+
+
 def test_actuals_roundtrip_and_garbage(tmp_path):
     path = tmp_path / "actuals.json"
     actuals = [("a", 1.5, 7.5), ("b", 7.5, 12.5)]
@@ -259,6 +270,38 @@ class _FakePage:
     def screenshot(self, path):
         self.shots.append(path)
         Path(path).write_bytes(b"png")
+
+
+class _FakeLocator:
+    def __init__(self):
+        self.selected: list[str] = []
+
+    def wait_for(self, state, timeout):
+        pass
+
+    def evaluate(self, expr, arg=None):
+        return None
+
+    def select_option(self, value):
+        self.selected.append(value)
+
+
+class _FakeSelectPage(_FakePage):
+    def __init__(self):
+        super().__init__()
+        self.located: dict[str, _FakeLocator] = {}
+
+    def locator(self, selector):
+        return self.located.setdefault(selector, _FakeLocator())
+
+
+def test_run_action_select_picks_option_value():
+    page = _FakeSelectPage()
+    moved, point = V.run_action(
+        page, {"op": "select", "selector": "#person-product", "value": "P"},
+        None, {}, "cap", [0.0, 0.0], [])
+    assert (moved, point) == (None, None)
+    assert page.located["#person-product"].selected == ["P"]
 
 
 def _end_seconds(line: str) -> float:

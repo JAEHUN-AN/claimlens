@@ -1506,3 +1506,77 @@ stacks the 49/49b/review evidence with the dawn-run commands.
 ### Model APIs
 
 - Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 54 correctness and security
+
+RED→GREEN per finding from the independent correctness review (C1–C7),
+the security review (S1, S2, S6) and the round-9 review (H6, H10): the
+double-read gate now compares currency, country, service date, inpatient
+stay, diagnosis codes and charge rows with a country-currency check; each
+read's narrow re-read carries its own cache tag; serve builds the Claim
+Pack and the letter only from a verified reading; Korean bills re-check
+the total against the cells and refuse to decide without a copay rate; a
+failed rotation probe stops instead of reading on; the person panel asks
+for the foreign-resident registration date. Serve rejects bad static
+paths and foreign hosts, caps image pixels and concurrent runs; replay
+mode fails instead of ever calling live. Committed as 3bc8cd1
+(2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: one failing-then-passing test per finding; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: items 55 and 50, real uploads
+
+Real uploads now reach a decision or a clear next step: Korean
+nationals treated abroad take the traveller engine path against a
+user-chosen insurance product (the declared scenario is reference
+only); missing facts, products, or the engine pause with the reason
+and the next step. Disagreements pause per field with both values and
+their sources, blocking questions carry an answer box, and every pause
+continues under the same run id with no new reading. The live page
+gains a phone file picker next to drag and drop, and up to several
+receipts plus their certificate merge with per-photo provenance, card
+slips deduped and a missing certificate asked for instead of decided.
+Trips truth re-measured to the new serve outcomes. Committed as 4e0bfa3
+(2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: fake-provider cover for the traveller path, policy non-use,
+  disagreement and blocker continues, the file picker, receipt merging,
+  slip dedupe and the certificate question; full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.
+
+## 2026-10-30 — Backlog session: item 56 tax and adjustment lines
+
+Bills with printed tax, discount or adjustment blocks pass the line-sum
+check: one narrow re-read asks only for those lines (own prompt, own
+cache key, per-read tag), and items plus adjustments equalling the
+total verifies — the Checks row and the merge provenance show each line
+with its narrow re-read source, otherwise the run stops as before.
+Multi-receipt runs carry the lines through the merge. Trips-check now
+accepts the engine-down pause and the engine-up decision badge alike
+and records which side ran; trip truth gains the per-case accepted
+badges. New `claimlens remeasure-plan` prints every re-measure plan at
+once for the owner dawn runs. Committed as e2ceaa1 (2026-10-30).
+
+### Muse Code (coding agent)
+
+- Tests: tax, discount and insurance-adjustment recoveries, the
+  still-wrong stop, multi plus tax, engine up/down trips judging;
+  full suite green.
+- Live calls: none in the sandbox (replay only, BOGUS keys).
+
+### Model APIs
+
+- Live calls: none in the sandbox.

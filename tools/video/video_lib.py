@@ -87,7 +87,7 @@ __all__ = [
 CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
             "thesis", "why")
 OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles",
-       "press")
+       "press", "select")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
 FX_HOOKS = ("window.__zoom", "window.__unzoom", "window.__zoomFit",
             "vzoom", "vpop", "vplink", "vhl")
@@ -170,6 +170,9 @@ def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -
             if act["op"] == "press":
                 if not act.get("key"):
                     errors.append(f"{seg['id']}: press needs a key")
+                continue
+            if act["op"] == "select" and not act.get("value"):
+                errors.append(f"{seg['id']}: select needs a value")
                 continue
             if act["op"] == "dropfiles":
                 if not act.get("files"):
