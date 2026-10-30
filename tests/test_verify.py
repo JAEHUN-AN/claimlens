@@ -198,6 +198,113 @@ def test_reread_uses_given_cache_tag():
     assert provider.last_tag == ".read2"
 
 
+def _jpy_tax_receipt():
+    """T3-like: items 11,700 + consumption tax 330 = total 12,030."""
+    return {
+        "doc_type": "receipt", "country": "JP", "currency": "JPY",
+        "total_amount": 12030.0, "service_date": "2026-09-20",
+        "inpatient": False,
+        "line_items": [{"description": "Consultation", "category": "consultation",
+                        "amount": 5000.0},
+                       {"description": "Medicine", "category": "medication",
+                        "amount": 6700.0}],
+    }
+
+
+def test_adjustment_reread_recovers_tax_line():
+    """56: a Japanese receipt passes once its tax line is re-read."""
+    provider = StubProvider(
+        _jpy_tax_receipt(),
+        {"adjustment_lines": [{"label": "Consumption tax", "kind": "tax",
+                               "amount": 330.0}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "verified"
+    assert result["corrected"] == ["adjustment_lines"]
+    assert result["receipt"]["total_amount"] == 12030.0
+    assert result["receipt"]["adjustment_lines"] == [
+        {"label": "Consumption tax", "kind": "tax", "amount": 330.0,
+         "source": "narrow re-read"}]
+    assert len(provider.calls) == 2  # the initial read + one re-read
+    assert "tax" in provider.last_instructions
+    assert "total_amount" not in provider.last_instructions
+
+
+def test_adjustment_reread_recovers_discount_line():
+    """56: a US bill passes once its discount line is re-read."""
+    receipt = {"doc_type": "receipt", "country": "US", "currency": "USD",
+               "total_amount": 950.0, "service_date": "2026-09-21",
+               "inpatient": False,
+               "line_items": [{"description": "Care", "category": "consultation",
+                               "amount": 1000.0}]}
+    provider = StubProvider(
+        receipt, {"adjustment_lines": [{"label": "Discount",
+                                       "kind": "discount", "amount": -50.0}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "verified"
+    assert result["receipt"]["adjustment_lines"][0]["amount"] == -50.0
+
+
+def test_adjustment_reread_recovers_insurance_adjustment():
+    """56/T5: items + insurance adjustment = patient responsibility."""
+    receipt = {"doc_type": "receipt", "country": "US", "currency": "USD",
+               "total_amount": 1333.85, "service_date": "2026-09-26",
+               "inpatient": False,
+               "line_items": [{"description": label, "category": "other",
+                               "amount": amount} for label, amount in
+                              [("Urgent care visit", 950.0),
+                               ("X-ray ankle", 620.0),
+                               ("Lab tests", 240.0),
+                               ("Medication", 95.5)]]}
+    provider = StubProvider(
+        receipt, {"adjustment_lines": [{"label": "Insurance adjustment",
+                                       "kind": "adjustment",
+                                       "amount": -571.65}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "verified"
+    assert result["receipt"]["total_amount"] == 1333.85
+
+
+def test_adjustment_reread_still_wrong_stops():
+    """56: no printed adjustment lines (or wrong ones) still stops."""
+    provider = StubProvider(_jpy_tax_receipt(), {"adjustment_lines": []})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["lines_sum_total"]
+    assert "adjustment_lines" not in result["receipt"]
+    assert result["corrected"] == []
+    wrong = StubProvider(
+        _jpy_tax_receipt(),
+        {"adjustment_lines": [{"label": "Consumption tax", "kind": "tax",
+                               "amount": 100.0}]})
+    result = verify_receipt(_read_initial(wrong), Path("receipt.jpg"), wrong)
+    assert result["status"] == "needs_manual_check"
+    assert result["failing"] == ["lines_sum_total"]
+
+
+def test_adjustment_reread_uses_given_cache_tag():
+    """56/C5: each read's adjustment re-read carries its own tag."""
+    provider = StubProvider(
+        _jpy_tax_receipt(),
+        {"adjustment_lines": [{"label": "Consumption tax", "kind": "tax",
+                               "amount": 330.0}]})
+    result = verify_receipt(_read_initial(provider), Path("receipt.jpg"),
+                            provider, cache_tag=".read2")
+    assert result["status"] == "verified"
+    assert provider.last_tag == ".read2"
+
+
+def test_adjustment_reread_has_own_schema():
+    """56: the adjustment call asks only for adjustment lines."""
+    from claimlens.verify import adjustment_schema
+
+    schema = adjustment_schema()
+    assert list(schema["properties"]) == ["adjustment_lines"]
+
+
 def test_s3_clean_recovers_lines_through_reread():
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.providers.replay import ReplayProvider

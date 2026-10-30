@@ -644,7 +644,15 @@ def _run_live_guarded(
                                       providers[pos], cache_tag=tag)
             receipts[pos] = verified["receipt"]
             readings[pos]["documents"][0] = verified["receipt"]
-            details.append(f"{names}; re-read: {verified['status']}")
+            detail = f"{names}; re-read: {verified['status']}"
+            adjust = verified["receipt"].get("adjustment_lines") or []
+            if adjust:
+                shown = ", ".join(
+                    f"{a.get('kind')} {_fmt_value(a.get('amount'))}"
+                    for a in adjust)
+                detail += (f"; adjustments: {shown} "
+                           f"({adjust[0].get('source', 'narrow re-read')})")
+            details.append(detail)
             if verified["status"] == "needs_manual_check":
                 verify_failed.append((pos, verified.get("failing", [])))
         tokens = sum(_step_usage(p, mark)[0] for p, mark in zip(providers, marks))
@@ -800,9 +808,17 @@ def _merge_payables(payables: list[tuple[int, dict[str, Any]]],
                 f"photo {photo} looks like a payment slip but matches no "
                 "bill total; upload the matching bill with it.")
         kept.append((photo, doc))
+        note = ""
+        doc_adjust = doc.get("adjustment_lines") or []
+        if doc_adjust:
+            shown = ", ".join(
+                f"{a.get('kind')} {_fmt_value(a.get('amount'))}"
+                for a in doc_adjust)
+            note = (f"adjustments: {shown} "
+                    f"({doc_adjust[0].get('source', 'narrow re-read')})")
         photos.append({"photo": photo, "file": names[photo - 1],
                        "total": total, "currency": doc.get("currency"),
-                       "status": "kept", "note": ""})
+                       "status": "kept", "note": note})
     merged_total = round(sum(doc["total_amount"] for _, doc in kept), 2)
     first = kept[0][1]
     merged = {
@@ -819,6 +835,11 @@ def _merge_payables(payables: list[tuple[int, dict[str, Any]]],
         "institution": first.get("institution", {}),
         "kr_bill": None,
     }
+    all_adjust = [{**adj, "photo": photo}
+                  for photo, doc in kept
+                  for adj in (doc.get("adjustment_lines") or [])]
+    if all_adjust:
+        merged["adjustment_lines"] = all_adjust
     failing = [c.name for c in receipt_checks(merged) if not c.passed]
     if failing:
         raise ValueError(f"merged receipt fails checks ({', '.join(failing)}).")
@@ -1086,6 +1107,17 @@ def _run_live_multi(
             plural = "s" if slips != 1 else ""
             detail += (f"; {slips} payment slip{plural} "
                        "matched to a bill at merge")
+        adjust_notes = []
+        adjust_source = "narrow re-read"
+        for photo in photo_ids:
+            for a in verified[photo][0].get("adjustment_lines") or []:
+                adjust_source = a.get("source", adjust_source)
+                adjust_notes.append(
+                    f"photo {photo}: {a.get('kind')} "
+                    f"{_fmt_value(a.get('amount'))}")
+        if adjust_notes:
+            detail += (f"; adjustments ({adjust_source}): "
+                       + "; ".join(adjust_notes))
         _step(steps, "checks", "Checks", detail,
               "deterministic", time.monotonic() - started)
 

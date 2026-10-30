@@ -895,6 +895,94 @@ def test_multi_gate_resolution_uses_photo_ids(stubbed, monkeypatch):
     assert result["run_id"] == run_id
 
 
+def _jpy_tax_photo(total, lines):
+    receipt = {"doc_type": "receipt", "country": "JP", "currency": "JPY",
+               "total_amount": float(total), "service_date": "2026-09-18",
+               "inpatient": False,
+               "line_items": [{"description": label, "category": "other",
+                               "amount": float(amount)}
+                              for label, amount in lines],
+               "pii": [{"kind": "name", "value": "Jaeho PARK"},
+                       {"kind": "dob", "value": "1990-01-01"}]}
+    return receipt
+
+
+class _AdjustStub(_PhotoStub):
+    """Adjustment re-reads are scripted per photo; base reads pass through."""
+
+    def __init__(self, photos, adjustments, second=None):
+        super().__init__(photos, second)
+        self.adjustments = adjustments
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        from claimlens.verify import AdjustmentReread
+
+        if result_model is AdjustmentReread:
+            self._log(10)
+            idx = int(images[0].stem.split("_")[1])
+            return {"adjustment_lines":
+                    copy.deepcopy(self.adjustments.get(idx, []))}
+        return super().read_documents(images, instructions, schema, result_model,
+                                      cache_tag=cache_tag)
+
+
+def test_multi_receipt_with_tax_line_merges(stubbed, monkeypatch):
+    """56/50: per-photo tax re-reads reconcile, then merge with provenance."""
+    taxed = _jpy_tax_photo(12030, [("Consultation", 5000.0),
+                                   ("Medicine", 6700.0)])
+    plain = _jpy_tax_photo(5000, [("Follow-up", 5000.0)])
+    photos = {0: [taxed], 1: [plain], 2: [_thb_cert()]}
+    adjustments = {0: [{"label": "Consumption tax", "kind": "tax",
+                        "amount": 330.0}]}
+    monkeypatch.setattr(stubbed, "live_provider",
+                        lambda: _AdjustStub(photos, adjustments))
+    status, result = _run(stubbed, {"images": _multi_images(3),
+                                    "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    checks = next(s for s in result["steps"] if s["key"] == "checks")
+    assert "photo 1: tax 330" in checks["detail"]
+    assert "narrow re-read" in checks["detail"]
+    assert result["merge"]["merged_total"] == 17030.0
+    kept = [p for p in result["merge"]["photos"] if p["status"] == "kept"]
+    assert "tax 330" in kept[0]["note"]
+
+
+def test_two_image_tax_recovery_shows_in_checks(stubbed, monkeypatch):
+    """56: the 2-image Checks row shows re-read adjustments with source."""
+    from claimlens.verify import AdjustmentReread
+
+    receipt = _jpy_tax_photo(12030, [("Consultation", 5000.0),
+                                     ("Medicine", 6700.0)])
+    cert = _thb_cert()
+
+    class _TaxStub(StubProvider):
+        def read_documents(self, images, instructions, schema,
+                           result_model=None, cache_tag=""):
+            from claimlens.rotation import RotationProbe
+
+            if result_model is RotationProbe:
+                self._log(10)
+                return {"rotation": 0}
+            self._log(100)
+            if result_model is AdjustmentReread:
+                return {"adjustment_lines": [
+                    {"label": "Consumption tax", "kind": "tax",
+                     "amount": 330.0}]}
+            return {"documents": [copy.deepcopy(receipt),
+                                  copy.deepcopy(cert)]}
+
+    monkeypatch.setattr(stubbed, "live_provider", _TaxStub)
+    status, result = _run(stubbed, {
+        "images": _retake_images(),
+        "person": _traveller_person(_travel_product())})
+    assert status == 200
+    assert result["result"]["badge"] == "engine_unreachable"
+    checks = next(s for s in result["steps"] if s["key"] == "checks")
+    assert "adjustments: tax 330 (narrow re-read)" in checks["detail"]
+
+
 def test_multi_gate_merge_conflict_repauses(stubbed, monkeypatch):
     """H7+50: picks that pass per-photo checks but cannot merge re-pause."""
     thb = _thb_receipt(100, [("Care", 100.0)])

@@ -111,6 +111,10 @@
         "serve_today": {
           "status": 200,
           "badge": "engine_unreachable"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": ["PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW"]
         }
       },
       "id": "T1_bangkok_food_poisoning",
@@ -223,6 +227,10 @@
         "serve_today": {
           "status": 200,
           "badge": "engine_unreachable"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": ["PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW"]
         }
       },
       "id": "T2_danang_scooter",
@@ -341,6 +349,10 @@
         "serve_today": {
           "status": 200,
           "badge": "engine_unreachable"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": ["PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW"]
         }
       },
       "id": "T3_setagaya_fever",
@@ -413,6 +425,10 @@
         "serve_today": {
           "status": 200,
           "badge": "needs_manual_check"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": []
         }
       },
       "id": "T4_paris_pharmacy",
@@ -539,6 +555,10 @@
         "serve_today": {
           "status": 200,
           "badge": "engine_unreachable"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": ["PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW"]
         }
       },
       "id": "T5_honolulu_urgent",
@@ -650,6 +670,10 @@
         "serve_today": {
           "status": 200,
           "badge": "needs_review"
+        },
+        "serve_engine_up": {
+          "status": 200,
+          "badges": []
         }
       },
       "id": "T6_guam_dental",

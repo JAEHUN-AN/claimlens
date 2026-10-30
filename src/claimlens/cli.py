@@ -615,6 +615,82 @@ def cmd_trips_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_remeasure_plan(args: argparse.Namespace) -> int:
+    """One screen: gate-eval plans (all sets) + trips-check plan + total."""
+    import math
+    from pathlib import Path
+
+    from claimlens import gate_eval, hard_eval, trips_check
+    from claimlens.hard_images import HARD_SAMPLES, TRANSFORMS
+
+    repeat = 3
+    samples_dir = Path("samples")
+    out_dir = Path("out") / "hard"
+    lines = ["Re-measure plan (no network calls made):",
+             "normal + hard + unseen + trips gate-eval (3 rounds), then trips-check;",
+             "committed cache/ stays untouched.",
+             f"git status cache/: {hard_eval.git_cache_status()}"]
+    plans = {
+        "normal": hard_eval.plan_normal(samples_dir, repeat,
+                                        hard_eval.NORMAL_SAMPLES),
+        "hard": hard_eval.plan_hard(41, out_dir, samples_dir, repeat,
+                                    HARD_SAMPLES, TRANSFORMS),
+        "unseen": gate_eval.plan_unseen(samples_dir / "unseen", None),
+        "trips": gate_eval.plan_trips(samples_dir / "unseen" / "trips", None),
+    }
+    per_set: dict[str, tuple[float, float]] = {}
+    total_reads = total_verify = total_probes = 0
+    for name, plan in plans.items():
+        cases = plan["cases"]
+        # same math as gate-eval plan mode: 2 reads + up to 2 verify
+        # re-reads per pair, 2 probes per pair (trips counts its pages,
+        # since T4 reads one).
+        probes_total = (sum(c["pages"] for c in cases) * repeat
+                        if name == "trips" else None)
+        lines.append(gate_eval.estimate_text(name, len(cases), repeat, 2,
+                                             probes_total))
+        reads = len(cases) * repeat * 2
+        verify = len(cases) * repeat * 2
+        probes = (probes_total if probes_total is not None
+                  else len(cases) * repeat * 2)
+        total_reads += reads
+        total_verify += verify
+        total_probes += probes
+        lo = reads * hard_eval.BASE_EST + probes * hard_eval.PROBE_EST
+        per_set[name] = (lo, lo + verify * hard_eval.REREAD_EST)
+    gate_lo = total_reads * hard_eval.BASE_EST + total_probes * hard_eval.PROBE_EST
+    gate_hi = gate_lo + total_verify * hard_eval.REREAD_EST
+    lines.append(f"GATE TOTAL live calls: {total_reads} reads + up to "
+                 f"{total_verify} verify re-reads + {total_probes} rotation "
+                 f"probes; estimate ${gate_lo:.2f}-${gate_hi:.2f}.")
+    summary = trips_check.plan(None)
+    lines.append("")
+    lines.append(trips_check.format_plan(summary))
+    trip_lo, trip_hi = summary["estimate"]
+    grand_lo = gate_lo + trip_lo
+    grand_hi = gate_hi + trip_hi
+    lines.append("")
+    lines.append(f"GRAND TOTAL (gate + trips-check): "
+                 f"estimate ${grand_lo:.2f}-${grand_hi:.2f}.")
+    lines.append("Owner dawn commands (execute; each stops past --max-cost):")
+
+    def suggest(hi: float) -> str:
+        return f"{math.ceil(hi * 2) / 2:.2f}"  # hi rounded up to $0.50
+
+    both_hi = per_set["normal"][1] + per_set["hard"][1]
+    lines.append("  uv run claimlens gate-eval --set both --execute "
+                 f"--max-cost {suggest(both_hi)}")
+    lines.append("  uv run claimlens gate-eval --set unseen --execute "
+                 f"--max-cost {suggest(per_set['unseen'][1])}")
+    lines.append("  uv run claimlens gate-eval --set trips --execute "
+                 f"--max-cost {suggest(per_set['trips'][1])}")
+    lines.append(f"  uv run claimlens trips-check --execute "
+                 f"--max-cost {suggest(trip_hi)}")
+    lines.append("Stopped before any API call.")
+    _emit("\n".join(lines))
+    return 0
+
+
 def cmd_headline(args: argparse.Namespace) -> int:
     from pathlib import Path
 
@@ -775,6 +851,9 @@ def build_parser() -> argparse.ArgumentParser:
     trips.set_defaults(func=cmd_trips_check)
     headline = sub.add_parser("headline", help="Measured block; regenerates README + demo.")
     headline.set_defaults(func=cmd_headline)
+    remeasure = sub.add_parser("remeasure-plan",
+                               help="All re-measure plans at once (no execution).")
+    remeasure.set_defaults(func=cmd_remeasure_plan)
     return parser
 
 

@@ -9,11 +9,12 @@ upload verdict, the stop badge, and the questions asked.
 One-image (T4) and three-image (T1, T5) trips take the multi path (50):
 per-photo reads merged with provenance, or the certificate question
 when no certificate is uploaded. With the engine down the traveller
-trips pause at engine_unreachable on correct reads; a live model may
-stop earlier (blocked, needs_manual_check), which still passes with a
-note — any payout-shaped badge fails, and so does a decision-shaped
-badge while the engine is up (decisions on synthetic trips need a
-reviewer, never a silent pass).
+trips pause at engine_unreachable on correct reads; with the engine up
+the same trips decide, and both outcomes pass (56) — the record says
+which side it was. A live model may stop earlier (blocked,
+needs_manual_check), which still passes with a note. Trips that must
+never decide (T4 without a certificate, T6 dental) fail on any
+decision badge either way.
 """
 
 import base64
@@ -30,6 +31,10 @@ TRIPS_DIR = Path("samples") / "unseen" / "trips"
 
 CONSISTENCY_EST = REREAD_EST  # one text-only Spark pass; priced as a re-read
 STOP_BADGES = {"needs_review", "blocked", "needs_manual_check"}
+# 56: the engine's own decision vocabulary (serve reports output["decision"]
+# verbatim; the demo template mirrors this list in JS). A trip whose truth
+# accepts these decides when the engine is up — and that passes too.
+DECISION_BADGES = ("PAID", "PARTIAL", "DENIED", "HUMAN_REVIEW")
 
 PORT = 8000
 HEADERS = {"host": f"127.0.0.1:{PORT}", "content_type": "application/json"}
@@ -74,6 +79,8 @@ def plan_case(case: dict[str, Any]) -> dict[str, Any]:
         "calls": calls,
         "estimate": (round(lo, 4), round(hi, 4)),
         "expected": case["expected"]["serve_today"],
+        "accept_up": list(case["expected"].get("serve_engine_up", {}).get(
+            "badges", [])),
     }
 
 
@@ -99,10 +106,13 @@ def format_plan(summary: dict[str, Any]) -> str:
         exp = row["expected"]
         want = exp["badge"] if exp["status"] == 200 else exp["reason"]
         noun = "upload" if row["uploads"] == 1 else "uploads"
+        accept_up = row.get("accept_up") or []
+        engine_note = ("; engine up also accepts a decision badge"
+                       if accept_up else "; never decided")
         lines.append(f"{row['id']}: {row['uploads']} {noun}, facts "
                      f"{'complete' if not row['missing_facts'] else row['missing_facts']}, "
                      f"eligibility {','.join(row['eligibility'])}; "
-                     f"{row['calls']}; expect {exp['status']} {want}.")
+                     f"{row['calls']}; expect {exp['status']} {want}{engine_note}.")
     lo, hi = summary["estimate"]
     lines.append(f"TOTAL live calls across {len(summary['cases'])} trips; "
                  f"estimate ${lo:.2f}-${hi:.2f}.")
@@ -112,6 +122,7 @@ def format_plan(summary: dict[str, Any]) -> str:
 
 def run_case(case_id: str) -> dict[str, Any]:
     """One trip through route_post; the response plus the raw outcome."""
+    from claimlens import serve
     from claimlens.serve import route_post
 
     by_id = gate_eval.load_trip_cases(TRIPS_DIR)
@@ -131,11 +142,18 @@ def run_case(case_id: str) -> dict[str, Any]:
         "questions": payload.get("questions", []) if status == 200 else [],
         "cost_usd": payload.get("cost_usd", 0.0) if status == 200 else 0.0,
         "error": payload.get("error", "") if status != 200 else "",
+        "engine_up": bool(serve.neo4j_up()),
     }
 
 
-def judge(record: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
-    """Pass/fail against serve_today; earlier stops pass with a note."""
+def judge(record: dict[str, Any], expected: dict[str, Any],
+          engine_up_badges: tuple[str, ...] | list[str] = ()) -> dict[str, Any]:
+    """Pass/fail against serve_today; earlier stops pass with a note.
+
+    56: engine_up_badges (from truth serve_engine_up) also pass — the
+    same trip pauses at engine_unreachable with the engine down and
+    decides with it up. Trips that must never decide pass an empty set.
+    """
     if record["status"] != expected["status"]:
         return {"verdict": "FAIL",
                 "note": f"status {record['status']}, want {expected['status']}"}
@@ -146,6 +164,10 @@ def judge(record: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
         return {"verdict": "FAIL", "note": f"error {record['error']!r}, want {want!r}"}
     if record["badge"] == expected["badge"]:
         return {"verdict": "PASS", "note": ""}
+    if record["badge"] in engine_up_badges:
+        return {"verdict": "PASS (decided, engine up)",
+                "note": f"badge {record['badge']}, engine-down want "
+                        f"{expected['badge']}"}
     if record["badge"] in STOP_BADGES:
         return {"verdict": "PASS (earlier stop)",
                 "note": f"badge {record['badge']}, want {expected['badge']}"}
@@ -166,7 +188,9 @@ def execute(cases: list[str] | None = None, max_cost: float = 1.0,
     with TemporaryDirectory(prefix="trips-check-") as tmp, cache_dir_scope(Path(tmp)):
         for cid in ids:
             record = run_case(cid)
-            record.update(judge(record, by_id[cid]["expected"]["serve_today"]))
+            want = by_id[cid]["expected"]
+            up_badges = want.get("serve_engine_up", {}).get("badges", [])
+            record.update(judge(record, want["serve_today"], up_badges))
             results["cases"].append(record)
             results["spent"] += record["cost_usd"]
             if results["spent"] > max_cost:
@@ -187,12 +211,14 @@ def format_results(results: dict[str, Any]) -> str:
     """Per-case verdict table for the execute run."""
     lines = []
     for record in results["cases"]:
+        engine = {True: "engine up", False: "engine down"}.get(
+            record.get("engine_up"), "engine unknown")
         if record["status"] == 200:
             what = (f"{record['status']} {record['badge']} "
                     f"({len(record['questions'])} questions, "
-                    f"${record['cost_usd']:.4f})")
+                    f"${record['cost_usd']:.4f}, {engine})")
         else:
-            what = f"{record['status']} {record['error']}"
+            what = f"{record['status']} {record['error']} ({engine})"
         note = f" — {record['note']}" if record["note"] else ""
         lines.append(f"{record['case']}: {record['verdict']}: {what}{note}")
     lines.append(f"spent ${results['spent']:.4f}"

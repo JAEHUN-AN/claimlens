@@ -122,6 +122,13 @@ def test_travellers_take_traveller_path():
                 == case["eligibility_path"])
         serve = case["expected"]["serve_today"]
         assert serve == {"status": 200, "badge": want[case["id"]]}
+        up = case["expected"]["serve_engine_up"]
+        assert up["status"] == 200
+        assert set(up["badges"]) <= set(trips_check.DECISION_BADGES)
+        if case["id"] in ("T4_paris_pharmacy", "T6_guam_dental"):
+            assert up["badges"] == []  # never decided, engine up or down
+        else:
+            assert up["badges"] == list(trips_check.DECISION_BADGES)
 
 
 def test_render_is_deterministic(tmp_path):
@@ -407,6 +414,12 @@ def test_trips_check_judge():
     assert earlier["verdict"] == "PASS (earlier stop)"
     decided = trips_check.judge({"status": 200, "badge": "PAID"}, expected)
     assert decided["verdict"] == "FAIL"
+    up = trips_check.judge({"status": 200, "badge": "PAID"}, expected,
+                           trips_check.DECISION_BADGES)
+    assert up["verdict"] == "PASS (decided, engine up)"
+    never = {"status": 200, "badge": "needs_review"}  # T6: dental, no badges
+    denied = trips_check.judge({"status": 200, "badge": "DENIED"}, never, [])
+    assert denied["verdict"] == "FAIL"
     wrong_status = trips_check.judge({"status": 400, "error": "x"}, expected)
     assert wrong_status["verdict"] == "FAIL"
     refused = {"status": 400, "reason": "Upload 1 to 6"}
@@ -435,10 +448,33 @@ def test_trips_check_execute_writes_report(tmp_path, monkeypatch):
     assert results["aborted"] is False
     assert [c["verdict"] for c in results["cases"]] == ["PASS", "PASS"]
     assert results["spent"] > 0  # the T2 run made stub calls
+    assert [c["engine_up"] for c in results["cases"]] == [False, False]
     assert Path(results["path"]).is_file()
     text = trips_check.format_results(results)
     assert "T4_paris_pharmacy: PASS" in text
     assert "T2_danang_scooter: PASS" in text
+    assert "engine down" in text
+
+
+def test_trips_check_execute_accepts_engine_up_decision(tmp_path, monkeypatch):
+    """56: the same trip decides with the engine up — and that passes too."""
+    from claimlens import engine, serve
+
+    cases = gate_eval.load_trip_cases(TRIPS)
+    readings = [_reading_for(cases["T2_danang_scooter"], "receipt",
+                             "medical_certificate") for _ in range(2)]
+    monkeypatch.setattr(serve, "live_provider", lambda: _TripStub(readings))
+    monkeypatch.setattr(serve, "neo4j_up", lambda: True)
+    monkeypatch.setattr(engine, "live_adjudicate",
+                        lambda inputs: {"decision": "PARTIAL", "amount": 64637})
+    monkeypatch.setenv("CLAIMLENS_CACHE_DIR", str(tmp_path / "cache"))
+    out = tmp_path / "out"
+    results = trips_check.execute(["T2_danang_scooter"], 1.0, out)
+    assert results["aborted"] is False
+    assert [c["verdict"] for c in results["cases"]] == [
+        "PASS (decided, engine up)"]
+    assert [c["engine_up"] for c in results["cases"]] == [True]
+    assert "engine up" in trips_check.format_results(results)
 
 
 def test_trips_check_execute_aborts_past_max_cost(tmp_path, monkeypatch):

@@ -138,16 +138,27 @@ def check_total_positive(receipt: dict[str, Any]) -> BillCheck:
 
 
 def check_receipt_total(receipt: dict[str, Any]) -> list[BillCheck]:
-    """Arithmetic checks for non-Korean receipts: positive total, lines sum to it."""
+    """Arithmetic checks for non-Korean receipts: positive total, lines sum to it.
+
+    56: re-read tax/discount/adjustment lines count toward the sum, so a
+    bill with a printed tax or adjustment block can pass. Readings never
+    carry that key (the reading schema is unchanged), so the first pass
+    behaves exactly as before.
+    """
     total = _number_or_none(receipt.get("total_amount"))
     lines = receipt.get("line_items") or []
     amounts = [_number_or_none(i.get("amount")) for i in lines]
+    adjust = [_number_or_none(a.get("amount"))
+              for a in receipt.get("adjustment_lines") or []]
     if any(a is None for a in amounts):
         lines_sum = BillCheck("lines_sum_total", total, None, False, "missing line amount")
     elif total is None:
         lines_sum = BillCheck("lines_sum_total", None, sum(amounts), False, "missing total")
+    elif any(a is None for a in adjust):
+        lines_sum = BillCheck("lines_sum_total", total, None, False,
+                              "missing adjustment amount")
     else:
-        found = sum(a for a in amounts if a is not None)
+        found = sum(amounts) + sum(adjust)
         ok = abs(found - total) < 0.01
         lines_sum = BillCheck(
             "lines_sum_total", total, found, ok,
