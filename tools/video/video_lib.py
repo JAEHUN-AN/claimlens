@@ -83,7 +83,11 @@ __all__ = [
     "uses_live",
     "validate",
     "voice_at",
+    "BROWSER_LANG",
 ]
+
+# Browser UI language for recordings (file picker reads "Choose File", not the host's).
+BROWSER_LANG = "en-US"
 
 CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
             "thesis", "why", "before_after")

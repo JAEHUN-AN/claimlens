@@ -478,3 +478,13 @@ def test_start_live_server_answers_health():
             assert resp.status == 200
     finally:
         proc.terminate()
+
+
+def test_recorders_use_an_english_browser_ui():
+    # The host is Korean; without this the live scene shows "파일 선택" in an English video.
+    assert V.BROWSER_LANG == "en-US"
+    video_dir = Path(__file__).resolve().parent.parent / "tools" / "video"
+    for name in ("record_main.py", "record_vertical.py"):
+        src = (video_dir / name).read_text(encoding="utf-8")
+        assert 'args=[f"--lang={V.BROWSER_LANG}"]' in src, name
+        assert "locale=V.BROWSER_LANG" in src, name
