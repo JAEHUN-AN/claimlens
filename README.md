@@ -277,6 +277,11 @@ same run with no new reading.
   separate card slip (the Honolulu trip), still stops for a person in every live pair: the two
   reads disagree and the person picks the printed values. Nothing leaks, but it is not automatic
   (see the "After 57" rows in `docs/eval.md`).
+- On a Korean bill, if one read leaves out the item list, the narrow re-read can return the
+  patient-share column instead of each row's total, so the line-sum check fails and the claim
+  stops for a person (found while recording on 2026-10-31: two of three live runs on the S2
+  retake photos stopped this way). Nothing leaks; the charge rows the model already read would
+  let code derive the row totals, which is the planned fix.
 
 ## Demo video
 
