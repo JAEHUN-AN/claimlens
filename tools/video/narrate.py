@@ -88,16 +88,22 @@ def build_items(board: dict, final: dict[str, tuple[float, float]],
     """Narrated segments with nominal starts and limits (final-cut times).
 
     Voice-bed scenes speak after the recorded sample ends. Segments
-    without a narration (chapter cards) are skipped.
+    without a narration (chapter cards) are skipped; a line may run on
+    over the silent cards right after its scene.
     """
     items = []
-    for seg in board.get("segments", []):
+    segments = board.get("segments", [])
+    for pos, seg in enumerate(segments):
         text = seg.get("narration") or ""
         if not text.strip():
             continue
         if seg["id"] not in final:
             raise ValueError(f"segment {seg['id']} missing from the final cut")
         start, end = final[seg["id"]]
+        for nxt in segments[pos + 1:]:
+            if (nxt.get("narration") or "").strip() or nxt["id"] not in final:
+                break
+            end = final[nxt["id"]][1]
         if seg.get("sound") == "voice":
             start += bed_s
         items.append({"id": seg["id"], "text": text,
@@ -261,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     import json
 
-    from video_sound import have_ffmpeg
+    from video_sound import VOICE_LEN_S, have_ffmpeg
 
     if not rate_ok(args.rate):
         print(f"bad --rate {args.rate!r}, want +25% or -10%", file=sys.stderr)
@@ -289,7 +295,8 @@ def main(argv: list[str] | None = None) -> int:
         if not bed.is_file():
             print(f"voice bed not found: {bed}", file=sys.stderr)
             return 2
-        bed_s = wav_duration(bed)
+        # The cut plays only the first VOICE_LEN_S of the sample (mux_sound trims it).
+        bed_s = min(wav_duration(bed), VOICE_LEN_S)
     try:
         items = build_items(board, final, bed_s)
     except ValueError as exc:

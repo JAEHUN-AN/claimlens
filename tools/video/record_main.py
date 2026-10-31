@@ -23,10 +23,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import video_lib as V
 import video_post as P
+import video_sound as S
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 VOICE_WAV = ROOT / "samples" / "audio" / "W_factory_fall_en.wav"
-VOICE_LEN_S = 6.0
+VOICE_LEN_S = S.VOICE_LEN_S
 
 
 def extra_texts() -> dict[str, Path]:

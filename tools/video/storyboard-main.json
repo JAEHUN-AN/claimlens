@@ -24,7 +24,7 @@
       "page": "card:why",
       "title": "why card",
       "caption": "₩251.2B unclaimed (2022, est.) · 2.01M foreign patients (2025)",
-      "narration": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022 (est.), 2.01 million foreign patients in 2025 — we work on the paperwork step.",
+      "narration": "I work on hospital data systems in Korea. An estimated ₩251.2 billion went unclaimed there in 2022.",
       "duration": 7,
       "actions": [
         {
@@ -45,7 +45,7 @@
           "seconds": 5
         }
       ],
-      "narration": "By hand, this takes 30+ minutes per claim, by the builder's estimate. ClaimLens takes about 22.97 seconds, measured."
+      "narration": "By hand, 30+ minutes, the builder's estimate. ClaimLens: about 23 seconds, measured."
     },
     {
       "actions": [],
@@ -198,7 +198,7 @@
     {
       "actions": [],
       "caption": "Agent scorecard 8/8",
-      "narration": "We score it — 7 agent dialogues + 1 voice rule, each replayed once: it asks when it must, stays quiet when it need not, and never invents a number.",
+      "narration": "We score it, each case replayed once: it asks when it must, and never invents a number.",
       "duration": 6,
       "id": "score",
       "page": "agent-eval",
@@ -316,7 +316,7 @@
         }
       ],
       "caption": "Spoken dates: confirmed, not trusted",
-      "narration": "A factory worker describes a fall by voice. Dates heard by ear are confirmed, not trusted. Work injury: industrial-accident insurance first.",
+      "narration": "Dates heard by ear get confirmed. Work injury: industrial-accident insurance first.",
       "duration": 9,
       "id": "voice",
       "page": "demo",
@@ -528,7 +528,7 @@
         }
       ],
       "caption": "6 Meta tools, each measured",
-      "narration": "Muse Code wrote the code — the log shows how. Spark reads and runs the agent, files ride by id, SAM masks seals, Voice takes the call, Spark Open is measured side by side.",
+      "narration": "Muse Code wrote it. Spark reads and runs the agent, files go by id, SAM masks seals, Voice transcribes, Spark Open is measured.",
       "duration": 8,
       "id": "tools",
       "page": "card:meta",
@@ -542,7 +542,7 @@
         }
       ],
       "caption": "Built here · engine pre-existing, pinned",
-      "narration": "Built in this hackathon: reading, checks, eligibility, agent, codes, claim pack, voice. Pre-existing: our open-source policy engine, pinned.",
+      "narration": "Built here: reading, checks, agent, voice. Pinned from before: the policy engine.",
       "duration": 5,
       "id": "builtvs",
       "page": "readme",
@@ -564,7 +564,7 @@
         }
       ],
       "caption": "Wrong amounts: 47 (old single read) → 0 (live gate)",
-      "narration": "A single read on the old pipeline let 47 wrong amounts through; the live gate let 0. Real trips: 3 decided at exactly the expected amounts, 2 correctly held back, 1 stopped for a person.",
+      "narration": "Wrong amounts: 47 with a single read, 0 with the live gate. Real trips: 3 exact to the won, 2 held back, 1 stopped.",
       "duration": 8,
       "id": "gate",
       "page": "measured",
@@ -583,7 +583,7 @@
         }
       ],
       "caption": "The other way: a Korean skier in Japan",
-      "narration": "And the other direction: a Korean skier in Japan — the engine proposes payment in full under the travel policy; a reviewer confirms.",
+      "narration": "The other way: the engine proposes payment in full; a reviewer confirms.",
       "duration": 4,
       "id": "sceneA",
       "page": "demo",

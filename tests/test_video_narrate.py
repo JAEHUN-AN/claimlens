@@ -81,6 +81,26 @@ def test_parse_final_cut_rejects_garbage(tmp_path):
         raise AssertionError("expected ValueError")
 
 
+def test_build_items_runs_on_over_silent_chapter_cards():
+    final = {"a": (0.0, 5.0), "ch": (5.0, 6.0), "b": (6.0, 9.0), "c": (9.0, 12.0)}
+    board = {"segments": [
+        {"id": "a", "narration": "Alpha."},
+        {"id": "ch", "caption": "1"},
+        {"id": "b", "narration": "Beta."},
+        {"id": "c", "narration": "Gamma."},
+    ]}
+    items = narrate.build_items(board, final, 0.0)
+    assert [(i["id"], i["limit"]) for i in items] == [("a", 6.3), ("b", 9.3), ("c", 12.3)]
+
+
+def test_voice_bed_offset_is_the_played_length_not_the_file():
+    import video_sound
+
+    assert video_sound.VOICE_LEN_S == 6.0
+    src = (Path(narrate.__file__)).read_text(encoding="utf-8")
+    assert "min(wav_duration(bed), VOICE_LEN_S)" in src
+
+
 def test_build_items_skips_chapters_and_offsets_voice():
     final = {"a": (0.0, 6.0), "v": (6.0, 15.0)}
     board = {"segments": [
@@ -250,8 +270,9 @@ def test_before_after_and_gate_narration_come_from_data():
 
     wanted = captions._wanted(captions.ROOT)
     narration = wanted["before_after"][1]
-    assert "30+ minutes per claim, by the builder's estimate" in narration
-    assert narration.endswith("seconds, measured.")
+    assert "30+ minutes, the builder's estimate" in narration
+    nums = captions.numbers(captions.ROOT)
+    assert narration.endswith(f"about {round(float(nums['n']))} seconds, measured.")
     gate = wanted["gate"][1]
-    assert gate.startswith("A single read on the old pipeline let ")
+    assert gate.startswith(f"Wrong amounts: {nums['old']} with a single read, ")
     assert "Real trips:" in gate

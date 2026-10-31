@@ -64,7 +64,7 @@ def test_gate_caption_comes_from_headline():
     # Spoken form is short and built from the same data (captions.gate_narration).
     assert gate["narration"] == captions.gate_narration(ROOT, nums)
     assert gate["narration"].startswith(
-        f"A single read on the old pipeline let {nums['old']} wrong amounts through")
+        f"Wrong amounts: {nums['old']} with a single read, {nums['live']} with the live gate.")
 
 
 def test_honest_wording_pins():
@@ -73,8 +73,8 @@ def test_honest_wording_pins():
     assert "the engine proposes payment in full" in segs["sceneA"]
     assert "a reviewer confirms" in segs["sceneA"]
     assert "paid in full under the travel policy" not in segs["sceneA"]
-    assert "each replayed once" in segs["score"]
-    assert "(est.)" in segs["why"]
+    assert "replayed once" in segs["score"]
+    assert "An estimated" in segs["why"]
     for seg in _main()["segments"]:
         assert len(seg["caption"]) <= 190
 
@@ -107,13 +107,13 @@ def test_v5_narrations_carry_old_captions():
     segs = {s["id"]: s for s in _main()["segments"]}
     assert segs["thesis"]["narration"] == "AI reads, reasons and asks; code counts."
     assert segs["why"]["narration"].startswith(
-        "A developer who works on hospital data systems.")
-    assert "each replayed once" in segs["score"]["narration"]
+        "I work on hospital data systems in Korea.")
+    assert "replayed once" in segs["score"]["narration"]
     assert "the engine proposes payment in full" in segs["sceneA"]["narration"]
     for ch in ("ch1", "ch2", "ch3", "ch4", "ch5", "ch6"):
         assert "narration" not in segs[ch]
-    assert segs["before_after"]["narration"] == captions.BEFORE_AFTER_NARRATION.format(
-        **captions.numbers(ROOT))
+    assert segs["before_after"]["narration"] == captions.before_after_narration(
+        captions.numbers(ROOT))
 
 
 def test_before_after_scene_after_why():

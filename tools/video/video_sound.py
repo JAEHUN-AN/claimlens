@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 __all__ = [
+    "VOICE_LEN_S",
     "check_first_frame",
     "content_lead",
     "extract_frame",
@@ -20,6 +21,10 @@ __all__ = [
     "speed_spans",
     "voice_at",
 ]
+
+
+# Seconds of the voice sample the main cut plays (mux_sound trims to this).
+VOICE_LEN_S = 6.0
 
 
 def ffmpeg_bin() -> str:

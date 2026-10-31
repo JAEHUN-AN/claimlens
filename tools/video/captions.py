@@ -78,14 +78,20 @@ def _wanted(root: Path) -> dict[str, tuple[str, str | None]]:
     caption, _ = wanted["gate"]
     wanted["gate"] = (caption, gate_narration(root, nums))
     caption, _ = wanted["before_after"]
-    wanted["before_after"] = (caption, BEFORE_AFTER_NARRATION.format(**nums))
+    wanted["before_after"] = (caption, before_after_narration(nums))
     return wanted
 
 
 # Owner-approved sentence (backlog Round 10) + the measured side, spoken.
 BEFORE_AFTER_NARRATION = (
-    "By hand, this takes 30+ minutes per claim, by the builder's estimate. "
-    "ClaimLens takes about {n} seconds, measured.")
+    "By hand, 30+ minutes, the builder's estimate. "
+    "ClaimLens: about {n_spoken} seconds, measured.")
+
+
+def before_after_narration(nums: dict[str, str]) -> str:
+    """Spoken before/after line; the measured seconds are rounded for speech
+    (the card and caption keep the exact value)."""
+    return BEFORE_AFTER_NARRATION.format(n_spoken=round(float(nums["n"])))
 
 
 def gate_narration(root: Path, nums: dict[str, str]) -> str:
@@ -96,8 +102,8 @@ def gate_narration(root: Path, nums: dict[str, str]) -> str:
     """
     from claimlens import headline
 
-    text = (f"A single read on the old pipeline let {nums['old']} wrong amounts "
-            f"through; the live gate let {nums['live']}.")
+    text = (f"Wrong amounts: {nums['old']} with a single read, "
+            f"{nums['live']} with the live gate.")
     trips = headline.trips_line(root)
     if trips is None:
         return text
@@ -108,11 +114,11 @@ def gate_narration(root: Path, nums: dict[str, str]) -> str:
     if not decided:
         raise ValueError("trips line wording changed; gate narration parse failed")
     exact = "each paid amount matches" in line
-    parts = [f"{decided.group(1)} decided" + (" at exactly the expected amounts" if exact else "")]
+    parts = [f"{decided.group(1)} " + ("exact to the won" if exact else "decided")]
     if held:
-        parts.append(f"{len(re.findall(r'T\d+', held.group(1)))} correctly held back")
+        parts.append(f"{len(re.findall(r'T\d+', held.group(1)))} held back")
     if stopped:
-        parts.append(f"{len(re.findall(r'T\d+', stopped.group(1)))} stopped for a person")
+        parts.append(f"{len(re.findall(r'T\d+', stopped.group(1)))} stopped")
     return text + " Real trips: " + ", ".join(parts) + "."
 
 
