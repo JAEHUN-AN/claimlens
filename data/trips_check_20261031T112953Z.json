@@ -1,0 +1,103 @@
+{
+  "tool": "trips-check",
+  "cases": [
+    {
+      "case": "T1_bangkok_food_poisoning",
+      "uploads": 3,
+      "status": 200,
+      "badge": "PAID",
+      "title": "595,399 KRW",
+      "questions": [],
+      "cost_usd": 0.044065,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS (decided, engine up)",
+      "note": "badge PAID, engine-down want engine_unreachable"
+    },
+    {
+      "case": "T2_danang_scooter",
+      "uploads": 2,
+      "status": 200,
+      "badge": "PAID",
+      "title": "64,637 KRW",
+      "questions": [],
+      "cost_usd": 0.027630000000000002,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS (decided, engine up)",
+      "note": "badge PAID, engine-down want engine_unreachable"
+    },
+    {
+      "case": "T3_setagaya_fever",
+      "uploads": 2,
+      "status": 200,
+      "badge": "PAID",
+      "title": "113,443 KRW",
+      "questions": [],
+      "cost_usd": 0.036564,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS (decided, engine up)",
+      "note": "badge PAID, engine-down want engine_unreachable"
+    },
+    {
+      "case": "T4_paris_pharmacy",
+      "uploads": 1,
+      "status": 200,
+      "badge": "needs_manual_check",
+      "title": "Human review: 1 receipt(s) read; no certificate..",
+      "questions": [
+        {
+          "question": "No doctor's certificate was found. Re-upload the receipts together with the certificate for this visit.",
+          "why_needed": "A claim is never decided without the doctor's certificate."
+        }
+      ],
+      "cost_usd": 0.015331000000000001,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS",
+      "note": ""
+    },
+    {
+      "case": "T5_honolulu_urgent",
+      "uploads": 3,
+      "status": 200,
+      "badge": "needs_manual_check",
+      "title": "Human review: 2 receipt(s) read; not merged..",
+      "questions": [
+        {
+          "question": "photo 2 (1333.85) matches photo 1 but both look like bills; upload them separately. Re-upload accordingly.",
+          "why_needed": "Receipts that cannot merge never reach a decision."
+        }
+      ],
+      "cost_usd": 0.045306,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS (earlier stop)",
+      "note": "badge needs_manual_check, want engine_unreachable"
+    },
+    {
+      "case": "T6_guam_dental",
+      "uploads": 2,
+      "status": 200,
+      "badge": "needs_review",
+      "title": "Flagged for a reviewer: dental treatment is never decided automatically.",
+      "questions": [
+        {
+          "question": "This claim involves dental treatment (dental flag: diagnosis K04.7); what should the reviewer check?",
+          "why_needed": "No payout rule exists for dental care; a reviewer decides, the engine never does."
+        }
+      ],
+      "cost_usd": 0.027871,
+      "error": "",
+      "engine_up": true,
+      "verdict": "PASS",
+      "note": ""
+    }
+  ],
+  "spent": 0.196767,
+  "aborted": false,
+  "cache_before": "(clean)",
+  "cache_after": "(clean)",
+  "recorded_at": "2026-10-31T11:29:53.291425+00:00"
+}

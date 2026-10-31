@@ -12,7 +12,8 @@
           "seconds": 5
         }
       ],
-      "caption": "AI reads, reasons and asks; code counts.",
+      "caption": "AI reads. Code counts. People decide.",
+      "narration": "AI reads, reasons and asks; code counts.",
       "duration": 6,
       "id": "thesis",
       "page": "card:thesis",
@@ -22,7 +23,8 @@
       "id": "why",
       "page": "card:why",
       "title": "why card",
-      "caption": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022 (est.), 2.01 million foreign patients in 2025 — we work on the paperwork step.",
+      "caption": "₩251.2B unclaimed (2022, est.) · 2.01M foreign patients (2025)",
+      "narration": "A developer who works on hospital data systems. ₩251.2 billion unclaimed in 2022 (est.), 2.01 million foreign patients in 2025 — we work on the paperwork step.",
       "duration": 7,
       "actions": [
         {
@@ -30,6 +32,20 @@
           "seconds": 6
         }
       ]
+    },
+    {
+      "id": "before_after",
+      "page": "card:before_after",
+      "title": "before/after card",
+      "caption": "By hand: 30+ min (est.) → ClaimLens: ~22.97 s (measured)",
+      "duration": 6,
+      "actions": [
+        {
+          "op": "hold",
+          "seconds": 5
+        }
+      ],
+      "narration": "Doing this by hand — translating the certificate, converting the codes and currency, itemising the bill and filling the insurer's form — takes 30+ minutes per claim (builder's estimate). ClaimLens: about 22.97 seconds (measured)."
     },
     {
       "actions": [],
@@ -70,7 +86,8 @@
           "seconds": 1
         }
       ],
-      "caption": "Drop a hospital bill. Muse Spark reads every numbered cell, code re-adds them, and a rule decides which insurance applies.",
+      "caption": "Every cell read → re-added in code",
+      "narration": "Drop a hospital bill. Muse Spark reads every numbered cell, code re-adds them, and a rule decides which insurance applies.",
       "duration": 14,
       "id": "s2flow",
       "page": "demo",
@@ -124,7 +141,8 @@
           "seconds": 1
         }
       ],
-      "caption": "Every number can show where it came from: the receipt cells, the copay formula, the three deductible terms — and our own check matches the engine.",
+      "caption": "Every number shows its source",
+      "narration": "Every number can show where it came from: the receipt cells, the copay formula, the three deductible terms — and our own check matches the engine.",
       "duration": 15,
       "id": "prov",
       "page": "demo",
@@ -170,7 +188,8 @@
           "seconds": 1
         }
       ],
-      "caption": "Hide two cells and the checks fail. The agent does not guess: it asks for exactly what is missing, and says why — then finishes the claim.",
+      "caption": "Something missing? It asks — never guesses",
+      "narration": "Hide two cells and the checks fail. The agent does not guess: it asks for exactly what is missing, and says why — then finishes the claim.",
       "duration": 14,
       "id": "agent",
       "page": "demo",
@@ -178,7 +197,8 @@
     },
     {
       "actions": [],
-      "caption": "We score it — 7 agent dialogues + 1 voice rule, each replayed once: it asks when it must, stays quiet when it need not, and never invents a number.",
+      "caption": "Agent scorecard 8/8",
+      "narration": "We score it — 7 agent dialogues + 1 voice rule, each replayed once: it asks when it must, stays quiet when it need not, and never invents a number.",
       "duration": 7,
       "id": "score",
       "page": "agent-eval",
@@ -243,7 +263,8 @@
           "op": "unzoom"
         }
       ],
-      "caption": "No Korean policy, so we do not decide. A failed reading is re-read, never used — and the claim pack warns where a prefix match names a different fracture.",
+      "caption": "No policy → no decision, a claim pack",
+      "narration": "No Korean policy, so we do not decide. A failed reading is re-read, never used — and the claim pack warns where a prefix match names a different fracture.",
       "duration": 15,
       "id": "s3",
       "page": "demo",
@@ -294,7 +315,8 @@
           "seconds": 1
         }
       ],
-      "caption": "A factory worker describes a fall by voice. Dates heard by ear are confirmed, not trusted. Work injury: industrial-accident insurance first.",
+      "caption": "Spoken dates: confirmed, not trusted",
+      "narration": "A factory worker describes a fall by voice. Dates heard by ear are confirmed, not trusted. Work injury: industrial-accident insurance first.",
       "duration": 9,
       "id": "voice",
       "page": "demo",
@@ -352,7 +374,8 @@
           "op": "unzoom"
         }
       ],
-      "caption": "This run is live: new photos, a real Muse Spark call, real seconds on screen.",
+      "caption": "LIVE · new photos · real Muse Spark call",
+      "narration": "This run is live: new photos, a real Muse Spark call, real seconds on screen.",
       "duration": 15,
       "id": "live",
       "page": "live",
@@ -404,7 +427,8 @@
           "seconds": 2
         }
       ],
-      "caption": "Two documents disagree: both quotes side by side, and each blocker becomes a question. The claims check drops what its quotes don't support.",
+      "caption": "Documents disagree → a question",
+      "narration": "Two documents disagree: both quotes side by side, and each blocker becomes a question. The claims check drops what its quotes don't support.",
       "duration": 15,
       "id": "mismatch",
       "page": "demo",
@@ -442,8 +466,9 @@
           "seconds": 2
         }
       ],
-      "caption": "Checks the agent cannot skip: a refused call, a handoff card, and a reviewer who approves or returns with notes.",
-      "duration": 15,
+      "caption": "Checks the agent can't skip",
+      "narration": "Checks the agent cannot skip: a refused call, a handoff card, and a reviewer who approves or returns with notes.",
+      "duration": 11,
       "id": "verify",
       "page": "demo",
       "title": "checks you cannot skip"
@@ -488,8 +513,9 @@
           "seconds": 1
         }
       ],
-      "caption": "On your phone: same demo, same proof.",
-      "duration": 10,
+      "caption": "Same proof on your phone",
+      "narration": "On your phone: same demo, same proof.",
+      "duration": 6,
       "id": "phone",
       "page": "phone",
       "title": "on your phone"
@@ -498,11 +524,12 @@
       "actions": [
         {
           "op": "hold",
-          "seconds": 5
+          "seconds": 7
         }
       ],
-      "caption": "Muse Code wrote the code — the log shows how. Spark reads and runs the agent, files ride by id, SAM masks seals, Voice takes the call, Spark Open is measured side by side.",
-      "duration": 7,
+      "caption": "6 Meta tools, each measured",
+      "narration": "Muse Code wrote the code — the log shows how. Spark reads and runs the agent, files ride by id, SAM masks seals, Voice takes the call, Spark Open is measured side by side.",
+      "duration": 9,
       "id": "tools",
       "page": "card:meta",
       "title": "Meta tools card"
@@ -514,7 +541,8 @@
           "seconds": 3
         }
       ],
-      "caption": "Built in this hackathon: reading, checks, eligibility, agent, codes, claim pack, voice. Pre-existing: our open-source policy engine, pinned.",
+      "caption": "Built here · engine pre-existing, pinned",
+      "narration": "Built in this hackathon: reading, checks, eligibility, agent, codes, claim pack, voice. Pre-existing: our open-source policy engine, pinned.",
       "duration": 5,
       "id": "builtvs",
       "page": "readme",
@@ -535,9 +563,10 @@
           "op": "unzoom"
         }
       ],
-      "caption": "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; the live gate (2026-10-30, current pipeline) leaves 0.",
+      "caption": "Wrong amounts: 47 (old single read) → 0 (live gate)",
+      "narration": "A single read on the old pipeline let 47 wrong amounts through; the live gate let 0. Real trips: 3 decided at exactly the expected amounts, 2 correctly held back, 1 stopped for a person.",
       "duration": 8,
-      "id": "eval",
+      "id": "gate",
       "page": "measured",
       "title": "single vs double read"
     },
@@ -553,7 +582,8 @@
           "nth": 0
         }
       ],
-      "caption": "And the other direction: a Korean skier in Japan — the engine proposes payment in full under the travel policy; a reviewer confirms.",
+      "caption": "The other way: a Korean skier in Japan",
+      "narration": "And the other direction: a Korean skier in Japan — the engine proposes payment in full under the travel policy; a reviewer confirms.",
       "duration": 4,
       "id": "sceneA",
       "page": "demo",
@@ -570,7 +600,8 @@
           "seconds": 4
         }
       ],
-      "caption": "All documents are synthetic. Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
+      "caption": "Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
+      "narration": "All documents are synthetic. Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
       "duration": 8,
       "id": "closing",
       "page": "demo",

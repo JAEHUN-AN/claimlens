@@ -24,10 +24,10 @@ a claim pack the person can take to their own insurer (English, Vietnamese on re
 
 <!-- measured:start -->
 **Measured:**
-- Live double-read gate, 2026-10-30 run on the current pipeline (24 cases ×3 = 72 pairs): 0 wrong amounts left (40 stopped for a person); normal documents: 0 left, 6/30 stopped.
+- Live double-read gate, 2026-10-31 run on the current pipeline (24 cases ×3 = 72 pairs): 0 wrong amounts left (34 stopped for a person); normal documents: 0 left, 2/30 stopped.
 - Single read, 2026-10-28 run on the old pipeline (before the line-sum check and rotation probe): 47 wrong amounts left (hard set, 23/24 cases ×3).
-- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-30, wider scoring): 0 wrong values left over 84 pairs (8 stopped).
-- Real trips through live upload, 2026-10-30 run: 3 of 6 decided (T1, T2, T3); each paid amount matches the truth KRW total; T4 (needs_manual_check), T6 (needs_review) correctly not decided; T5 stopped for a person.
+- Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong amounts left over 84 pairs (30 stopped for a person); after fixes (2026-10-31, wider scoring): 0 wrong values left over 84 pairs (9 stopped).
+- Real trips through live upload, 2026-10-31 run: 3 of 6 decided (T1, T2, T3); each paid amount matches the truth KRW total; T4 (needs_manual_check), T6 (needs_review) correctly not decided; T5 stopped for a person.
 - Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed once from its recording)
 - 15 fault cases injected in tests (no live calls), no wrong number
 - Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2 (PARTIAL = partly paid, needs_manual_check = stopped for a person); median run needs_manual_check

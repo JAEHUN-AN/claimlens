@@ -14,6 +14,7 @@
         }
       ],
       "caption": "Hospital bills don't translate themselves.",
+      "narration": "Hospital bills don't translate themselves.",
       "duration": 4,
       "id": "vhook",
       "page": "card:vhook",
@@ -46,7 +47,7 @@
         {
           "op": "select",
           "selector": "#person-product",
-          "value": "\uae30\ubcf8\ud615 \uc2e4\uc190\uc758\ub8cc\ubcf4\ud5d8(\uae09\uc5ec \uc2e4\uc190\uc758\ub8cc\ube44)"
+          "value": "기본형 실손의료보험(급여 실손의료비)"
         },
         {
           "op": "click",
@@ -71,6 +72,7 @@
         }
       ],
       "caption": "Phone live drop — real wait, sped up.",
+      "narration": "Phone live drop — real wait, sped up.",
       "duration": 24,
       "id": "vlive",
       "page": "live",
@@ -109,6 +111,7 @@
         }
       ],
       "caption": "Every number shows its source.",
+      "narration": "Every number shows its source.",
       "duration": 10,
       "id": "vprov",
       "page": "demo",
@@ -152,6 +155,7 @@
         }
       ],
       "caption": "Mismatch? Both quotes, side by side.",
+      "narration": "Mismatch? Both quotes, side by side.",
       "duration": 12,
       "id": "vmm",
       "page": "demo",
@@ -165,6 +169,7 @@
         }
       ],
       "caption": "Try it: jaehun-an.github.io/claimlens",
+      "narration": "Try it: jaehun-an.github.io/claimlens",
       "duration": 7,
       "id": "vlink",
       "page": "card:vlink",

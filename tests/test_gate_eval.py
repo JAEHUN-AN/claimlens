@@ -22,7 +22,7 @@ def test_eval_md_gate_runs_table_matches_data():
     files = sorted((ROOT / "data").glob("gate_live_*.json"))
     hard_runs = [p for p in files
                  if "hard" in json.loads(p.read_text(encoding="utf-8"))["sets"]]
-    assert len(hard_runs) == 5
+    assert len(hard_runs) == 6
     for path in hard_runs:
         data = json.loads(path.read_text(encoding="utf-8"))
         for name in ("normal", "hard"):

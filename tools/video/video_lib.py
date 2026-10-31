@@ -48,6 +48,7 @@ __all__ = [
     "append_final_cut",
     "apply_rush",
     "build_shots",
+    "caption_lines",
     "check_assets",
     "check_first_frame",
     "clean_out",
@@ -85,7 +86,7 @@ __all__ = [
 ]
 
 CARD_IDS = ("cold", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "meta", "vhook", "vmeta", "vlink",
-            "thesis", "why")
+            "thesis", "why", "before_after")
 OPS = ("click", "move", "scroll_to", "wait_for", "hold", "goto", "zoom", "unzoom", "dropfiles",
        "press", "select")
 BASE_HOOKS = ("window.__cap", "window.__dot", "window.__pulse", "window.__place", "#vcap", "#vdot")
@@ -125,15 +126,57 @@ def nav_texts(demo_text: str) -> list[str]:
 MULTI = ("fstep", "totag", "plink", "pill", "audio")
 
 
-def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int) -> list[str]:
+def caption_lines(text: str, font_px: int, width_px: int) -> tuple[int, list[str]]:
+    """Wrapped overlay-caption lines + words wider than the bar.
+
+    Greedy word wrap measured with the recorder font, with a character
+    estimate when no font file exists. The bar keeps ~30 px of padding
+    per side. Returns (line count, overflowing words).
+    """
+    words = " ".join(str(text).split()).split(" ")
+    usable = max(50.0, float(width_px) - 60.0)
+    try:
+        from PIL import ImageFont
+
+        font = ImageFont.truetype(str(find_font()), font_px)
+        measure = lambda s: font.getlength(s) * 1.05
+    except (RuntimeError, OSError, ImportError):
+        measure = lambda s: len(s) * font_px * 0.55
+    lines = 1
+    current = ""
+    overflow: list[str] = []
+    for word in words:
+        if measure(word) > usable and word not in overflow:
+            overflow.append(word)
+        trial = f"{current} {word}".strip()
+        if measure(trial) <= usable:
+            current = trial
+        else:
+            lines += 1
+            current = word
+    return lines, overflow
+
+
+def validate(root: Path, board: dict, texts: dict[str, str], caption_max: int,
+             font_px: int = 23, max_lines: int | None = 2) -> list[str]:
     """Storyboard checks that need no browser. Returns error strings."""
     errors: list[str] = []
     segments = board.get("segments", [])
+    width = board.get("viewport", {}).get("width", 1280)
     for seg in segments:
         if not seg.get("caption"):
             errors.append(f"{seg.get('id')}: empty caption")
         elif len(seg["caption"]) > caption_max:
             errors.append(f"{seg.get('id')}: caption over {caption_max} chars")
+        if "\n" in (seg.get("caption") or ""):
+            errors.append(f"{seg.get('id')}: caption holds a newline; the bar wraps by width")
+        if max_lines is not None and seg.get("caption"):
+            lines, overflow = caption_lines(seg["caption"], font_px, width)
+            if lines > max_lines:
+                errors.append(f"{seg.get('id')}: caption wraps to {lines} lines,"
+                              f" want at most {max_lines}")
+            for word in overflow:
+                errors.append(f"{seg.get('id')}: caption word overflows the bar: {word!r}")
         if seg.get("duration", 0) <= 0:
             errors.append(f"{seg.get('id')}: bad duration")
         speed = seg.get("speed")

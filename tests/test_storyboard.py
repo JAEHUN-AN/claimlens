@@ -1,14 +1,15 @@
-"""Storyboard v4: totals, captions, cards, measured shot (dry-run level)."""
+"""Storyboard v5: totals, keyword captions + narrations, cards, measured shot."""
 
 import json
 import sys
 
-from claimlens import headline, meta_tiles
+from claimlens import meta_tiles
 from claimlens.demo import REPO_ROOT
 
 ROOT = REPO_ROOT
 sys.path.insert(0, str(ROOT / "tools" / "video"))
 
+import captions
 import video_lib as V
 import video_shots
 
@@ -51,22 +52,109 @@ def test_why_segment_after_thesis():
     assert "koui" not in ids and "tooling" not in ids
 
 
-def test_eval_caption_comes_from_headline():
-    eval_seg = next(s for s in _main()["segments"] if s["id"] == "eval")
-    assert eval_seg["caption"] == headline.eval_caption(ROOT)
-    assert eval_seg["page"] == "measured"
+def test_gate_caption_comes_from_headline():
+    # The eval scene lives under id "gate": headline.apply_storyboard
+    # still owns id "eval" while src is frozen for 63.
+    gate = next(s for s in _main()["segments"] if s["id"] == "gate")
+    nums = captions.numbers(ROOT)
+    assert gate["caption"] == (
+        f"Wrong amounts: {nums['old']} (old single read)"
+        f" → {nums['live']} (live gate)")
+    assert gate["page"] == "measured"
+    # Spoken form is short and built from the same data (captions.gate_narration).
+    assert gate["narration"] == captions.gate_narration(ROOT, nums)
+    assert gate["narration"].startswith(
+        f"A single read on the old pipeline let {nums['old']} wrong amounts through")
 
 
 def test_honest_wording_pins():
     """53-H6/H9/H14: propose/confirm framing, replay scope, (est.)."""
-    segs = {s["id"]: s["caption"] for s in _main()["segments"]}
+    segs = {s["id"]: s.get("narration", "") for s in _main()["segments"]}
     assert "the engine proposes payment in full" in segs["sceneA"]
     assert "a reviewer confirms" in segs["sceneA"]
     assert "paid in full under the travel policy" not in segs["sceneA"]
     assert "each replayed once" in segs["score"]
     assert "(est.)" in segs["why"]
-    for caption in segs.values():
-        assert len(caption) <= 190
+    for seg in _main()["segments"]:
+        assert len(seg["caption"]) <= 190
+
+
+def test_v5_captions_match_owner_draft():
+    nums = captions.numbers(ROOT)
+    segs = {s["id"]: s["caption"] for s in _main()["segments"]}
+    assert segs["thesis"] == "AI reads. Code counts. People decide."
+    assert segs["why"] == "₩251.2B unclaimed (2022, est.) · 2.01M foreign patients (2025)"
+    assert segs["before_after"] == (
+        f"By hand: 30+ min (est.) → ClaimLens: ~{nums['n']} s (measured)")
+    assert segs["s2flow"] == "Every cell read → re-added in code"
+    assert segs["prov"] == "Every number shows its source"
+    assert segs["agent"] == "Something missing? It asks — never guesses"
+    assert segs["score"] == f"Agent scorecard {nums['a']}/{nums['b']}"
+    assert segs["s3"] == "No policy → no decision, a claim pack"
+    assert segs["voice"] == "Spoken dates: confirmed, not trusted"
+    assert segs["live"] == "LIVE · new photos · real Muse Spark call"
+    assert segs["mismatch"] == "Documents disagree → a question"
+    assert segs["verify"] == "Checks the agent can't skip"
+    assert segs["phone"] == "Same proof on your phone"
+    assert segs["tools"] == "6 Meta tools, each measured"
+    assert segs["builtvs"] == "Built here · engine pre-existing, pinned"
+    assert segs["sceneA"] == "The other way: a Korean skier in Japan"
+    assert segs["closing"] == (
+        "Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens")
+
+
+def test_v5_narrations_carry_old_captions():
+    segs = {s["id"]: s for s in _main()["segments"]}
+    assert segs["thesis"]["narration"] == "AI reads, reasons and asks; code counts."
+    assert segs["why"]["narration"].startswith(
+        "A developer who works on hospital data systems.")
+    assert "each replayed once" in segs["score"]["narration"]
+    assert "the engine proposes payment in full" in segs["sceneA"]["narration"]
+    for ch in ("ch1", "ch2", "ch3", "ch4", "ch5", "ch6"):
+        assert "narration" not in segs[ch]
+    assert segs["before_after"]["narration"] == captions.BEFORE_AFTER_NARRATION.format(
+        **captions.numbers(ROOT))
+
+
+def test_before_after_scene_after_why():
+    segs = _main()["segments"]
+    ids = [s["id"] for s in segs]
+    assert ids.index("before_after") == ids.index("why") + 1
+    scene = next(s for s in segs if s["id"] == "before_after")
+    assert scene["page"] == "card:before_after"
+    assert scene["duration"] == 6
+    by_id = {s["id"]: s for s in segs}
+    assert by_id["tools"]["duration"] == 9
+    assert by_id["phone"]["duration"] == 6
+    assert by_id["verify"]["duration"] == 11
+    assert sum(s["duration"] for s in segs) == 180
+    assert segs[-1]["id"] == "closing"
+
+
+def test_vertical_split_keeps_captions():
+    for seg in _vertical()["segments"]:
+        assert seg["narration"] == seg["caption"]
+    vhook = next(s for s in _vertical()["segments"] if s["id"] == "vhook")
+    assert vhook["caption"] == "Hospital bills don't translate themselves."
+
+
+def test_captions_match_fresh_refresh():
+    assert captions.check(ROOT) == []
+
+
+def test_eval_shot_shows_trips_line(tmp_path):
+    paths = video_shots.build_shots(ROOT, tmp_path)
+    text = paths["measured"].read_text(encoding="utf-8")
+    assert "Real trips through live upload" in text
+
+
+def test_committed_main_captions_fit_two_lines():
+    board = _main()
+    width = board["viewport"]["width"]
+    for seg in board["segments"]:
+        lines, overflow = V.caption_lines(seg["caption"], 23, width)
+        assert lines <= 2, seg["id"]
+        assert overflow == [], seg["id"]
 
 
 def test_why_card_content():
@@ -129,8 +217,8 @@ def test_live_scenes_answer_product_pause_then_wait_amount():
 
 
 def test_dry_run_validation_passes(tmp_path):
-    for name, cap in (("storyboard-main.json", 190),
-                      ("storyboard-vertical.json", 44)):
+    for name, cap, font, lines in (("storyboard-main.json", 190, 23, 2),
+                                   ("storyboard-vertical.json", 44, 34, None)):
         board = json.loads((ROOT / "tools" / "video" / name).read_text(
             encoding="utf-8"))
         texts = V.page_texts_for(ROOT, tmp_path / name, {
@@ -139,5 +227,6 @@ def test_dry_run_validation_passes(tmp_path):
         texts["live"] = texts["demo"]
         for cid in V.CARD_IDS:
             texts[f"card:{cid}"] = texts["cards"]
-        assert V.validate(ROOT, board, texts, cap) == []
+        assert V.validate(ROOT, board, texts, cap, font_px=font,
+                          max_lines=lines) == []
         assert V.check_assets(ROOT, board, texts) == []

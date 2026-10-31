@@ -92,7 +92,7 @@ gate catches what the checks cannot.
 
 ## Live gate runs: normal + hard (repeat 3)
 
-Five live runs over the same A/S2/S3-derived normal (10 cases) and hard
+Six live runs over the same A/S2/S3-derived normal (10 cases) and hard
 (24 cases) images, fresh reads only (temp cache dirs; committed `cache/`
 untouched). Between runs the pipeline changed, not the documents — later
 runs measure fixes on the same document families, not new ones. The
@@ -106,12 +106,14 @@ listed as separate rows.
 | 2026-10-29 04:23 | 30 / 0 / 0 | 72 / 39 / 4 | $3.48 | line-sum check on every receipt (41e-a) |
 | 2026-10-29 07:08 | 30 / 0 / 0 | 72 / 35 / 0 | $3.70 | rotation probe before reading (41f) |
 | 2026-10-30 05:28 | 30 / 6 / 0 | 72 / 40 / 0 | $3.72 | 54–56 and 50: wider gate and scoring (currency, country, service date, inpatient, diagnosis codes, charge rows), per-read re-read tags, tax/adjustment re-read |
+| 2026-10-31 11:03 | 30 / 2 / 0 | 72 / 34 / 0 | $3.67 | 60: Korean row totals derived from the charge rows by code (no re-read) |
 
 Data: `data/gate_live_20261028T212938Z.json`,
 `data/gate_live_20261029T004823Z.json`,
 `data/gate_live_20261029T042335Z.json`,
 `data/gate_live_20261029T070828Z.json`,
-`data/gate_live_20261030T052815Z.json`.
+`data/gate_live_20261030T052815Z.json`,
+`data/gate_live_20261031T110355Z.json`.
 
 Run 2's per-pair data named the leaks it was re-run to find: C clean
 read total 0 with correct lines (normal), and both reads putting
@@ -232,3 +234,21 @@ Trips through the live upload path, engine running (`data/trips_check_20261030T0
 T5 (Honolulu: insurance adjustment, patient responsibility and a separate card slip) still stops
 for a person in every pair; the subtotal chain did not resolve it. It leaks nothing and stays a
 known limit. U2 stopped in 2 of 6 pairs.
+
+### After 60 (2026-10-31)
+
+| run (UTC) | set | pairs | wrong values that left | pairs stopped | cost per claim | data | note |
+|---|---|---|---|---|---|---|---|
+| 2026-10-31 11:14 | unseen | 36 | 0 | 3 | $0.0261 | `data/gate_live_20261031T111413Z.json` | after 60: Korean row totals derived by code |
+| 2026-10-31 11:26 | trips | 48 | 0 | 6 | $0.0239 | `data/gate_live_20261031T112640Z.json` | after 60: Korean row totals derived by code |
+
+Trips through the live upload path, engine running (`data/trips_check_20261031T112953Z.json`):
+
+| trip | outcome | shown | vs truth |
+|---|---|---|---|
+| T1_bangkok_food_poisoning | 200 PAID | 595,399 KRW | matches truth 595,399 KRW |
+| T2_danang_scooter | 200 PAID | 64,637 KRW | matches truth 64,637 KRW |
+| T3_setagaya_fever | 200 PAID | 113,443 KRW | matches truth 113,443 KRW |
+| T4_paris_pharmacy | 200 needs_manual_check | Human review: 1 receipt(s) read; no certificate.. |  |
+| T5_honolulu_urgent | 200 needs_manual_check | Human review: 2 receipt(s) read; not merged.. |  |
+| T6_guam_dental | 200 needs_review | Flagged for a reviewer: dental treatment is never decided automatically. |  |

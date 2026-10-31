@@ -161,6 +161,43 @@ def test_validate_select_needs_value(tmp_path):
                in e for e in V.validate(tmp_path, bad, {"demo": "person-product"}, 190))
 
 
+def test_caption_lines_counts_wrapped_lines():
+    lines, overflow = V.caption_lines("one two three", 23, 1280)
+    assert (lines, overflow) == (1, [])
+    lines, _ = V.caption_lines(" ".join(["word"] * 60), 23, 1280)
+    assert lines >= 3
+    _, overflow = V.caption_lines("ok " + "x" * 300, 23, 1280)
+    assert overflow == ["x" * 300]
+
+
+def test_caption_lines_falls_back_without_font(monkeypatch):
+    def boom():
+        raise RuntimeError("no font")
+
+    monkeypatch.setattr(V, "find_font", boom)
+    assert V.caption_lines("one two", 23, 1280) == (1, [])
+    lines, _ = V.caption_lines(" ".join(["word"] * 60), 23, 1280)
+    assert lines >= 3
+
+
+def test_validate_flags_three_line_captions(tmp_path):
+    board = {"viewport": {"width": 1280}, "segments": [
+        {"id": "s", "caption": " ".join(["word"] * 60), "duration": 6,
+         "page": "demo", "actions": []}]}
+    errors = V.validate(tmp_path, board, {"demo": ""}, 10000)
+    assert any("wraps to" in e for e in errors)
+    assert V.validate(tmp_path, board, {"demo": ""}, 10000,
+                      max_lines=None) == []
+
+
+def test_validate_flags_newline_captions(tmp_path):
+    board = {"viewport": {"width": 1280}, "segments": [
+        {"id": "s", "caption": "one\ntwo", "duration": 6,
+         "page": "demo", "actions": []}]}
+    errors = V.validate(tmp_path, board, {"demo": ""}, 190)
+    assert any("newline" in e for e in errors)
+
+
 def test_actuals_roundtrip_and_garbage(tmp_path):
     path = tmp_path / "actuals.json"
     actuals = [("a", 1.5, 7.5), ("b", 7.5, 12.5)]

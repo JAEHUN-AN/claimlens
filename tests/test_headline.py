@@ -129,9 +129,9 @@ def test_missing_data_omits_lines(tmp_path):
 def test_real_lines_are_pinned():
     entries = headline.lines(ROOT)
     assert entries[0]["en"] == (
-        "Live double-read gate, 2026-10-30 run on the current pipeline "
-        "(24 cases ×3 = 72 pairs): 0 wrong amounts left (40 stopped for a "
-        "person); normal documents: 0 left, 6/30 stopped.")
+        "Live double-read gate, 2026-10-31 run on the current pipeline "
+        "(24 cases ×3 = 72 pairs): 0 wrong amounts left (34 stopped for a "
+        "person); normal documents: 0 left, 2/30 stopped.")
     assert entries[1]["en"] == (
         "Single read, 2026-10-28 run on the old pipeline (before the line-sum "
         "check and rotation probe): 47 wrong amounts left (hard set, 23/24 "
@@ -139,9 +139,9 @@ def test_real_lines_are_pinned():
     assert entries[2]["en"] == (
         "Unseen layouts + real trips, first run before fixes (2026-10-29): 0 wrong "
         "amounts left over 84 pairs (30 stopped for a person); after fixes "
-        "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (8 stopped).")
+        "(2026-10-31, wider scoring): 0 wrong values left over 84 pairs (9 stopped).")
     assert entries[3]["en"] == (
-        "Real trips through live upload, 2026-10-30 run: 3 of 6 decided "
+        "Real trips through live upload, 2026-10-31 run: 3 of 6 decided "
         "(T1, T2, T3); each paid amount matches the truth KRW total; "
         "T4 (needs_manual_check), T6 (needs_review) correctly not decided; "
         "T5 stopped for a person.")
@@ -236,7 +236,7 @@ def test_eval_caption_pinned():
     caption = headline.eval_caption(ROOT)
     assert caption == (
         "Single read (2026-10-28, old pipeline) let 47 wrong amounts leave; "
-        "the live gate (2026-10-30, current pipeline) leaves 0.")
+        "the live gate (2026-10-31, current pipeline) leaves 0.")
     assert len(caption) <= 190
 
 

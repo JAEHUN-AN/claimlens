@@ -41,7 +41,10 @@ def dry_run(board: dict) -> int:
         texts["live"] = texts["demo"]
         for cid in V.CARD_IDS:
             texts[f"card:{cid}"] = texts["cards"]
-        errors = V.validate(ROOT, board, texts, 44)
+        # Vertical keeps its pre-v5 short captions (the pinned hook card
+        # wraps to three lines at phone width), so the two-line keyword
+        # rule stays main-only; the 44-char cap still applies.
+        errors = V.validate(ROOT, board, texts, 44, font_px=34, max_lines=None)
         errors += V.check_assets(ROOT, board, texts)
     if not CARDS.exists():
         errors.append(f"missing cards page: {CARDS}")
