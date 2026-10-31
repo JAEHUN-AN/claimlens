@@ -239,6 +239,57 @@ def adjustment_schema() -> dict[str, Any]:
     return strict_schema_of(AdjustmentReread)
 
 
+# 60a: a Korean bill whose item list is missing or off-sum used to stop
+# here: the narrow re-read fetched the copay column instead of the row
+# totals. The charge rows the model already read carry every row total
+# (the four columns add up to it), so code derives the lines and the
+# case never re-reads.
+DERIVED_LINES_SOURCE = "derived from the charge rows"
+
+
+def needs_charge_row_derivation(receipt: dict[str, Any],
+                                failed: list[BillCheck]) -> bool:
+    """True when a Korean bill's item list is missing or does not add up."""
+    bill = receipt.get("kr_bill")
+    if not bill:
+        return False
+    names = {c.name for c in failed}
+    if not ({"lines_present", "lines_sum"} & names):
+        return False
+    if names - set(LINES_CHECKS):
+        return False  # cells failed too: the re-read must still run for them.
+    rows = bill.get("charge_rows") or []
+    if not rows:
+        return False
+    for row in rows:
+        if not isinstance(row, dict):
+            return False
+        for n in (1, 2, 3, 4):
+            value = row.get(f"col_{n}")
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return False
+    return True
+
+
+def derive_kr_line_items(
+    receipt: dict[str, Any],
+) -> tuple[dict[str, Any], list[str]]:
+    """Build per-row totals from the charge rows. Returns (merged, corrected)."""
+    merged = deepcopy(receipt)
+    rows = (merged.get("kr_bill") or {}).get("charge_rows") or []
+    lines = []
+    for row in rows:
+        total = sum(float(row.get(f"col_{n}", 0)) for n in (1, 2, 3, 4))
+        lines.append({
+            "description": row.get("label") or "",
+            "category": "other",
+            "amount": int(total) if total.is_integer() else total,
+            "source": DERIVED_LINES_SOURCE,
+        })
+    merged["line_items"] = lines
+    return merged, ["line_items"]
+
+
 def needs_adjustment_reread(receipt: dict[str, Any],
                             failed: list[BillCheck]) -> bool:
     """True when the only sum gap is explainable by adjustment lines.
@@ -298,6 +349,9 @@ def verify_receipt(receipt: dict[str, Any], image: Path, provider: Any,
     if all_passed(first):
         return {"status": "verified", "checks": first, "corrected": [], "receipt": receipt}
     failed = [c for c in first if not c.passed]
+    if needs_charge_row_derivation(receipt, failed):
+        merged, corrected = derive_kr_line_items(receipt)
+        return _rechecked(merged, corrected, failed)
     if needs_adjustment_reread(receipt, failed):
         reread = provider.read_documents(
             [image], ADJUSTMENT_INSTRUCTIONS, adjustment_schema(),

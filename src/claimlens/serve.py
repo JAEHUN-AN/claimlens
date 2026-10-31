@@ -536,7 +536,7 @@ def _run_live_guarded(
     from claimlens.engine import load_scenarios
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
-    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
+    from claimlens.verify import DERIVED_LINES_SOURCE, REREAD_READ2_TAG, verify_receipt
 
     if len(images) != 2:
         raise ValueError("Upload exactly 2 images: the receipt and the certificate.")
@@ -666,6 +666,10 @@ def _run_live_guarded(
                 source = (adjust[0].get("source", "narrow re-read") if adjust
                           else "narrow re-read")
                 detail += f"; adjustments: {shown} ({source})"
+            derived = [i for i in verified["receipt"].get("line_items") or []
+                       if i.get("source") == DERIVED_LINES_SOURCE]
+            if derived:
+                detail += f"; lines ({DERIVED_LINES_SOURCE})"
             details.append(detail)
             if verified["status"] == "needs_manual_check":
                 verify_failed.append((pos, verified.get("failing", [])))
@@ -908,7 +912,7 @@ def _run_live_multi(
     from claimlens.prompts import READING_INSTRUCTIONS
     from claimlens.reader import reading_schema
     from claimlens.rotation import FAILED_NOTE, upright_pages
-    from claimlens.verify import REREAD_READ2_TAG, verify_receipt
+    from claimlens.verify import DERIVED_LINES_SOURCE, REREAD_READ2_TAG, verify_receipt
 
     if len(images) not in (1, 3, 4, 5, 6):
         raise ValueError("Upload 1 to 6 images: up to 5 receipts and 1 certificate.")
@@ -1141,6 +1145,15 @@ def _run_live_multi(
         if adjust_notes:
             detail += (f"; adjustments ({adjust_source}): "
                        + "; ".join(adjust_notes))
+        derived_notes = []
+        for photo in photo_ids:
+            lines = verified[photo][0].get("line_items") or []
+            if any(i.get("source") == DERIVED_LINES_SOURCE
+                   for i in lines):
+                derived_notes.append(
+                    f"photo {photo} lines ({DERIVED_LINES_SOURCE})")
+        if derived_notes:
+            detail += "; " + "; ".join(derived_notes)
         _step(steps, "checks", "Checks", detail,
               "deterministic", time.monotonic() - started)
 

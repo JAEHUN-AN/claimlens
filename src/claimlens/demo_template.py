@@ -145,6 +145,10 @@ box-shadow:var(--shadow-lg);z-index:10;color:var(--ink)}
 #prov-panel .plink{background:none;border:none;padding:0;cursor:pointer;color:var(--accent);
 font-size:.9rem;font-weight:400;text-align:left;text-decoration:underline}
 #prov-panel .plink:hover{background:none}
+#prov-panel .prov-close{float:right;background:none;border:1px solid var(--line);
+border-radius:.3rem;cursor:pointer;font-size:1rem;line-height:1;padding:.1rem .5rem;color:var(--ink)}
+.before-after{margin:.6rem 0}
+.before-after svg{max-width:100%;height:auto;display:block}
 #flow-view{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;
 box-shadow:var(--shadow);margin-top:.6rem;padding:1rem 1.2rem}
 .tagline{font-size:1rem;color:var(--ink-dim);margin:.1rem 0 .5rem}
@@ -240,7 +244,8 @@ prov_formula:["Formula:","계산식:"],
 prov_related:["Related:","관련:"],
 prov_value:["Value:","값:"],
 prov_source:["Source:","출처:"],
-prov_esc:["Esc closes · related numbers highlighted","Esc로 닫기 · 관련 숫자 강조 표시"],
+prov_esc:["Tap outside or press Esc to close","밖을 누르거나 Esc를 눌러 닫기"],
+prov_close:["Close","닫기"],
 h_reading:["Reading","읽기"],
 h_eligibility:["Eligibility","자격"],
 h_engine:["Engine card","엔진 카드"],
@@ -522,6 +527,11 @@ function afterLine(){
   if(!n)return t('why_after');
   return t('why_after_n').replace('{n}',n);
 }
+function beforeAfterHtml(){
+  const b=data.flow&&data.flow.before_after;
+  if(!b)return '';
+  return `<div class="before-after">${b[LANG]||b.en}</div>`;
+}
 function measuredHtml(f){
   const items=(f.measured||[]).map(m=>`<li>${esc(m[LANG]||m.en)}</li>`).join('');
   if(!items)return '';
@@ -548,6 +558,7 @@ function flowView(f){
   return `<div id="flow-view">`
     +`<p class="tagline">${esc(t('tagline'))}</p>`
     +whyHtml()
+    +beforeAfterHtml()
     +`<ol class="strip3"><li>${esc(t('strip_1'))}</li><li>${esc(t('strip_2'))}</li><li>${esc(t('strip_3'))}</li></ol>`
     +`<h2>${esc(t('flow_h2'))}</h2>`
     +`<p><small class="dim">${esc(t(LIVE?'flow_note_live':'flow_note'))}</small></p>`
@@ -649,6 +660,8 @@ function liveProbe(){
   try{
     if(typeof fetch==='undefined'||typeof location==='undefined')return;
     if(!/^https?:/.test(location.protocol||''))return;
+    const host=location.hostname||'';
+    if(host!=='localhost'&&host!=='127.0.0.1')return;
     fetch('/api/health').then(r=>r.json()).then(j=>{
       if(!j||j.mode!=='live')return;
       LIVE=true;
@@ -789,7 +802,8 @@ function showProv(id){
       +`${esc(q.value)}${how}</button></li>`;
   }).join('');
   const relBlock=rel?`<p>${esc(t('prov_related'))}</p><ul class="tight">${rel}</ul>`:'';
-  p.innerHTML=`<p class="kind">${esc(r.kind)}</p><p><strong>${esc(r.label)}</strong></p>`
+  p.innerHTML=`<button class="prov-close" onclick="hideProv()" aria-label="${esc(t('prov_close'))}">×</button>`
+    +`<p class="kind">${esc(r.kind)}</p><p><strong>${esc(r.label)}</strong></p>`
     +`<p>${esc(t('prov_value'))} ${esc(r.value)}</p><p>${esc(t('prov_source'))} ${esc(r.source)}</p>${formula}${relBlock}`
     +`<p><small class="dim">${esc(t('prov_esc'))}</small></p>`;
   p.style.display='block';

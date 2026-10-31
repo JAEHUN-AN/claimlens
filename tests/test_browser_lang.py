@@ -206,6 +206,29 @@ def test_phone_layout_in_browser(browser):
     context.close()
 
 
+def test_provenance_panel_close_button_in_browser(browser):
+    """60b: the provenance panel has a visible close button (both languages)."""
+    page = browser.new_page(viewport={"width": 1280, "height": 720})
+    errors: list[str] = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(DEMO.as_uri())
+    first = page.evaluate("() => Object.keys(PROV)[0]")
+    page.evaluate(f"() => showProv('{first}')")
+    panel = page.locator("#prov-panel")
+    assert panel.is_visible() is True
+    assert "Tap outside or press Esc to close" in panel.inner_text()
+    assert panel.locator(".prov-close").count() == 1
+    panel.locator(".prov-close").click()
+    assert panel.is_visible() is False
+    page.locator('#langswitch button[data-lang="ko"]').click()
+    page.evaluate(f"() => showProv('{first}')")
+    assert "밖을 누르거나 Esc를 눌러 닫기" in panel.inner_text()
+    panel.locator(".prov-close").click()
+    assert panel.is_visible() is False
+    assert errors == []
+    page.close()
+
+
 class _LiveStub:
     """Stub provider that counts readings; reads the S2 replay recording."""
 

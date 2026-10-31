@@ -119,6 +119,7 @@ def test_missing_data_omits_lines(tmp_path):
     assert headline.gate_line(tmp_path) is None
     assert headline.legacy_line(tmp_path) is None
     assert headline.scope_footnote(tmp_path) is None
+    assert headline.trips_line(tmp_path) is None
     assert headline.agent_line(tmp_path) is None
     assert headline.load_line(tmp_path) is None
     assert headline.after_n(tmp_path) is None
@@ -140,16 +141,21 @@ def test_real_lines_are_pinned():
         "amounts left over 84 pairs (30 stopped for a person); after fixes "
         "(2026-10-30, wider scoring): 0 wrong values left over 84 pairs (8 stopped).")
     assert entries[3]["en"] == (
+        "Real trips through live upload, 2026-10-30 run: 3 of 6 decided "
+        "(T1, T2, T3); each paid amount matches the truth KRW total; "
+        "T4 (needs_manual_check), T6 (needs_review) correctly not decided; "
+        "T5 stopped for a person.")
+    assert entries[4]["en"] == (
         "Agent scorecard: 8/8 (7 agent dialogues + 1 voice rule, each replayed "
         "once from its recording)")
-    assert entries[4]["en"] == (
-        "15 fault cases injected in tests (no live calls), no wrong number")
     assert entries[5]["en"] == (
+        "15 fault cases injected in tests (no live calls), no wrong number")
+    assert entries[6]["en"] == (
         "Per claim (S2 retake photos, 5 concurrent live runs): p50 22.97 s, "
         "p95 30.32 s, $0.0355; outcomes PARTIAL 3, needs_manual_check 2 "
         "(PARTIAL = partly paid, needs_manual_check = stopped for a person); "
         "median run needs_manual_check")
-    assert len(entries) == 6
+    assert len(entries) == 7
     footnote = headline.scope_footnote(ROOT)
     assert footnote["en"] == (
         "Fields scored in the current runs: total, line amounts, Korean bill cells, "
@@ -162,6 +168,58 @@ def test_scope_labels_track_gate_fields():
 
     assert set(headline.SCOPE_LABELS) == set(GATE_FIELDS)
     assert set(headline.SCOPE_LABELS_KO) == set(GATE_FIELDS)
+
+
+def _fixture_trips(root: Path) -> None:
+    truth = {"cases": [
+        {"id": "T1_x", "totals": {"krw": 1000},
+         "expected": {"serve_today": {"status": 200, "badge": "engine_unreachable"},
+                      "serve_engine_up": {"status": 200, "badges": ["PAID"]}}},
+        {"id": "T2_y", "totals": {"krw": 2000},
+         "expected": {"serve_today": {"status": 200, "badge": "engine_unreachable"},
+                      "serve_engine_up": {"status": 200, "badges": ["PAID"]}}},
+        {"id": "T4_z", "totals": {"krw": 50},
+         "expected": {"serve_today": {"status": 200, "badge": "needs_manual_check"},
+                      "serve_engine_up": {"status": 200, "badges": []}}},
+        {"id": "T5_w", "totals": {"krw": 0},
+         "expected": {"serve_today": {"status": 200, "badge": "engine_unreachable"},
+                      "serve_engine_up": {"status": 200, "badges": ["PAID"]}}},
+        {"id": "T6_v", "totals": {"krw": 0},
+         "expected": {"serve_today": {"status": 200, "badge": "PAID"},
+                      "serve_engine_up": {"status": 200, "badges": []}}},
+    ]}
+    tdir = root / "samples" / "unseen" / "trips"
+    tdir.mkdir(parents=True)
+    (tdir / "truth.json").write_text(json.dumps(truth), encoding="utf-8")
+    run = {"cases": [
+        {"case": "T1_x", "badge": "PAID", "title": "1,000 KRW"},
+        {"case": "T2_y", "badge": "PAID", "title": "9,999 KRW"},
+        {"case": "T4_z", "badge": "needs_manual_check",
+         "title": "Human review: no certificate."},
+        {"case": "T5_w", "badge": "engine_unreachable", "title": ""},
+        {"case": "T6_v", "badge": "weird_badge", "title": ""},
+    ]}
+    (root / "data").mkdir(exist_ok=True)
+    (root / "data" / "trips_check_20261030T000000Z.json").write_text(
+        json.dumps(run), encoding="utf-8")
+
+
+def test_trips_line_buckets_come_from_data(tmp_path):
+    _fixture_trips(tmp_path)
+    entry = headline.trips_line(tmp_path)
+    assert entry["en"] == (
+        "Real trips through live upload, 2026-10-30 run: 2 of 5 decided "
+        "(T1, T2); T2 paid 9,999 KRW, truth 2,000 KRW; "
+        "T4 (needs_manual_check) correctly not decided; "
+        "T5 paused as expected with the engine down; "
+        "T6 (weird_badge) not decided.")
+    assert "5건 중 2건 판정" in entry["ko"]
+    assert "의도대로 미판정" in entry["ko"]
+
+
+def test_trips_line_omitted_without_data(tmp_path):
+    (tmp_path / "data").mkdir(exist_ok=True)
+    assert headline.trips_line(tmp_path) is None
 
 
 def test_heldout_line_omitted_without_data(tmp_path):
@@ -212,7 +270,7 @@ def test_apply_readme_swaps_after_n(tmp_path):
 def test_regen_is_idempotent_on_real_tree():
     assert headline.regen(ROOT) == {"readme": False, "model_table": False,
                                     "storyboard": False, "cards": False,
-                                    "demo": False}
+                                    "demo": False, "figure": False}
 
 
 def test_demo_carries_measured_payload(tmp_path):

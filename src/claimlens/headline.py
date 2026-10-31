@@ -236,6 +236,96 @@ def heldout_line(root: Path) -> dict[str, str] | None:
     return {"en": en + ".", "ko": ko + "."}
 
 
+def _trips_truth(root: Path) -> dict[str, dict[str, Any]]:
+    """Per-trip truth (KRW total + accepted badges), keyed by case id."""
+    path = root / "samples" / "unseen" / "trips" / "truth.json"
+    if not path.exists():
+        return {}
+    cases = _read(path).get("cases") or []
+    return {c.get("id"): c for c in cases if c.get("id")}
+
+
+def _trips_paid_amount(title: str) -> int | None:
+    digits = "".join(ch for ch in (title or "") if ch.isdigit())
+    return int(digits) if digits else None
+
+
+def trips_line(root: Path) -> dict[str, str] | None:
+    """Real trips through live upload, from the newest trips-check run."""
+    path = _newest(root, "trips_check_*.json")
+    truth = _trips_truth(root)
+    cases = _read(path).get("cases", []) if path else []
+    if not cases or not truth:
+        return None
+    when = _run_date(path) if path else None
+    decided: list[str] = []
+    mismatched: list[tuple[str, int | None, Any]] = []
+    correct: list[str] = []
+    paused: list[str] = []
+    stopped: list[str] = []
+    other: list[str] = []
+    for case in cases:
+        short = str(case.get("case", "?")).split("_")[0]
+        badge = case.get("badge", "?")
+        want = (truth.get(case.get("case")) or {}).get("expected") or {}
+        accepted = (want.get("serve_engine_up") or {}).get("badges") or []
+        if badge in accepted:
+            decided.append(short)
+            paid = _trips_paid_amount(case.get("title", ""))
+            krw = ((truth.get(case.get("case")) or {}).get("totals")
+                   or {}).get("krw")
+            if paid is not None and paid == krw:
+                continue
+            mismatched.append((short, paid, krw))
+        elif (not accepted
+              and badge == (want.get("serve_today") or {}).get("badge")):
+            correct.append(f"{short} ({badge})")
+        elif (badge == "engine_unreachable"
+              and badge == (want.get("serve_today") or {}).get("badge")):
+            paused.append(short)
+        elif badge == "needs_manual_check":
+            stopped.append(short)
+        else:
+            other.append(f"{short} ({badge})")
+    head_en = f"Real trips through live upload, {when or 'undated'} run"
+    head_ko = f"실시간 업로드 실제 여행, {when or '날짜 없음'} 실행"
+    total = len(cases)
+    en: list[str] = []
+    ko: list[str] = []
+    if decided:
+        ids = ", ".join(decided)
+        en.append(f"{len(decided)} of {total} decided ({ids})")
+        ko.append(f"{total}건 중 {len(decided)}건 판정({ids})")
+        if mismatched:
+            for short, paid, krw in mismatched:
+                shown = (f"{paid:,} KRW" if paid is not None
+                         else "no amount shown")
+                want_krw = (f"{krw:,} KRW"
+                            if isinstance(krw, (int, float))
+                            else "truth total missing")
+                en.append(f"{short} paid {shown}, truth {want_krw}")
+                ko.append(f"{short} 지급 {shown}, 정답 {want_krw}")
+        else:
+            en.append("each paid amount matches the truth KRW total")
+            ko.append("지급액 모두 정답 원화 합계와 일치")
+    if correct:
+        en.append(f"{', '.join(correct)} correctly not decided")
+        ko.append(f"{'·'.join(correct)}은 의도대로 미판정")
+    if paused:
+        ids = ", ".join(paused)
+        en.append(f"{ids} paused as expected with the engine down")
+        ko.append(f"{'·'.join(paused)} 엔진 다운으로 예상대로 일시정지")
+    if stopped:
+        ids = ", ".join(stopped)
+        en.append(f"{ids} stopped for a person")
+        ko.append(f"{'·'.join(stopped)}는 사람 확인용 중단")
+    if other:
+        en.append(f"{', '.join(other)} not decided")
+        ko.append(f"{'·'.join(other)} 미판정")
+    return {"en": head_en + ": " + "; ".join(en) + ".",
+            "ko": head_ko + ": " + "; ".join(ko) + "."}
+
+
 def agent_line(root: Path) -> dict[str, str] | None:
     path = root / "data" / "agent_eval.json"
     if not path.exists():
@@ -327,7 +417,8 @@ def lines(root: Path) -> list[dict[str, str]]:
     """Measured lines in order; only lines with data appear."""
     out = []
     for entry in (gate_line(root), legacy_line(root), heldout_line(root),
-                  agent_line(root), fault_line(), load_line(root)):
+                  trips_line(root), agent_line(root),
+                  fault_line(), load_line(root)):
         if entry is not None:
             out.append(entry)
     return out
@@ -472,14 +563,50 @@ def apply_cards(root: Path) -> bool:
     pattern = re.compile(r"<section class=\"card\" id=\"meta\">.*?</section>",
                          re.DOTALL)
     updated = pattern.sub(section, text, count=1)
+    updated = _refresh_before_after_card(root, updated)
     if updated != text:
         path.write_text(updated, encoding="utf-8")
         return True
     return False
 
 
+def _refresh_before_after_card(root: Path, text: str) -> str:
+    """Refresh the video before/after card from the figure (61)."""
+    from claimlens.before_after import svg as figure_svg
+
+    n = after_n(root)
+    if not n:
+        return text
+    section = f"""<section class="card" id="before_after">
+<p class="kicker">Before / after</p>
+{figure_svg(n, 'en', standalone=False)}
+</section>"""
+    pattern = re.compile('<section class="card" id="before_after">.*?</section>',
+                         re.DOTALL)
+    if not pattern.search(text):
+        return text
+    return pattern.sub(section, text, count=1)
+
+
+
+
+def write_before_after(root: Path) -> bool:
+    """Write docs/before_after.svg (EN) with the measured N; True when changed."""
+    from claimlens.before_after import svg as figure_svg
+
+    n = after_n(root)
+    if not n:
+        return False
+    path = root / "docs" / "before_after.svg"
+    text = figure_svg(n, "en")
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
 def regen(root: Path) -> dict[str, bool]:
-    """One command rebuilds README, demo, and the video eval caption + Meta card."""
+    """One command rebuilds README, demo, the video cards, and the figure."""
     from claimlens.demo import export_demo
 
     changed = {
@@ -487,6 +614,7 @@ def regen(root: Path) -> dict[str, bool]:
         "model_table": apply_model_table(root / "README.md", root),
         "storyboard": apply_storyboard(root),
         "cards": apply_cards(root),
+        "figure": write_before_after(root),
     }
     before = (root / "docs" / "demo.html").read_text(encoding="utf-8")
     export_demo(root / "docs" / "demo.html", root=root)

@@ -245,6 +245,33 @@ def test_serve_kr_without_copay_stops_like_agent(stubbed, monkeypatch):
     assert any("cell" in q["question"] for q in result["questions"])
 
 
+class _DroppedLinesStub(StubProvider):
+    """S2 photo read that drops the item list; derivation rebuilds it."""
+
+    def read_documents(self, images, instructions, schema, result_model=None,
+                       cache_tag=""):
+        self._log(100)
+        reading = copy.deepcopy(replay_reading("S2_seoul_worker_bronchitis", "photo"))
+        if result_model is None or result_model.__name__ == "ReadingResult":
+            reading["documents"][0]["line_items"] = []
+            return reading
+        if result_model.__name__ == "RotationProbe":
+            self._log(10)
+            return {"rotation": 0}
+        raise AssertionError("no re-read expected")
+
+
+def test_serve_derived_kr_lines_show_source(stubbed, monkeypatch):
+    """60a: dropped KR lines derive from the charge rows; the note shows it."""
+    monkeypatch.setattr(stubbed, "live_provider", _DroppedLinesStub)
+    payload = {"images": _sample_images(), "person": _s2_person(),
+               "scenario": "S2_seoul_worker_bronchitis"}
+    status, result = _run(stubbed, payload)
+    assert status == 200
+    checks = next(s for s in result["steps"] if s["key"] == "checks")
+    assert "lines (derived from the charge rows)" in checks["detail"]
+
+
 def test_run_gate_capacity_is_four():
     """S2: at most four live runs proceed; the fifth waits."""
     assert serve.MAX_CONCURRENT_RUNS == 4

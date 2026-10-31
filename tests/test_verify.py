@@ -164,6 +164,7 @@ def test_lines_checks_pass_when_present_and_matching():
 
 
 def test_reread_recovers_line_items():
+    """60a: a dropped Korean item list derives from the charge rows."""
     receipt = copy.deepcopy(GOOD_RECEIPT)
     receipt["line_items"] = []
     reread = {"line_items": [{"description": "row-a", "category": "lab", "amount": 300}]}
@@ -172,13 +173,16 @@ def test_reread_recovers_line_items():
     assert result["status"] == "verified"
     assert result["corrected"] == ["line_items"]
     assert len(result["receipt"]["line_items"]) == 1
-    assert len(provider.calls) == 2
-    assert "line_items" in provider.last_instructions
+    assert result["receipt"]["line_items"][0]["amount"] == 300
+    assert len(provider.calls) == 1  # initial read only; no re-read
 
 
 def test_reread_without_lines_stays_manual():
+    """An empty re-read still stops when the charge rows cannot derive it."""
     receipt = copy.deepcopy(GOOD_RECEIPT)
     receipt["line_items"] = []
+    receipt["kr_bill"]["charge_rows"] = [
+        {"label": "row-a", "col_1": None, "col_2": 200, "col_3": 0, "col_4": 0}]
     provider = StubProvider(receipt, {"line_items": []})
     result = verify_receipt(_read_initial(provider), Path("receipt.jpg"), provider)
     assert result["status"] == "needs_manual_check"
@@ -386,4 +390,83 @@ def test_s3_clean_recovers_lines_through_reread():
     assert result["corrected"] == ["line_items"]
     assert len(result["receipt"]["line_items"]) == 12
     assert sum(i["amount"] for i in result["receipt"]["line_items"]) == 15000000
-    assert len(provider.calls) == 2
+    # 60a: Korean bills derive the dropped list from the charge rows;
+    # no narrow re-read runs for this case.
+    assert len(provider.calls) == 1
+    assert all(i["source"] == "derived from the charge rows"
+               for i in result["receipt"]["line_items"])
+
+
+def test_kr_missing_lines_derive_from_charge_rows():
+    """60a: a dropped item list is rebuilt from the charge rows, no re-read."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["line_items"] = []
+    provider = StubProvider(receipt, {"line_items": [
+        {"description": "row-a", "category": "lab", "amount": 1}]})
+    result = verify_receipt(receipt, Path("receipt.jpg"), provider)
+    assert result["status"] == "verified"
+    assert result["corrected"] == ["line_items"]
+    assert provider.calls == []
+    lines = result["receipt"]["line_items"]
+    assert [i["amount"] for i in lines] == [300]
+    assert [i["category"] for i in lines] == ["other"]
+    assert all(i["source"] == "derived from the charge rows" for i in lines)
+
+
+def test_kr_copay_column_lines_do_not_stop():
+    """60a: the S2 defect — a re-read would bring copay-column values only."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["line_items"] = [
+        {"description": "row-a", "category": "lab", "amount": 100}]
+    provider = StubProvider(receipt, {"line_items": [
+        {"description": "row-a", "category": "lab", "amount": 100}]})
+    result = verify_receipt(receipt, Path("receipt.jpg"), provider)
+    assert result["status"] == "verified"
+    assert provider.calls == []
+    assert result["receipt"]["line_items"][0]["amount"] == 300
+
+
+def test_non_kr_sum_gap_still_rereads():
+    """60a: non-Korean receipts keep the narrow re-read path."""
+    receipt = {"country": "US", "currency": "USD", "total_amount": 100.0,
+               "line_items": [
+                   {"description": "a", "category": "lab", "amount": 60.0}]}
+    provider = StubProvider(receipt, {"adjustment_lines": [
+        {"label": "adj", "kind": "adjustment", "amount": 40.0}]})
+    result = verify_receipt(receipt, Path("receipt.jpg"), provider)
+    assert result["status"] == "verified"
+    assert len(provider.calls) == 1
+    assert result["receipt"]["adjustment_lines"][0]["amount"] == 40.0
+
+
+def test_kr_mixed_cell_and_line_failures_still_reread():
+    """60a: when cells fail too, the re-read still runs for them."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["line_items"] = []
+    receipt["kr_bill"]["cell_8"] = 999
+    provider = StubProvider(receipt, {
+        "cell_1": 100, "cell_3": 0, "cell_4": 0, "cell_5": 0,
+        "cell_8": 100, "cell_9": 0, "cell_10": 100,
+        "line_items": [{"description": "row-a", "category": "lab",
+                        "amount": 300}],
+    })
+    result = verify_receipt(receipt, Path("receipt.jpg"), provider)
+    assert result["status"] == "verified"
+    assert len(provider.calls) == 1
+    assert result["receipt"]["kr_bill"]["cell_8"] == 100
+
+
+def test_kr_unusable_rows_fall_back_to_reread():
+    """60a: without numeric charge rows the old re-read path still runs."""
+    receipt = copy.deepcopy(GOOD_RECEIPT)
+    receipt["line_items"] = []
+    receipt["kr_bill"]["charge_rows"] = [
+        {"label": "row-a", "col_1": None, "col_2": 200, "col_3": 0, "col_4": 0}]
+    provider = StubProvider(receipt, {
+        "row_0_col_1": 100,
+        "line_items": [{"description": "row-a", "category": "lab",
+                        "amount": 300}],
+    })
+    result = verify_receipt(receipt, Path("receipt.jpg"), provider)
+    assert result["status"] == "verified"
+    assert len(provider.calls) == 1

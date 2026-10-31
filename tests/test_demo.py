@@ -237,6 +237,29 @@ def test_flow_view_section_order_is_static():
     assert positions == sorted(positions)
 
 
+def test_provenance_panel_close_and_guidance_are_static():
+    """60b: visible close button + tap-outside guidance, both languages."""
+    import claimlens.demo_template as template
+
+    text = Path(template.__file__).read_text(encoding="utf-8")
+    assert 'class="prov-close" onclick="hideProv()"' in text
+    assert "#prov-panel .prov-close{" in text
+    assert 'prov_esc:["Tap outside or press Esc to close"' in text
+    assert "밖을 누르거나 Esc를 눌러 닫기" in text
+    assert 'prov_close:["Close","닫기"]' in text
+
+
+def test_live_probe_only_on_localhost_is_static():
+    """60c: /api/health is probed on localhost only, never on Pages."""
+    import claimlens.demo_template as template
+
+    text = Path(template.__file__).read_text(encoding="utf-8")
+    probe = text[text.index("function liveProbe(){"):text.index("function liveDrop(e){")]
+    assert "location.hostname" in probe
+    assert "'localhost'" in probe and "'127.0.0.1'" in probe
+    assert probe.index("127.0.0.1") < probe.index("fetch('/api/health')")
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_demo_renders_in_node_harness(tmp_path, monkeypatch):
     monkeypatch.delenv("META_API_KEY", raising=False)

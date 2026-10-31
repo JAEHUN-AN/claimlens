@@ -965,6 +965,17 @@ def mismatch_scene_payload(dst: Path) -> dict[str, Any]:
     }
 
 
+def _before_after_payload(repo: Path) -> dict[str, str] | None:
+    """Before/after figure in both languages, or None without load data."""
+    from claimlens import before_after, headline
+
+    n = headline.after_n(repo)
+    if not n:
+        return None
+    return {"en": before_after.svg(n, "en", standalone=False),
+            "ko": before_after.svg(n, "ko", standalone=False)}
+
+
 def export_demo(dst: Path | str = "docs/demo.html", root: Path | None = None) -> Path:
     from claimlens import headline, meta_tiles
 
@@ -988,6 +999,7 @@ def export_demo(dst: Path | str = "docs/demo.html", root: Path | None = None) ->
         "measured": headline.lines(repo),
         "measured_footnote": headline.scope_footnote(repo),
         "after_n": headline.after_n(repo),
+        "before_after": _before_after_payload(repo),
         "meta_tools": meta_tiles.tiles(repo),
     }
     dst.parent.mkdir(parents=True, exist_ok=True)
