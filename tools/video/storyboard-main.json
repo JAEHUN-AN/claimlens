@@ -116,7 +116,8 @@
         },
         {
           "op": "move",
-          "selector": "section#S2_seoul_worker_bronchitis .pinned"
+          "selector": "section#S2_seoul_worker_bronchitis .pinned",
+          "nth": 0
         },
         {
           "op": "hold",
@@ -548,7 +549,8 @@
         },
         {
           "op": "move",
-          "selector": "section#A_niseko_wrist .pinned"
+          "selector": "section#A_niseko_wrist .pinned",
+          "nth": 0
         }
       ],
       "caption": "And the other direction: a Korean skier in Japan — the engine proposes payment in full under the travel policy; a reviewer confirms.",
