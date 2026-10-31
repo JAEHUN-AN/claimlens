@@ -298,9 +298,15 @@ from the replay caches plus one live run.
   inside its conversion rules. ICD-10 © World Health Organization. ICD-10-CM is published by
   CDC/NCHS and CMS; its use here does not imply endorsement by CDC/HHS or the U.S. Government.
   KCD (Korean Standard Classification of Diseases) is issued by Statistics Korea.
-- **Policy terms:** the engine reads the Korean standard insurance terms from the National Law
-  Information Center open data (non-commercial use, source attributed). The demo and recordings
-  show clause numbers and titles only, never the clause text.
+- **Policy terms:** the engine reads the Korean standard insurance terms (Financial Supervisory
+  Service, Detailed Regulations on Insurance Supervision, Appendix 15) through the Ministry of
+  Government Legislation's National Law Information sharing service, released under KOGL Type 1
+  (Korea Open Government License: attribution; commercial use and modification allowed).
+  Source: Ministry of Government Legislation, open.law.go.kr.
+- **This entry is non-commercial.** The terms text is not bundled: the engine's collector fetches it
+  with each user's own API key. The only terms text in this repo is nine short clause excerpts
+  (up to 390 characters each) inside four cached engine outputs under `cache/`, kept as the engine
+  returned them. The demo page and the videos show clause numbers and titles only.
 - **Engine:** [clausegraph](https://github.com/JAEHUN-AN/clausegraph), pre-existing and pinned to
   a tag. Its code is MIT; the data it collects follows each source's terms, listed in its LICENSE.
 
