@@ -122,20 +122,31 @@ def test_before_after_scene_after_why():
     assert ids.index("before_after") == ids.index("why") + 1
     scene = next(s for s in segs if s["id"] == "before_after")
     assert scene["page"] == "card:before_after"
-    assert scene["duration"] == 6
+    assert scene["duration"] == 5
     by_id = {s["id"]: s for s in segs}
-    assert by_id["tools"]["duration"] == 9
-    assert by_id["phone"]["duration"] == 6
-    assert by_id["verify"]["duration"] == 11
+    assert by_id["tools"]["duration"] == 8
+    assert by_id["phone"]["duration"] == 9  # the phone scene needs 9 s of actions
+    assert by_id["verify"]["duration"] == 14  # 11 s overran on 10-31
     assert sum(s["duration"] for s in segs) == 180
     assert segs[-1]["id"] == "closing"
 
 
 def test_vertical_split_keeps_captions():
     for seg in _vertical()["segments"]:
-        assert seg["narration"] == seg["caption"]
+        if seg["id"] != "vlive":
+            assert seg["narration"] == seg["caption"]
     vhook = next(s for s in _vertical()["segments"] if s["id"] == "vhook")
     assert vhook["caption"] == "Hospital bills don't translate themselves."
+
+
+def test_vertical_live_narration_carries_the_sourced_stat():
+    # vhook is too short to speak the stat, so vlive says it; the vhook card shows the source.
+    vlive = next(s for s in _vertical()["segments"] if s["id"] == "vlive")
+    cards = (ROOT / "tools" / "video" / "cards" / "cards.html").read_text(encoding="utf-8")
+    assert "₩251.2 billion unclaimed in Korea in 2022 (est.)" in cards
+    assert vlive["narration"].startswith(
+        "In Korea, an estimated ₩251.2 billion went unclaimed in 2022.")
+    assert vlive["narration"].endswith("a real wait, sped up.")
 
 
 def test_captions_match_fresh_refresh():

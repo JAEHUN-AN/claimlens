@@ -14,7 +14,7 @@
       ],
       "caption": "AI reads. Code counts. People decide.",
       "narration": "AI reads, reasons and asks; code counts.",
-      "duration": 6,
+      "duration": 5,
       "id": "thesis",
       "page": "card:thesis",
       "title": "thesis card"
@@ -38,14 +38,14 @@
       "page": "card:before_after",
       "title": "before/after card",
       "caption": "By hand: 30+ min (est.) → ClaimLens: ~22.97 s (measured)",
-      "duration": 6,
+      "duration": 5,
       "actions": [
         {
           "op": "hold",
           "seconds": 5
         }
       ],
-      "narration": "Doing this by hand — translating the certificate, converting the codes and currency, itemising the bill and filling the insurer's form — takes 30+ minutes per claim (builder's estimate). ClaimLens: about 22.97 seconds (measured)."
+      "narration": "By hand, this takes 30+ minutes per claim, by the builder's estimate. ClaimLens takes about 22.97 seconds, measured."
     },
     {
       "actions": [],
@@ -199,7 +199,7 @@
       "actions": [],
       "caption": "Agent scorecard 8/8",
       "narration": "We score it — 7 agent dialogues + 1 voice rule, each replayed once: it asks when it must, stays quiet when it need not, and never invents a number.",
-      "duration": 7,
+      "duration": 6,
       "id": "score",
       "page": "agent-eval",
       "title": "agent scorecard"
@@ -376,7 +376,7 @@
       ],
       "caption": "LIVE · new photos · real Muse Spark call",
       "narration": "This run is live: new photos, a real Muse Spark call, real seconds on screen.",
-      "duration": 15,
+      "duration": 12,
       "id": "live",
       "page": "live",
       "title": "live run",
@@ -468,7 +468,7 @@
       ],
       "caption": "Checks the agent can't skip",
       "narration": "Checks the agent cannot skip: a refused call, a handoff card, and a reviewer who approves or returns with notes.",
-      "duration": 11,
+      "duration": 14,
       "id": "verify",
       "page": "demo",
       "title": "checks you cannot skip"
@@ -515,7 +515,7 @@
       ],
       "caption": "Same proof on your phone",
       "narration": "On your phone: same demo, same proof.",
-      "duration": 6,
+      "duration": 9,
       "id": "phone",
       "page": "phone",
       "title": "on your phone"
@@ -529,7 +529,7 @@
       ],
       "caption": "6 Meta tools, each measured",
       "narration": "Muse Code wrote the code — the log shows how. Spark reads and runs the agent, files ride by id, SAM masks seals, Voice takes the call, Spark Open is measured side by side.",
-      "duration": 9,
+      "duration": 8,
       "id": "tools",
       "page": "card:meta",
       "title": "Meta tools card"
@@ -602,7 +602,7 @@
       ],
       "caption": "Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
       "narration": "All documents are synthetic. Try it: jaehun-an.github.io/claimlens · github.com/JAEHUN-AN/claimlens",
-      "duration": 8,
+      "duration": 9,
       "id": "closing",
       "page": "demo",
       "title": "closing screen"

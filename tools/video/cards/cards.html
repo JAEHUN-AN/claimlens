@@ -37,7 +37,8 @@ max-width:1000px;width:100%}
 .tile{background:var(--card);border-radius:14px;padding:2vmin;
 box-shadow:0 1px 2px rgba(0,0,0,.12);text-align:left}
 .tile b{display:block;font-size:clamp(13px,2.5vmin,22px)}
-.tile span{font-size:clamp(11px,2vmin,17px);color:var(--dim)}
+.tile span{display:block;font-size:clamp(11px,2vmin,17px);color:var(--dim)}
+.tile span+span{margin-top:.6vmin;color:var(--ink,#1a1a1a);font-weight:600}
 .link{font-size:clamp(18px,4vmin,40px);font-weight:700;color:var(--accent);margin:0}
 #before_after svg{width:min(92vw,680px);height:auto}
 @media (max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}

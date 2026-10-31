@@ -250,8 +250,8 @@ def test_before_after_and_gate_narration_come_from_data():
 
     wanted = captions._wanted(captions.ROOT)
     narration = wanted["before_after"][1]
-    assert "30+ minutes per claim (builder's estimate)" in narration
-    assert "(measured)" in narration
+    assert "30+ minutes per claim, by the builder's estimate" in narration
+    assert narration.endswith("seconds, measured.")
     gate = wanted["gate"][1]
     assert gate.startswith("A single read on the old pipeline let ")
     assert "Real trips:" in gate

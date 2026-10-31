@@ -21,6 +21,7 @@ import argparse
 import re
 import shutil
 import subprocess
+import time
 import sys
 import wave
 from pathlib import Path
@@ -186,8 +187,16 @@ def synthesize_scene(text: str, wav_path: Path, voice: str,
     from video_sound import ffmpeg_bin
 
     mp3 = wav_path.with_suffix(".mp3")
-    subprocess.run(synth_cmd(spoken(text), mp3, voice, rate),
-                   check=True, capture_output=True, text=True)
+    # The read-aloud service sometimes answers with no audio; retry a little.
+    for attempt in range(3):
+        done = subprocess.run(synth_cmd(spoken(text), mp3, voice, rate),
+                              capture_output=True, text=True)
+        if done.returncode == 0 and mp3.exists() and mp3.stat().st_size > 0:
+            break
+        time.sleep(2 * (attempt + 1))
+    else:
+        raise subprocess.CalledProcessError(done.returncode, done.args,
+                                            done.stdout, done.stderr)
     subprocess.run([ffmpeg_bin(), "-y", "-loglevel", "error", "-i", str(mp3),
                     "-ar", "44100", "-ac", "1", str(wav_path)],
                    check=True, capture_output=True, text=True)

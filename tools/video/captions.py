@@ -84,10 +84,8 @@ def _wanted(root: Path) -> dict[str, tuple[str, str | None]]:
 
 # Owner-approved sentence (backlog Round 10) + the measured side, spoken.
 BEFORE_AFTER_NARRATION = (
-    "Doing this by hand — translating the certificate, converting the codes "
-    "and currency, itemising the bill and filling the insurer's form — takes "
-    "30+ minutes per claim (builder's estimate). ClaimLens: about {n} seconds "
-    "(measured).")
+    "By hand, this takes 30+ minutes per claim, by the builder's estimate. "
+    "ClaimLens takes about {n} seconds, measured.")
 
 
 def gate_narration(root: Path, nums: dict[str, str]) -> str:
